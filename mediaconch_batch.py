@@ -23,6 +23,6 @@ if __name__ == "__main__":
         print("Usage: python mediaconch_batch.py /path/to/directory")
     else:
         folder_path = sys.argv[1]
-        policy_file = "policy.xml"  # Replace with the actual policy file path if it's different
+        policy_file = "JPC_AV_NTSC_MKV.xml"  # Replace with the actual policy file path if it's different
 
         run_mediaconch_on_mkv_files(folder_path, policy_file)
