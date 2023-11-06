@@ -162,7 +162,7 @@ def parse_mediainfo(file_path):
         for diff in differences:
             print(diff)
 
-file_path = "empty-field_JPCspecs_mi.txt"
+file_path = "JPCspecs_mi.txt"
 # assigns variable "file_path" to the text file "JPCspecs_mi.txt"
 # This part of the script is for testing purposes and it will need to change to assign file_path programatically when run on a directory or something... TBD
 
