@@ -44,11 +44,9 @@ for pair in sublists[2][:3]:
 
 if isinstance(settings_dict3['W'], list):
     settings_dict3['W'].append(sublists[2][3].split(' ', 1)[0])
-
-for pair in (sublists[2][3].split(' ', 1)[1]):
-    if "=" in pair:
-        key, value = pair.split("=")
-        settings_dict3[key] = value
+    
+key, value = (sublists[2][3].split(' ', 1)[1]).split("=")
+settings_dict3[key] = value
 
 print(settings_dict1)
 print(settings_dict2)
