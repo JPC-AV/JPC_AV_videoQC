@@ -21,36 +21,38 @@ for pair in settings_list:
 sublists.append(current_sublist)
 
 # Creating dictionaries from sublists
-dictionaries = []
-for sublist in sublists:
-    settings_dict = {}
-    for pair in sublists[0]:
+settings_dict1 = {}
+for pair in sublists[0]:
+    key, value = pair.split("=")
+    settings_dict1[key] = value
+
+settings_dict2 = {}
+for pair in sublists[1]:
+    if "=" in pair:
         key, value = pair.split("=")
-        settings_dict[key] = value
-    for pair in sublists[1]:
-        if "=" in pair:
-            key, value = pair.split("=")
-            settings_dict[key] = value
-        else:
-            settings_dict['T'] = [settings_dict['T'], pair]
-    for pair in sublists[2][:3]:
-        if "=" in pair:
-            key, value = pair.split("=")
-            settings_dict[key] = value
-        else:
-            settings_dict['W'] = [settings_dict['W'], pair]
-            if isinstance(settings_dict['W'], list):
-                settings_dict['W'].extend(sublists[2][3].split(' ', 1)[0])
-        for pair in (sublists[2][3].split(' ', 1)[1]):
-            if "=" in pair:
-                key, value = pair.split("=")
-                settings_dict[key] = value
-    dictionaries.append(settings_dict)
+        settings_dict2[key] = value
+    else:
+        settings_dict2['T'] = [settings_dict2['T'], pair]
 
-# Printing the result
-for i, settings_dict in enumerate(dictionaries, start=1):
-    print(f"Dictionary {i}: {settings_dict}")
+settings_dict3 = {}
+for pair in sublists[2][:3]:
+    if "=" in pair:
+        key, value = pair.split("=")
+        settings_dict3[key] = value
+    else:
+        settings_dict3['W'] = [settings_dict3['W'], pair]
 
+if isinstance(settings_dict3['W'], list):
+    settings_dict3['W'].append(sublists[2][3].split(' ', 1)[0])
+
+for pair in (sublists[2][3].split(' ', 1)[1]):
+    if "=" in pair:
+        key, value = pair.split("=")
+        settings_dict3[key] = value
+
+print(settings_dict1)
+print(settings_dict2)
+print(settings_dict3)
 
 # https://www.google.com/search?q=python+how+to+append+to+an+existing+value+in+dictionary&oq=&gs_lcrp=EgZjaHJvbWUqCQgCEEUYOxjCAzIJCAAQRRg7GMIDMgkIARBFGDsYwgMyCQgCEEUYOxjCAzIJCAMQRRg7GMIDMgkIBBBFGDsYwgMyCQgFEEUYOxjCAzIJCAYQRRg7GMIDMgkIBxBFGDsYwgPSAQo3NDI2MTNqMGo3qAIIsAIB&sourceid=chrome&ie=UTF-8#kpvalbx=_eslTZbzAMcCz0PEPpOCQ-Aw_27
 # https://www.geeksforgeeks.org/python-split-list-into-lists-by-particular-value/#
