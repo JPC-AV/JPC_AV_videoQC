@@ -148,7 +148,9 @@ def parse_mediainfo(file_path):
 
     for expected_key, expected_value in expected_custom_fields.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"
-        if len(section_data["General"][expected_key]) == 0:
+        if expected_key not in (section_data["General"]):
+            differences.append(f"metadata field in General: {expected_key} does not exist") 
+        elif len(section_data["General"][expected_key]) == 0:
         # count the values in the nested dictionary "General" with 'len', if the values are zero, then:
             differences.append(f"General: {expected_key} is empty")
             # append this string to the list "differences"
@@ -162,7 +164,7 @@ def parse_mediainfo(file_path):
         for diff in differences:
             print(diff)
 
-file_path = "JPCspecs_mi.txt"
+file_path = "JPC_AV_00011_mediainfo.txt"
 # assigns variable "file_path" to the text file "JPCspecs_mi.txt"
 # This part of the script is for testing purposes and it will need to change to assign file_path programatically when run on a directory or something... TBD
 
