@@ -1,0 +1,5 @@
+2023-11-21 15:55:11,243 - DEBUG: A debug message
+2023-11-21 15:55:11,243 - INFO: An info message
+2023-11-21 15:55:11,243 - WARNING: Something is not right.
+2023-11-21 15:55:11,243 - ERROR: A Major error has happened.
+2023-11-21 15:55:11,243 - CRITICAL: Fatal error. Cannot continue
