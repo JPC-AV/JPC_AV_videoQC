@@ -1,3 +1,6 @@
+import os
+import sys
+
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_mediainfo(file_path):
@@ -35,7 +38,7 @@ def parse_mediainfo(file_path):
     }
     # creates a dictionary of expected keys and values for the mediainfo output section "Audio"
     expected_audio = {
-        "Format": "FLAC",
+        "Format": ["FLAC", "PCM"],
         "Channel(s)": "2 channels",
         "Sampling rate": "48.0 kHz",
         "Bit depth": "24 bits",
@@ -142,7 +145,7 @@ def parse_mediainfo(file_path):
             actual_value = section_data["Audio"][expected_key]
             # assigns the variable "actual_value" to the value that matches the key in the dictionary "Audio"
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-            if actual_value != expected_value:
+            if actual_value not in expected_value:
                 differences.append(f"Audio: {expected_key}\nExpected: {expected_value}\nActual: {actual_value}\n")
                 # append this string to the list "differences"
 
@@ -164,8 +167,17 @@ def parse_mediainfo(file_path):
         for diff in differences:
             print(diff)
 
-file_path = "JPC_AV_00011_mediainfo.txt"
-# assigns variable "file_path" to the text file "JPCspecs_mi.txt"
+if len(sys.argv) != 2:
+    print("Usage: python script.py <mediainfo_file>")
+    sys.exit(1)
+
+file_path = sys.argv[1]
+
+if not os.path.isfile(file_path):
+    print(f"Error: {file_path} is not a valid file.")
+    sys.exit(1)
+
+
 # This part of the script is for testing purposes and it will need to change to assign file_path programatically when run on a directory or something... TBD
 
 parse_mediainfo(file_path)
