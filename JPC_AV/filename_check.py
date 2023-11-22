@@ -15,9 +15,9 @@ def is_valid_filename(filename):
     
     # Check if the filename matches the pattern
     if re.match(pattern, filename, re.IGNORECASE):
-        return True
+        print(f"The file name '{filename}' is valid.")
     else:
-        return False
+        print(f"The file name '{filename}' does not match the naming convention.")
 
 def validate_files_in_directory(directory_path):
     for filename in os.listdir(directory_path):

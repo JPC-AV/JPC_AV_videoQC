@@ -35,7 +35,7 @@ def parse_mediainfo(file_path):
     }
     # creates a dictionary of expected keys and values for the mediainfo output section "Audio"
     expected_audio = {
-        "Format": "FLAC",
+        "Format": ["FLAC", "PCM"],
         "Channel(s)": "2 channels",
         "Sampling rate": "48.0 kHz",
         "Bit depth": "24 bits",
@@ -142,7 +142,7 @@ def parse_mediainfo(file_path):
             actual_value = section_data["Audio"][expected_key]
             # assigns the variable "actual_value" to the value that matches the key in the dictionary "Audio"
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-            if actual_value != expected_value:
+            if actual_value not in expected_value:
                 differences.append(f"Audio: {expected_key}\nExpected: {expected_value}\nActual: {actual_value}\n")
                 # append this string to the list "differences"
 

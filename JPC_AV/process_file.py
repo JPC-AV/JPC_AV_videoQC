@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 import logging
+from filename_check import approved_values, is_valid_filename
 
 def create_directory(video_path):
     directory_name = os.path.splitext(os.path.basename(video_path))[0]
@@ -22,12 +23,19 @@ def run_command(command, input_path, output_path):
 
     subprocess.run(full_command, shell=True)
 
-
-policy_file = os.path.join(os.getcwd(), 'JPC_AV_NTSC_MKV.xml')
-if not os.path.exists(policy_file):
-    logging.critical(f'Policy file not found: {policy_file}')
-else:
-    logging.debug(f'Using MediaConch policy {policy_file}')
+def mediaconch_command():
+    policy_file = os.path.join(os.getcwd(), 'JPC_AV_NTSC_MKV.xml')
+    if not os.path.exists(policy_file):
+        logging.critical(f'Policy file not found: {policy_file}')
+    else:
+        logging.debug(f'Using MediaConch policy {policy_file}')
+    
+    mediaconch_output_path = os.path.join(destination_directory, f'{file_name}_mediaconch_output.csv')
+    #mediaconch_command = print(f'mediaconch -p ' + policy_file)
+    run_command('mediaconch', video_path, mediaconch_output_path)
+    with open(mediaconch_output_path) as mc_file:
+        if 'fail' in mc_file.read():
+            print('MediaConch policy failed')
 
 def main():
     if len(sys.argv) != 2:
@@ -40,18 +48,10 @@ def main():
         print(f"Error: {video_path} is not a valid file.")
         sys.exit(1)
 
-    file_name = os.path.splitext(os.path.basename(video_path))[0]
-    # This is just in here temporarily till we add in the file name check
+    is_valid_filename(video_path)
     
     # Create a directory with the same name as the video file
     destination_directory = create_directory(video_path)
-
-    mediaconch_output_path = os.path.join(destination_directory, f'{file_name}_mediaconch_output.csv')
-    #mediaconch_command = print(f'mediaconch -p ' + policy_file)
-    run_command('mediaconch', video_path, mediaconch_output_path)
-    with open(mediaconch_output_path) as mc_file:
-        if 'fail' in mc_file.read():
-            print('MediaConch policy failed')
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
     exiftool_output_path = os.path.join(destination_directory, f'{file_name}_exiftool_output.txt')
