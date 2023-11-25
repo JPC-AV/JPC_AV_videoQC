@@ -2,7 +2,11 @@ import os
 import subprocess
 import sys
 import logging
+import fnmatch
+from log_config import setup_logger
 from filename_check import approved_values, is_valid_filename
+
+logger = setup_logger(__file__)
 
 def create_directory(video_path):
     directory_name = os.path.splitext(os.path.basename(video_path))[0]
@@ -10,32 +14,41 @@ def create_directory(video_path):
 
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
+    
+    logger.debug(f'Video file will be moved to {directory_path}')
 
     return directory_path
 
 def move_video_file(video_path, destination_directory):
     video_name = os.path.basename(video_path)
     destination_path = os.path.join(destination_directory, video_name)
+    logger.debug(f'{video_name} moved to {destination_directory}')
     os.rename(video_path, destination_path)
 
 def run_command(command, input_path, output_path):
     full_command = f"{command} {input_path} > {output_path}"
 
     subprocess.run(full_command, shell=True)
+    logger.debug(f'{full_command}')
 
-def mediaconch_command():
-    policy_file = os.path.join(os.getcwd(), 'JPC_AV_NTSC_MKV.xml')
-    if not os.path.exists(policy_file):
-        logging.critical(f'Policy file not found: {policy_file}')
-    else:
-        logging.debug(f'Using MediaConch policy {policy_file}')
+def run_mediaconch_command(command, input_path, output_type, output_path):
+    root_dir = os.path.join(os.path.abspath(os.path.dirname(os.getcwd())))
+    # logger.debug(f'{root_dir} is root_dir')
+    config_dir = os.path.join(root_dir, 'config')
+    for file in os.listdir(config_dir):
+       if fnmatch.fnmatch(file, '*.xml'):
+              policy_file = file
+    policy_path = os.path.join(config_dir, policy_file)
     
-    mediaconch_output_path = os.path.join(destination_directory, f'{file_name}_mediaconch_output.csv')
-    #mediaconch_command = print(f'mediaconch -p ' + policy_file)
-    run_command('mediaconch', video_path, mediaconch_output_path)
-    with open(mediaconch_output_path) as mc_file:
-        if 'fail' in mc_file.read():
-            print('MediaConch policy failed')
+    if not os.path.exists(policy_path):
+        logger.critical(f'Policy file not found: {policy_file}')
+    else:
+        logger.debug(f'Using MediaConch policy {policy_file}')
+    
+    full_command = f"{command} {policy_path} {input_path} {output_type} {output_path}"
+
+    subprocess.run(full_command, shell=True)
+    logger.debug(f'{full_command}')
 
 def main():
     if len(sys.argv) != 2:
@@ -48,25 +61,36 @@ def main():
         print(f"Error: {video_path} is not a valid file.")
         sys.exit(1)
 
-    is_valid_filename(video_path)
+    video_name = os.path.basename(video_path)
+    
+    is_valid_filename(video_name)
+
+    video_id = os.path.splitext(os.path.basename(video_name))[0]
     
     # Create a directory with the same name as the video file
     destination_directory = create_directory(video_path)
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
-    exiftool_output_path = os.path.join(destination_directory, f'{file_name}_exiftool_output.txt')
+    mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
+    run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
+
+    with open(mediaconch_output_path) as mc_file:
+        if 'fail' in mc_file.read():
+            logger.critical('MediaConch policy failed') 
+
+    exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
     run_command('exiftool', video_path, exiftool_output_path)
 
-    mediainfo_output_path = os.path.join(destination_directory, f'{file_name}_mediainfo_output.txt')
+    mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
     run_command('mediainfo -f', video_path, mediainfo_output_path)
 
-    ffprobe_output_path = os.path.join(destination_directory, f'{file_name}_ffprobe_output.txt')
+    ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
     run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, ffprobe_output_path)
 
     # Move the video file into the created directory
     move_video_file(video_path, destination_directory)
 
-    print("Processing complete. Output files saved in the directory:", destination_directory)
+    logger.info(f'Processing complete. Output files saved in the directory:, {destination_directory}')
 
 if __name__ == "__main__":
     main()
