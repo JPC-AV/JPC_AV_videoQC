@@ -1,12 +1,29 @@
 import os
 import subprocess
 import sys
+import re
 import logging
 import fnmatch
 from log_config import setup_logger
-from filename_check import approved_values, is_valid_filename
 
 logger = setup_logger(__file__)
+
+approved_values = {
+    "Collection": "JPC",
+    "MediaType": "AV",
+    "FileExtension": "mkv"
+}
+
+def is_valid_filename(filename):
+    # Define the regular expression pattern
+    pattern = r'^{Collection}_{MediaType}_\d{{5}}\.{FileExtension}$'.format(**approved_values)
+    
+    # Check if the filename matches the pattern
+    if re.match(pattern, filename, re.IGNORECASE):
+        logger.debug(f"The file name '{filename}' is valid.")
+    else:
+        logger.critical(f"The file name '{filename}' does not match the naming convention.")
+        sys.exit()
 
 def create_directory(video_path):
     directory_name = os.path.splitext(os.path.basename(video_path))[0]
