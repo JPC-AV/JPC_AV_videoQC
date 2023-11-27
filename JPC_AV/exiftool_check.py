@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-logger = logging.getLogger(__name__)
+from log_config import logger
 
 ## creates the function "parse_exiftool" which takes the argument "file_path" 
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
@@ -67,7 +67,7 @@ def parse_exiftool(file_path):
     # if the list "differences" is not empty, then
         logger.critical("Some specified Exiftool fields or values are missing or don't match:")
         for diff in differences:
-            logger.critical(diff)
+            logger.critical(f'\n\t{diff}')
 
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":

@@ -8,11 +8,9 @@ import re
 import logging
 import fnmatch
 import yaml
-from log_config import setup_logger
+from log_config import logger
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
-
-logger = setup_logger(__file__)
 
 approved_values = {
     "Collection": "JPC",
@@ -63,7 +61,6 @@ def run_command(command, input_path, output_path):
 
 def run_mediaconch_command(command, input_path, output_type, output_path):
     root_dir = os.path.join(os.path.abspath(os.path.dirname(os.getcwd())))
-    # logger.debug(f'{root_dir} is root_dir')
     config_dir = os.path.join(root_dir, 'config')
     for file in os.listdir(config_dir):
        if fnmatch.fnmatch(file, '*.xml'):

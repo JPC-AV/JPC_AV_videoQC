@@ -1,0 +1,6 @@
+---
+output_path: '/Users/eddy/git_dir/JPC_AV/output'
+approved_values:
+  Collection: JPC
+  MediaType: AV
+  FileExtension: mkv 

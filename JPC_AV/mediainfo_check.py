@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
+from log_config import logger
+
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_mediainfo(file_path):
@@ -160,12 +163,12 @@ def parse_mediainfo(file_path):
     
     if not differences:
     # if the list "differences" is empty, then
-        print("All specified fields and values found in the MediaInfo output.")
+        logger.debug("All specified fields and values found in the MediaInfo output.")
     else:
     # if the list "differences" is not empty, then
-        print("Some specified MediaInfo fields or values are missing or don't match:")
+        logging.critical("Some specified MediaInfo fields or values are missing or don't match:")
         for diff in differences:
-            print(diff)
+            logging.critical(f'\n\t{diff}')
 
 # Only execute if this file is run directly, not imported
 if __name__ == "__main__":
