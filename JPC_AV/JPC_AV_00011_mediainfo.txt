@@ -1,0 +1,191 @@
+General
+Count                                    : 333
+Count of stream of this kind             : 1
+Kind of stream                           : General
+Kind of stream                           : General
+Stream identifier                        : 0
+Unique ID                                : 231800588103293265593416427299116866126
+Unique ID                                : 231800588103293265593416427299116866126 (0xAE632B5C30DA2ED3F3B32B9BE5E6DA4E)
+Count of video streams                   : 1
+Count of audio streams                   : 1
+Video_Format_List                        : FFV1
+Video_Format_WithHint_List               : FFV1
+Codecs Video                             : FFV1
+Video_Language_List                      : English
+Audio_Format_List                        : PCM
+Audio_Format_WithHint_List               : PCM
+Audio codecs                             : PCM
+Audio_Language_List                      : English
+Complete name                            : /Volumes/xUtility/JPC/DCvideo/New Folder With Items/JPC_AV_00011.mkv
+Folder name                              : /Volumes/xUtility/JPC/DCvideo/New Folder With Items
+File name                                : JPC_AV_00011.mkv
+File name                                : JPC_AV_00011
+File extension                           : mkv
+Format                                   : Matroska
+Format                                   : Matroska
+Format/Url                               : https://matroska.org/downloads/windows.html
+Format/Extensions usually used           : mkv mk3d mka mks
+Commercial name                          : Matroska
+Format version                           : Version 4
+File size                                : 21563173302
+File size                                : 20.1 GiB
+File size                                : 20 GiB
+File size                                : 20 GiB
+File size                                : 20.1 GiB
+File size                                : 20.08 GiB
+Duration                                 : 1725125
+Duration                                 : 28 min 45 s
+Duration                                 : 28 min 45 s 125 ms
+Duration                                 : 28 min 45 s
+Duration                                 : 00:28:45.125
+Duration                                 : 00:28:45;04
+Duration                                 : 00:28:45.125 (00:28:45;04)
+Overall bit rate mode                    : VBR
+Overall bit rate mode                    : Variable
+Overall bit rate                         : 99995880
+Overall bit rate                         : 100.0 Mb/s
+Frame rate                               : 29.970
+Frame rate                               : 29.970 FPS
+Frame count                              : 51702
+IsStreamable                             : Yes
+File last modification date              : UTC 2023-11-17 13:19:46
+File last modification date (local)      : 2023-11-17 08:19:46
+Writing application                      : Lavf60.3.100
+Writing application                      : Lavf60.3.100
+Writing library                          : Lavf60.3.100
+Writing library                          : Lavf60.3.100
+ErrorDetectionType                       : Per level 1
+COM.APPLE.FINALCUTSTUDIO.MEDIA.UUID      : CDB2E471-F3D1-4249-90D4-54A3C8C7F318
+
+Video
+Count                                    : 378
+Count of stream of this kind             : 1
+Kind of stream                           : Video
+Kind of stream                           : Video
+Stream identifier                        : 0
+StreamOrder                              : 0
+ID                                       : 1
+ID                                       : 1
+Unique ID                                : 14367784945730091089
+Format                                   : FFV1
+Format                                   : FFV1
+Commercial name                          : FFV1
+Format version                           : Version 3.4
+Format settings, GOP                     : N=1
+Codec ID                                 : V_MS/VFW/FOURCC / FFV1
+Codec ID/Url                             : http://ffdshow-tryout.sourceforge.net/
+Duration                                 : 1725125.000000
+Duration                                 : 28 min 45 s
+Duration                                 : 28 min 45 s 125 ms
+Duration                                 : 28 min 45 s
+Duration                                 : 00:28:45.125
+Duration                                 : 00:28:45;04
+Duration                                 : 00:28:45.125 (00:28:45;04)
+Bit rate mode                            : VBR
+Bit rate mode                            : Variable
+Width                                    : 720
+Width                                    : 720 pixels
+Height                                   : 486
+Height                                   : 486 pixels
+Pixel aspect ratio                       : 0.909
+Display aspect ratio                     : 1.347
+Display aspect ratio                     : 4:3
+Frame rate mode                          : CFR
+Frame rate mode                          : Constant
+Frame rate                               : 29.970
+Frame rate                               : 29.970 (29970/1000) FPS
+FrameRate_Num                            : 29970
+FrameRate_Den                            : 1000
+Frame count                              : 51702
+Standard                                 : NTSC
+Color space                              : YUV
+Chroma subsampling                       : 4:2:2
+Chroma subsampling                       : 4:2:2
+Bit depth                                : 10
+Bit depth                                : 10 bits
+Scan type                                : Progressive
+Scan type                                : Progressive
+Compression mode                         : Lossless
+Compression mode                         : Lossless
+Delay                                    : 0
+Delay                                    : 00:00:00.000
+Delay, origin                            : Container
+Delay, origin                            : Container
+Time code of first frame                 : 01:00:00;00
+Time code source                         : Matroska tags
+Writing library                          : Lavc60.3.100 ffv1
+Writing library                          : Lavc60.3.100 ffv1
+Language                                 : en
+Language                                 : English
+Language                                 : English
+Language                                 : en
+Language                                 : eng
+Language                                 : en
+Default                                  : Yes
+Default                                  : Yes
+Forced                                   : No
+Forced                                   : No
+colour_description_present               : Yes
+colour_description_present_Source        : Container
+Color primaries                          : BT.601 NTSC
+colour_primaries_Source                  : Container
+Transfer characteristics                 : BT.709
+transfer_characteristics_Source          : Container
+Matrix coefficients                      : BT.601
+matrix_coefficients_Source               : Container
+VENDOR_ID                                : KeyG
+coder_type                               : Range Coder
+MaxSlicesCount                           : 24
+ErrorDetectionType                       : Per slice
+
+Audio
+Count                                    : 278
+Count of stream of this kind             : 1
+Kind of stream                           : Audio
+Kind of stream                           : Audio
+Stream identifier                        : 0
+StreamOrder                              : 1
+ID                                       : 2
+ID                                       : 2
+Unique ID                                : 8256911126598565595
+Format                                   : PCM
+Format                                   : PCM
+Commercial name                          : PCM
+Format settings                          : Little / Signed
+Format settings, Endianness              : Little
+Format settings, Sign                    : Signed
+Codec ID                                 : A_PCM/INT/LIT
+Duration                                 : 1725123.000000
+Duration                                 : 28 min 45 s
+Duration                                 : 28 min 45 s 123 ms
+Duration                                 : 28 min 45 s
+Duration                                 : 00:28:45.123
+Duration                                 : 00:28:45.123
+Bit rate mode                            : CBR
+Bit rate mode                            : Constant
+Channel(s)                               : 2
+Channel(s)                               : 2 channels
+Sampling rate                            : 48000
+Sampling rate                            : 48.0 kHz
+Samples count                            : 82805904
+Bit depth                                : 24
+Bit depth                                : 24 bits
+Delay                                    : 0
+Delay                                    : 00:00:00.000
+Delay, origin                            : Container
+Delay, origin                            : Container
+Delay relative to video                  : 0
+Delay relative to video                  : 00:00:00.000
+Language                                 : en
+Language                                 : English
+Language                                 : English
+Language                                 : en
+Language                                 : eng
+Language                                 : en
+Default                                  : Yes
+Default                                  : Yes
+Forced                                   : No
+Forced                                   : No
+VENDOR_ID                                : [0][0][0][0]
+
+

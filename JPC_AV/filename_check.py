@@ -1,6 +1,9 @@
 import os
 import re
 import sys
+from log_config import setup_logger
+
+logger = setup_logger(__file__)
 
 # Approved values
 approved_values = {
@@ -15,20 +18,22 @@ def is_valid_filename(filename):
     
     # Check if the filename matches the pattern
     if re.match(pattern, filename, re.IGNORECASE):
-        print(f"The file name '{filename}' is valid.")
+        logger.debug(f"The file name '{filename}' is valid.")
     else:
-        print(f"The file name '{filename}' does not match the naming convention.")
+        logger.debug(f"The file name '{filename}' does not match the naming convention.")
 
 def validate_files_in_directory(directory_path):
     for filename in os.listdir(directory_path):
         if is_valid_filename(filename):
-            print(f"The file name '{filename}' is valid.")
+            logger.debug(f"The file name '{filename}' is valid.")
         else:
-            print(f"The file name '{filename}' does not match the naming convention.")
+            logger.debug(f"The file name '{filename}' does not match the naming convention.")
 
-if __name__ == "__main__":
+if sys.argv[0] == __file__:
+    logger.debug('A debug message from filename_check.py')
     if len(sys.argv) != 2:
         print("Usage: python script-name.py /path/to/your/directory")
     else:
         directory_path = sys.argv[1]
         validate_files_in_directory(directory_path)
+        
