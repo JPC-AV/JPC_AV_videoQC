@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_mediainfo(file_path):
@@ -160,13 +163,14 @@ def parse_mediainfo(file_path):
         print("All specified fields and values found in the MediaInfo output.")
     else:
     # if the list "differences" is not empty, then
-        print("Some specified fields or values are missing or don't match:")
+        print("Some specified MediaInfo fields or values are missing or don't match:")
         for diff in differences:
             print(diff)
 
-file_path = "JPC_AV_00011_mediainfo.txt"
-# assigns variable "file_path" to the text file "JPCspecs_mi.txt"
-# This part of the script is for testing purposes and it will need to change to assign file_path programatically when run on a directory or something... TBD
-
-parse_mediainfo(file_path)
-#runs the function "parse_mediainfo" on the file assigned to the variable "file_path"
+# Only execute if this file is run directly, not imported
+if __name__ == "__main__":
+    file_path = "JPC_AV_00011_mediainfo.txt"
+    # assigns variable "file_path" to the text file "JPCspecs_mi.txt"
+    # # This part of the script is for testing purposes and it will need to change to assign file_path programatically when run on a directory or something... TBD
+    parse_mediainfo(file_path)
+    # runs the function "parse_mediainfo" on the file assigned to the variable "file_path"

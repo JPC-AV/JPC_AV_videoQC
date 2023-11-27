@@ -1,10 +1,16 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import os
 import subprocess
 import sys
 import re
 import logging
 import fnmatch
+import yaml
 from log_config import setup_logger
+from mediainfo_check import parse_mediainfo
+from exiftool_check import parse_exiftool
 
 logger = setup_logger(__file__)
 
@@ -22,12 +28,19 @@ def is_valid_filename(filename):
     if re.match(pattern, filename, re.IGNORECASE):
         logger.debug(f"The file name '{filename}' is valid.")
     else:
-        logger.critical(f"The file name '{filename}' does not match the naming convention.")
+        logger.critical(f"The file name '{filename}' does not match the naming convention. Exiting script!")
         sys.exit()
 
 def create_directory(video_path):
     directory_name = os.path.splitext(os.path.basename(video_path))[0]
-    directory_path = os.path.join(os.getcwd(), directory_name)
+    root_dir = os.path.join(os.path.abspath(os.path.dirname(os.getcwd())))
+    config_dir = os.path.join(root_dir, 'config')
+    config_yml = os.path.join(config_dir, 'config.yaml')
+    with open(config_yml) as f:
+        config_dict = yaml.safe_load(f)
+    
+    output_path = config_dict['output_path']
+    directory_path = os.path.join(output_path, directory_name)
 
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
@@ -107,7 +120,11 @@ def main():
     # Move the video file into the created directory
     move_video_file(video_path, destination_directory)
 
-    logger.info(f'Processing complete. Output files saved in the directory:, {destination_directory}')
+    logger.info(f'Processing complete. Output files saved in the directory: {destination_directory}')
+
+    parse_mediainfo(mediainfo_output_path)
+
+    parse_exiftool(exiftool_output_path)
 
 if __name__ == "__main__":
     main()
