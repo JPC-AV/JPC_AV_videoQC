@@ -37,8 +37,13 @@ def create_directory(video_path):
     with open(config_yml) as f:
         config_dict = yaml.safe_load(f)
     
-    output_path = config_dict['output_path']
-    directory_path = os.path.join(output_path, directory_name)
+    if config_dict['output_path'] != None:
+            output_path = config_dict['output_path']
+            directory_path = os.path.join(output_path, directory_name)
+    else:
+        output_path = os.path.join(root_dir, 'output')
+        logger.debug(f'No output_path found in {config_yml}, using default {output_path}')
+        directory_path = os.path.join(output_path, directory_name)
 
     if not os.path.exists(directory_path):
         os.makedirs(directory_path)
