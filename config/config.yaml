@@ -1,6 +1,63 @@
 ---
 output_path: 
-approved_values:
+mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
+filename_values:
   Collection: JPC
   MediaType: AV
   FileExtension: mkv 
+mediainfo_values:
+  expected_general: 
+    File extension: mkv  
+    Format: Matroska  
+    Overall bit rate mode: Variable
+  expected_video:
+    Format: FFV1  
+    Format settings  GOP: N=1  
+    Codec ID: V_MS/VFW/FOURCC / FFV1  
+    Width: 720 pixels  
+    Height: 486 pixels  
+    Pixel aspect ratio: '0.900'  
+    Display aspect ratio: '4:3'  
+    Frame rate mode: Constant  
+    Frame rate: 29.970 (30000/1001) FPS  
+    Standard: NTSC  
+    Color space: YUV  
+    Chroma subsampling: '4:2:2'  
+    Bit depth: 10 bits  
+    Scan type: Interlaced  
+    Scan order: Bottom Field First  
+    Compression mode: Lossless  
+    Color primaries: BT.601 NTSC  
+    colour_primaries_Source: Container  
+    Transfer characteristics: BT.709  
+    transfer_characteristics_Source: Container  
+    Matrix coefficients: BT.601  
+    MaxSlicesCount: '24'  
+    ErrorDetectionType: Per slice  
+  expected_audio: 
+    Format : [ FLAC, PCM ] 
+    Channel(s): 2 channels  
+    Sampling rate: 48.0 kHz  
+    Bit depth: 24 bits  
+    Compression mode: Lossless
+  expected_custom_fields: 
+    Title:   
+    Encoded by:   
+    Description:   
+    Encoding settings:   
+    ORIGINAL MEDIA TYPE :
+exiftool_values:
+  File Type: MKV
+  File Type Extension: mkv
+  MIME Type: video/x-matroska
+  Video Frame Rate: '29.97'
+  Image Width: '720'
+  Image Height: '486'
+  Video Scan Type: Interlaced
+  Display Width: '4'
+  Display Height: '3'
+  Display Unit: Display Aspect Ratio
+  Codec ID: A_FLAC
+  Audio Channels: '2'
+  Audio Sample Rate: '48000'
+  Audio Bits Per Sample: '24'

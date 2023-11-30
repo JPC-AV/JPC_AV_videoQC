@@ -1,63 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging
-from log_setup import logger
 import os
 import sys
+import logging
+from log_setup import logger
+from find_config import config_path
 
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_mediainfo(file_path):
-    # creates a dictionary of expected keys and values for the mediainfo output section "General"
-    expected_general = {
-        "File extension": "mkv",
-        "Format": "Matroska",
-        "Overall bit rate mode": "Variable",
-    }
-    # creates a dictionary of expected keys and values for the mediainfo output section "Video"
-    expected_video = {
-        "Format": "FFV1",
-        "Format settings, GOP": "N=1",
-        "Codec ID": "V_MS/VFW/FOURCC / FFV1",
-        "Width": "720 pixels",
-        "Height": "486 pixels",
-        "Pixel aspect ratio": "0.900",
-        "Display aspect ratio": "4:3",
-        "Frame rate mode": "Constant",
-        "Frame rate": "29.970 (30000/1001) FPS",
-        "Standard": "NTSC",
-        "Color space": "YUV",
-        "Chroma subsampling": "4:2:2",
-        "Bit depth": "10 bits",
-        "Scan type": "Interlaced",
-        "Scan order": "Bottom Field First",
-        "Compression mode": "Lossless",
-        "Color primaries": "BT.601 NTSC",
-        "colour_primaries_Source": "Container",
-        "Transfer characteristics": "BT.709",
-        "transfer_characteristics_Source": "Container",
-        "Matrix coefficients": "BT.601",
-        "MaxSlicesCount": "24",
-        "ErrorDetectionType": "Per slice",
-    }
-    # creates a dictionary of expected keys and values for the mediainfo output section "Audio"
-    expected_audio = {
-        "Format": ["FLAC", "PCM"],
-        "Channel(s)": "2 channels",
-        "Sampling rate": "48.0 kHz",
-        "Bit depth": "24 bits",
-        "Compression mode": "Lossless",
-    }
-
-    # creates a list of fields to check, but only to check that the fiels is not empty
-    expected_custom_fields = {
-        "Title": "",
-        "Encoded by": "",
-        "Description": "",
-        "Encoding settings": "",
-        "ORIGINAL MEDIA TYPE": "",
-    }
+    expected_general = config_path.config_dict['mediainfo_values']['expected_general']
+    expected_video = config_path.config_dict['mediainfo_values']['expected_video']
+    expected_audio = config_path.config_dict['mediainfo_values']['expected_audio']
+    expected_custom_fields = config_path.config_dict['mediainfo_values']['expected_custom_fields']
 
     section_data = {}
     # creates empty dictionary "section_data"

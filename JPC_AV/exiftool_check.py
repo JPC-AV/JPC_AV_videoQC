@@ -5,27 +5,13 @@ import os
 import sys
 import logging
 from log_setup import logger
+from find_config import config_path
 
 ## creates the function "parse_exiftool" which takes the argument "file_path" 
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_exiftool(file_path):
     # creates a dictionary of expected keys and values
-    expected_exif_values = {
-        "File Type": "MKV",
-        "File Type Extension": "mkv",
-        "MIME Type": "video/x-matroska",
-        "Video Frame Rate": "29.97",
-        "Image Width": "720",
-        "Image Height": "486",
-        "Video Scan Type": "Interlaced",
-        "Display Width": "4",
-        "Display Height": "3",
-        "Display Unit": "Display Aspect Ratio",
-        "Codec ID": "A_FLAC",
-        "Audio Channels": "2",
-        "Audio Sample Rate": "48000",
-        "Audio Bits Per Sample": "24",
-    }
+    expected_exif_values = config_path.config_dict['exiftool_values']
 
     with open(file_path, 'r') as file:
     # open exiftool text file as variable "file"
