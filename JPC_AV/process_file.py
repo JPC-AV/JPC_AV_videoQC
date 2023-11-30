@@ -6,7 +6,6 @@ import subprocess
 import sys
 import re
 import logging
-import fnmatch
 import yaml
 from log_setup import logger
 from find_config import config_path
@@ -14,7 +13,7 @@ from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 
 def is_valid_filename(filename):
-    approved_values = config_path.config_dict['approved_values']
+    approved_values = config_path.config_dict['filename_values']
     
     # Define the regular expression pattern
     pattern = r'^{Collection}_{MediaType}_\d{{5}}\.{FileExtension}$'.format(**approved_values)
@@ -53,12 +52,10 @@ def run_command(command, input_path, output_path):
     full_command = f"{command} {input_path} > {output_path}"
 
     subprocess.run(full_command, shell=True)
-    logger.debug(f'{full_command}')
+    logger.debug(f'running commnad: {full_command}')
 
 def run_mediaconch_command(command, input_path, output_type, output_path):
-    for file in os.listdir(config_path.config_dir):
-       if fnmatch.fnmatch(file, '*.xml'):
-              policy_file = file
+    policy_file = config_path.config_dict['mediaconch_policy']
     policy_path = os.path.join(config_path.config_dir, policy_file)
     
     if not os.path.exists(policy_path):
