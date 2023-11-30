@@ -80,7 +80,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     full_command = f"{command} {policy_path} {input_path} {output_type} {output_path}"
 
     subprocess.run(full_command, shell=True)
-    logger.debug(f'{full_command}')
+    logger.debug(f'running commnad: {full_command}')
 
 def main():
     if len(sys.argv) != 2:
