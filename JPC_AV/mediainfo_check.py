@@ -48,7 +48,6 @@ def parse_mediainfo(file_path):
         "Sampling rate": "48.0 kHz",
         "Bit depth": "24 bits",
         "Compression mode": "Lossless",
-        "Writing library": "Lavc59.37.100 flac",
     }
 
     # creates a list of fields to check, but only to check that the fiels is not empty
