@@ -11,7 +11,7 @@ from datetime import datetime
 logger = logging.getLogger()
 
 # logDir = os.getcwd()
-root_dir = os.path.join(os.path.abspath(os.path.dirname(os.getcwd())))
+root_dir = os.path.join(os.path.abspath(os.getcwd()))
 logs_parent_dir = os.path.join(root_dir, 'logs')
 log_dir_path = os.path.join(logs_parent_dir, datetime.now().strftime('%Y-%m-%d'))
 if not os.path.exists(log_dir_path):

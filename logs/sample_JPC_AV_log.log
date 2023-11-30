@@ -1,0 +1,18 @@
+2023-11-30 11:37:33,081 - DEBUG: config.yaml sourced from /Users/eddy/git_dir/JPC_AV/config/config.yaml
+2023-11-30 11:37:33,084 - DEBUG: The file name 'JPC_AV_05000.mkv' is valid.
+2023-11-30 11:37:33,084 - DEBUG: No output_path found in /Users/eddy/git_dir/JPC_AV/config/config.yaml, using default /Users/eddy/git_dir/JPC_AV/output
+2023-11-30 11:37:33,084 - DEBUG: Video file will be moved to /Users/eddy/git_dir/JPC_AV/output/JPC_AV_05000
+2023-11-30 11:37:33,085 - DEBUG: Using MediaConch policy JPC_AV_NTSC_MKV_2023-11-21.xml
+2023-11-30 11:37:33,205 - DEBUG: running commnad: mediaconch -p /Users/eddy/git_dir/JPC_AV/config/JPC_AV_NTSC_MKV_2023-11-21.xml sample_file_JPC_AV_05000/JPC_AV_05000.mkv -oc /Users/eddy/git_dir/JPC_AV/output/JPC_AV_05000/JPC_AV_05000_mediaconch_output.csv
+2023-11-30 11:37:33,384 - DEBUG: exiftool sample_file_JPC_AV_05000/JPC_AV_05000.mkv > /Users/eddy/git_dir/JPC_AV/output/JPC_AV_05000/JPC_AV_05000_exiftool_output.txt
+2023-11-30 11:37:35,180 - DEBUG: mediainfo -f sample_file_JPC_AV_05000/JPC_AV_05000.mkv > /Users/eddy/git_dir/JPC_AV/output/JPC_AV_05000/JPC_AV_05000_mediainfo_output.txt
+2023-11-30 11:37:35,303 - DEBUG: ffprobe -v error -hide_banner -show_format -show_streams -print_format json sample_file_JPC_AV_05000/JPC_AV_05000.mkv > /Users/eddy/git_dir/JPC_AV/output/JPC_AV_05000/JPC_AV_05000_ffprobe_output.txt
+2023-11-30 11:37:35,303 - DEBUG: JPC_AV_05000.mkv moved to /Users/eddy/git_dir/JPC_AV/output/JPC_AV_05000
+2023-11-30 11:37:35,304 - INFO: Processing complete. Output files saved in the directory: /Users/eddy/git_dir/JPC_AV/output/JPC_AV_05000
+2023-11-30 11:37:35,304 - DEBUG: All specified fields and values found in the MediaInfo output.
+2023-11-30 11:37:35,305 - CRITICAL: Some specified Exiftool fields or values are missing or don't match:
+2023-11-30 11:37:35,305 - CRITICAL: 
+	Display Unit
+	Expected: Display Aspect Ratio
+	Actual: Unknown (3)
+

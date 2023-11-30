@@ -8,17 +8,14 @@ import re
 import logging
 import fnmatch
 import yaml
-from log_config import logger
+from log_setup import logger
+from find_config import config_path
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 
-approved_values = {
-    "Collection": "JPC",
-    "MediaType": "AV",
-    "FileExtension": "mkv"
-}
-
 def is_valid_filename(filename):
+    approved_values = config_path.config_dict['approved_values']
+    
     # Define the regular expression pattern
     pattern = r'^{Collection}_{MediaType}_\d{{5}}\.{FileExtension}$'.format(**approved_values)
     
@@ -31,18 +28,12 @@ def is_valid_filename(filename):
 
 def create_directory(video_path):
     directory_name = os.path.splitext(os.path.basename(video_path))[0]
-    root_dir = os.path.join(os.path.abspath(os.path.dirname(os.getcwd())))
-    config_dir = os.path.join(root_dir, 'config')
-    config_yml = os.path.join(config_dir, 'config.yaml')
-    with open(config_yml) as f:
-        config_dict = yaml.safe_load(f)
-    
-    if config_dict['output_path'] != None:
-            output_path = config_dict['output_path']
+    if config_path.config_dict['output_path'] != None:
+            output_path = config_path.config_dict['output_path']
             directory_path = os.path.join(output_path, directory_name)
     else:
-        output_path = os.path.join(root_dir, 'output')
-        logger.debug(f'No output_path found in {config_yml}, using default {output_path}')
+        output_path = os.path.join(config_path.root_dir, 'output')
+        logger.debug(f'No output_path found in {config_path.config_yml}, using default {output_path}')
         directory_path = os.path.join(output_path, directory_name)
 
     if not os.path.exists(directory_path):
@@ -65,12 +56,10 @@ def run_command(command, input_path, output_path):
     logger.debug(f'{full_command}')
 
 def run_mediaconch_command(command, input_path, output_type, output_path):
-    root_dir = os.path.join(os.path.abspath(os.path.dirname(os.getcwd())))
-    config_dir = os.path.join(root_dir, 'config')
-    for file in os.listdir(config_dir):
+    for file in os.listdir(config_path.config_dir):
        if fnmatch.fnmatch(file, '*.xml'):
               policy_file = file
-    policy_path = os.path.join(config_dir, policy_file)
+    policy_path = os.path.join(config_path.config_dir, policy_file)
     
     if not os.path.exists(policy_path):
         logger.critical(f'Policy file not found: {policy_file}')

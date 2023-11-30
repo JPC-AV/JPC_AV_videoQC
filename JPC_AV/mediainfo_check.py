@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
-from log_config import logger
+from log_setup import logger
 import os
 import sys
 
@@ -171,15 +171,14 @@ def parse_mediainfo(file_path):
         for diff in differences:
             logging.critical(f'\n\t{diff}')
 
-if len(sys.argv) != 2:
-    print("Usage: python script.py <mediainfo_file>")
-    sys.exit(1)
-
-file_path = sys.argv[1]
-
-if not os.path.isfile(file_path):
-    print(f"Error: {file_path} is not a valid file.")
-    sys.exit(1)
-
-parse_mediainfo(file_path)
-#runs the function "parse_mediainfo" on the file assigned to the variable "file_path"
+# Only execute if this file is run directly, not imported)
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python script.py <mediainfo_file>")
+        sys.exit(1)
+    file_path = sys.argv[1]
+    if not os.path.isfile(file_path):
+        print(f"Error: {file_path} is not a valid file.")
+        sys.exit(1)
+    parse_mediainfo(file_path)
+    #runs the function "parse_mediainfo" on the file assigned to the variable "file_path"
