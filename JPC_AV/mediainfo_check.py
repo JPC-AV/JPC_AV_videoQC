@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import logging
+from log_config import logger
 import os
 import sys
 
@@ -160,12 +165,12 @@ def parse_mediainfo(file_path):
     
     if not differences:
     # if the list "differences" is empty, then
-        print("All specified fields and values found in the MediaInfo output.")
+        logger.debug("All specified fields and values found in the MediaInfo output.")
     else:
     # if the list "differences" is not empty, then
-        print("Some specified fields or values are missing or don't match:")
+        logging.critical("Some specified MediaInfo fields or values are missing or don't match:")
         for diff in differences:
-            print(diff)
+            logging.critical(f'\n\t{diff}')
 
 if len(sys.argv) != 2:
     print("Usage: python script.py <mediainfo_file>")
@@ -176,9 +181,6 @@ file_path = sys.argv[1]
 if not os.path.isfile(file_path):
     print(f"Error: {file_path} is not a valid file.")
     sys.exit(1)
-
-
-# This part of the script is for testing purposes and it will need to change to assign file_path programatically when run on a directory or something... TBD
 
 parse_mediainfo(file_path)
 #runs the function "parse_mediainfo" on the file assigned to the variable "file_path"
