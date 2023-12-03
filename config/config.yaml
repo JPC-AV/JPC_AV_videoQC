@@ -68,8 +68,8 @@ ffmpeg_values:
     codec_type: video  
     codec_tag_string: FFV1  
     codec_tag: '0x31564646'  
-    width: '720' 
-    height: '486' 
+    width: '720'
+    height: '486'
     display_aspect_ratio: '4:3'  
     pix_fmt: yuv422p10le  
     color_space: smpte170m  
