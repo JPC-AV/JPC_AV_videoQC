@@ -50,8 +50,10 @@ def parse_mediainfo(file_path):
             # if ":" is in the line (basically, if the line is not 'Audio')
                 key, value = [x.strip() for x in line.split(":", 1)]
                 # assign variable "key" to string before ":" and variable "value" to string after ":"
+                if key == 'Frame rate':
+                    value = value.split(" (", 1)[0]
                 section_data["Video"][key] = value
-                # add key: value pair to nested dictionary 
+                # add key: value pair to nested dictionary
             elif line.startswith("Audio"):
                 break
                 # if line starts with "Audio" stop
