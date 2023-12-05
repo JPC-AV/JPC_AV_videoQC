@@ -11,6 +11,7 @@ from log_setup import logger
 from find_config import config_path
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
+from ffprobe_check import parse_ffprobe
 
 def is_valid_filename(filename):
     approved_values = config_path.config_dict['filename_values']
@@ -113,6 +114,8 @@ def main():
     parse_mediainfo(mediainfo_output_path)
 
     parse_exiftool(exiftool_output_path)
+
+    parse_ffprobe(ffprobe_output_path)
 
 if __name__ == "__main__":
     main()
