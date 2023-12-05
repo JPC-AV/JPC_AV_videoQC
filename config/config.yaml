@@ -19,7 +19,7 @@ mediainfo_values:
     Pixel aspect ratio: '0.900'  
     Display aspect ratio: '4:3'  
     Frame rate mode: Constant  
-    Frame rate: 29.970 (30000/1001) FPS  
+    Frame rate: '29.970'
     Standard: NTSC  
     Color space: YUV  
     Chroma subsampling: '4:2:2'  
