@@ -67,7 +67,7 @@ def parse_mediainfo(file_path):
                 key, value = [x.strip() for x in line.split(":", 1)]
                 # assign variable "key" to string before ":" and variable "value" to string after ":"
                 section_data["Audio"][key] = value
-                # add key: value pair to nested dictionary 
+                # add key: value pair to nested dictionary
 
     ## Explination of the loops below:
     # The loops below assign the variables "expected_key" and "expected_value" to the key:value pairs in the "expected" dictionaries defined at the beginning of the function
