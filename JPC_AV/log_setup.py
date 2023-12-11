@@ -4,7 +4,9 @@
 import logging          
 import os               
 import sys
+import colorlog
 from datetime import datetime
+from colorlog import ColoredFormatter 
 
 # Much of this script is taken from the AMIA open source prokect loglog. More information here: https://github.com/amiaopensource/loglog
 
@@ -33,10 +35,21 @@ file_handler.setFormatter(formatter)
 # add file handler to logger
 logger.addHandler(file_handler)
 
-logging_handler_out = logging.StreamHandler(sys.stdout)
-logging_handler_out.setLevel(logging.DEBUG)
-logging_handler_out.setFormatter(logging.Formatter(STDOUT_FORMAT))
-logger.addHandler(logging_handler_out)
+# Use ColoredFormatter for console output
+console_handler = colorlog.StreamHandler()
+console_formatter = colorlog.ColoredFormatter(
+    '%(log_color)s' + STDOUT_FORMAT,
+    log_colors={
+        'DEBUG': 'cyan',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'bold_red',
+    }
+)
+console_handler.setFormatter(console_formatter)
+logger= colorlog.getLogger()
+logger.addHandler(console_handler)
 
 # Example logs (only execute if this file is run directly, not imported)
 if __name__ == "__main__":
