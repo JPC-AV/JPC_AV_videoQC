@@ -8,7 +8,7 @@ import re
 import logging
 import yaml
 from log_setup import logger
-from deps_setup import required_commands, check_external_dependency
+from deps_setup import required_commands, check_external_dependency, check_py_version
 from find_config import config_path
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
@@ -81,6 +81,8 @@ def main():
         print(f"Error: {video_path} is not a valid file.")
         sys.exit(1)
 
+    check_py_version()
+    
     for command in required_commands:
         if not check_external_dependency(command):
             print(f"Error: {command} not found. Please install it.")
