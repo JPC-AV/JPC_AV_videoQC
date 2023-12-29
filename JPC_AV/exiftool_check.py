@@ -7,9 +7,13 @@ import logging
 from log_setup import logger
 from find_config import config_path
 
-## creates the function "parse_exiftool" which takes the argument "file_path" 
-# the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_exiftool(file_path):
+    '''
+    This function uses a dictionary (key:value pairs) defined in config/config.yaml 
+    to check the values of an exiftool output against expected values.
+    This function is called in the process_file.py script and is used to check exiftool output.
+    '''
+
     # creates a dictionary of expected keys and values
     expected_exif_values = config_path.config_dict['exiftool_values']
 
