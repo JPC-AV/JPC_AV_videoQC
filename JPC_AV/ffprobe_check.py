@@ -72,57 +72,60 @@ def parse_ffprobe(file_path):
         differences.append(f"Encoder setting 'format_long_name'\n\tExpected: {expected_format_values['format_name']}\n\tActual: {ffmpeg_output['format']['format_name']}\n")
         # append this string to the list "differences"
         
-    encoder_settings = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
-    settings_dict1, settings_dict2, settings_dict3 = parse_encoder_settings(encoder_settings)
-    for expected_key, expected_value in expected_settings_values_1.items():
-    # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
-        if expected_key in settings_dict1:
-        # if the key in the dictionary "Video"
-            actual_setting = str(settings_dict1[expected_key]).strip()
-            # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
-            # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-            if actual_setting != expected_value:
-            # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
-                differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
-                # append this string to the list "differences"
-    for expected_key, expected_value in expected_settings_values_2.items():
-    # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
-        if expected_key in settings_dict2:
-        # if the key in the dictionary "Video"
-            if expected_key == 'T':
-                actual_setting = ( ", ".join(repr(e) for e in settings_dict1[expected_key]))
-                # https://stackoverflow.com/questions/13207697/how-to-remove-square-brackets-from-list-in-python
-            else:
-                actual_setting = settings_dict2[expected_key]
+    if 'ENCODER_SETTINGS' in ffmpeg_output['format']['tags']:
+        encoder_settings = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
+        settings_dict1, settings_dict2, settings_dict3 = parse_encoder_settings(encoder_settings)
+        for expected_key, expected_value in expected_settings_values_1.items():
+        # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
+            if expected_key in settings_dict1:
+            # if the key in the dictionary "Video"
+                actual_setting = str(settings_dict1[expected_key]).strip()
                 # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
                 # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
                 if actual_setting != expected_value:
                 # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
                     differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
                     # append this string to the list "differences"
-    for expected_key, expected_value in expected_settings_values_3.items():
-    # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
-        if expected_key in settings_dict3:
-        # if the key in the dictionary "Video"
-            if expected_key == 'W':
-                actual_setting = ( ", ".join(repr(e) for e in settings_dict3[expected_key]))
-            else:
-                actual_setting = settings_dict3[expected_key]
-                # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
-                # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-                if actual_setting != expected_value:
-                # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
-                    differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
-                    # append this string to the list "differences"
+        for expected_key, expected_value in expected_settings_values_2.items():
+        # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
+            if expected_key in settings_dict2:
+            # if the key in the dictionary "Video"
+                if expected_key == 'T':
+                    actual_setting = ( ", ".join(repr(e) for e in settings_dict1[expected_key]))
+                    # https://stackoverflow.com/questions/13207697/how-to-remove-square-brackets-from-list-in-python
+                else:
+                    actual_setting = settings_dict2[expected_key]
+                    # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
+                    # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
+                    if actual_setting != expected_value:
+                    # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
+                        differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
+                        # append this string to the list "differences"
+        for expected_key, expected_value in expected_settings_values_3.items():
+        # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
+            if expected_key in settings_dict3:
+            # if the key in the dictionary "Video"
+                if expected_key == 'W':
+                    actual_setting = ( ", ".join(repr(e) for e in settings_dict3[expected_key]))
+                else:
+                    actual_setting = settings_dict3[expected_key]
+                    # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
+                    # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
+                    if actual_setting != expected_value:
+                    # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
+                        differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
+                        # append this string to the list "differences"
+    else:
+        logger.critical("No 'encoder settings' in ffprobe output")
     
     if not differences:
     # if the list "differences" is empty, then
         logger.debug("All specified fields and values found in the ffmpeg output.")
     else:
     # if the list "differences" is not empty, then
-        logging.critical("Some specified ffmpeg fields or values are missing or don't match:")
+        logger.critical("Some specified ffmpeg fields or values are missing or don't match:")
         for diff in differences:
-            logging.critical(f'\n\t{diff}')
+            logger.critical(f'\n\t{diff}')
 
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":

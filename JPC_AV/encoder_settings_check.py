@@ -70,5 +70,5 @@ if __name__ == "__main__":
     if not os.path.isfile(file_path):
         print(f"Error: {file_path} is not a valid file.")
         sys.exit(1)
-    parse_encoder_settings(file_path)
-    #runs the function "parse_mediainfo" on the file assigned to the variable "file_path"
+    # Need to add a step here that extracts encoder settings from ffprobe file
+    # parse_encoder_settings(file_path)
