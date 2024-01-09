@@ -151,7 +151,7 @@ def main():
     run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, ffprobe_output_path)
 
     # Move the video file into the created directory
-    move_video_file(video_path, destination_directory)
+    # move_video_file(video_path, destination_directory)
 
     logger.info(f'Processing complete. Output files saved in the directory: {destination_directory}')
 
