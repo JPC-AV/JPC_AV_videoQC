@@ -71,7 +71,7 @@ def run_command(command, input_path, output_path):
     Run a shell command with 3 variables: command name, path to the input file, path to the output file
     '''
 
-    full_command = f"{command} {input_path} > {output_path}"
+    full_command = f"{command} \"{input_path}\"  > {output_path}"
 
     subprocess.run(full_command, shell=True)
     logger.debug(f'running command: {full_command}')
@@ -93,7 +93,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     else:
         logger.debug(f'Using MediaConch policy {policy_file}')
     
-    full_command = f"{command} {policy_path} {input_path} {output_type} {output_path}"
+    full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
     subprocess.run(full_command, shell=True)
     logger.debug(f'running command: {full_command}')
