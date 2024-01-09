@@ -5,14 +5,13 @@ AV processing scripts for the Johnson Publishing Company archive
 This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital fiels conform to predetermined specifications. 
 
 ## Requirements:
-A requirements.txt and installation script is on our Roadmap and will be implemented soon. In the meantime please find dependencies below:
+An installation script is on our Roadmap and will be implemented in the future. In the meantime please find dependencies below:
 
 The scripts are written and tested in the follow environemnt:
 `conda create -n JPC_AV python=3.10.13`
 
 They make use of the following python modules which are not built-in:
-- fnmatch
-- yaml
+`pip install -r requirements.txt`
 
 Command line tools:
 - MediaConch
