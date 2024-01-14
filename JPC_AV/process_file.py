@@ -87,7 +87,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     Currently defaults to config/JPC_AV_NTSC_MKV_2023-11-21.xml
     '''
 
-    policy_file = command_config.command_dict['inputs']['mediaconch_policy']
+    policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
     policy_path = os.path.join(config_path.config_dir, policy_file)
     
     if not os.path.exists(policy_path):
