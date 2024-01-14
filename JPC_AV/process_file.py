@@ -134,7 +134,7 @@ def main():
     destination_directory = check_directory(video_path)
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
-    if command_config.command_dict['tools']['mediaconch'] == 'yes':
+    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
         mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
         run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
 
@@ -144,26 +144,29 @@ def main():
                 logger.critical('MediaConch policy failed') 
 
     # Run exif, mediainfo and ffprobe using the 'run_command' function
-    if command_config.command_dict['tools']['exiftool'] == 'yes':
+    if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
         run_command('exiftool', video_path, exiftool_output_path)
 
-    if command_config.command_dict['tools']['mediainfo'] == 'yes':
+    if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
         run_command('mediainfo -f', video_path, mediainfo_output_path)
 
-    if command_config.command_dict['tools']['ffprobe'] == 'yes':
+    if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
         ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
         run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, ffprobe_output_path)
 
     logger.info(f'Processing complete. Output files saved in the directory: {destination_directory}')
 
     # Run parse functions defined in the '_check.py' scripts
-    parse_mediainfo(mediainfo_output_path)
+    if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
+        parse_mediainfo(mediainfo_output_path)
 
-    parse_exiftool(exiftool_output_path)
-
-    parse_ffprobe(ffprobe_output_path)
+    if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
+        parse_exiftool(exiftool_output_path)
+    
+    if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
+        parse_ffprobe(ffprobe_output_path)
 
 if __name__ == "__main__":
     main()
