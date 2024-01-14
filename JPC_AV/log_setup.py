@@ -11,9 +11,10 @@ from colorlog import ColoredFormatter
 # Much of this script is taken from the AMIA open source prokect loglog. More information here: https://github.com/amiaopensource/loglog
 
 logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
-# logDir = os.getcwd()
-root_dir = os.path.join(os.path.abspath(os.getcwd()))
+script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+root_dir = os.path.dirname(script_dir)
 logs_parent_dir = os.path.join(root_dir, 'logs')
 log_dir_path = os.path.join(logs_parent_dir, datetime.now().strftime('%Y-%m-%d'))
 if not os.path.exists(log_dir_path):
@@ -25,13 +26,12 @@ logPath = logDir + "/" + logName + ".log"
 LOG_FORMAT = '%(asctime)s - %(levelname)s: %(message)s'
 STDOUT_FORMAT = '%(asctime)s - %(message)s' 
 
-# set log level
-logger.setLevel(logging.DEBUG)
-
 # define file handler and set formatter
 file_handler = logging.FileHandler(logPath)
 formatter    = logging.Formatter(LOG_FORMAT)
 file_handler.setFormatter(formatter)
+# set log level
+file_handler.setLevel(logging.DEBUG)
 # add file handler to logger
 logger.addHandler(file_handler)
 
@@ -48,7 +48,7 @@ console_formatter = colorlog.ColoredFormatter(
     }
 )
 console_handler.setFormatter(console_formatter)
-logger= colorlog.getLogger()
+console_handler.setLevel(logging.DEBUG)
 logger.addHandler(console_handler)
 
 # Example logs (only execute if this file is run directly, not imported)

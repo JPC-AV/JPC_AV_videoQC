@@ -7,12 +7,27 @@ import sys
 import re
 import logging
 import yaml
-from log_setup import logger
+from log_setup import logger, console_handler
 from deps_setup import required_commands, check_external_dependency, check_py_version
-from find_config import config_path
+from find_config import config_path, command_config
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
+
+# Read command_config.yaml and retrieve log level
+log_level_str = command_config.command_dict['log_level']
+# Match log level from command_config.yaml to logging command
+log_level_mapping = {
+    'DEBUG': logging.DEBUG,
+    'INFO': logging.INFO,
+    'WARNING': logging.WARNING,
+    'ERROR': logging.ERROR,
+    'CRITICAL': logging.CRITICAL,
+}
+
+# Set the console_handler log level, the color output to terminal, based on the mapping
+if log_level_str in log_level_mapping:
+    console_handler.setLevel(log_level_mapping[log_level_str])
 
 def is_valid_filename(filename):
     '''
@@ -72,7 +87,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     Currently defaults to config/JPC_AV_NTSC_MKV_2023-11-21.xml
     '''
 
-    policy_file = config_path.config_dict['mediaconch_policy']
+    policy_file = command_config.command_dict['inputs']['mediaconch_policy']
     policy_path = os.path.join(config_path.config_dir, policy_file)
     
     if not os.path.exists(policy_path):
@@ -119,23 +134,27 @@ def main():
     destination_directory = check_directory(video_path)
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
-    mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
-    run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
+    if command_config.command_dict['tools']['mediaconch'] == 'yes':
+        mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
+        run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
 
-    # open the mediaconch csv ouput and check for the word 'fail'
-    with open(mediaconch_output_path) as mc_file:
-        if 'fail' in mc_file.read():
-            logger.critical('MediaConch policy failed') 
+        # open the mediaconch csv ouput and check for the word 'fail'
+        with open(mediaconch_output_path) as mc_file:
+            if 'fail' in mc_file.read():
+                logger.critical('MediaConch policy failed') 
 
     # Run exif, mediainfo and ffprobe using the 'run_command' function
-    exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
-    run_command('exiftool', video_path, exiftool_output_path)
+    if command_config.command_dict['tools']['exiftool'] == 'yes':
+        exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
+        run_command('exiftool', video_path, exiftool_output_path)
 
-    mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
-    run_command('mediainfo -f', video_path, mediainfo_output_path)
+    if command_config.command_dict['tools']['mediainfo'] == 'yes':
+        mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
+        run_command('mediainfo -f', video_path, mediainfo_output_path)
 
-    ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
-    run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, ffprobe_output_path)
+    if command_config.command_dict['tools']['ffprobe'] == 'yes':
+        ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
+        run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, ffprobe_output_path)
 
     logger.info(f'Processing complete. Output files saved in the directory: {destination_directory}')
 

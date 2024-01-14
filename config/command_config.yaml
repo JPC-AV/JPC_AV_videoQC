@@ -1,0 +1,13 @@
+---
+log_level: 'DEBUG'
+tools:
+  mediaconch: 'yes'
+  exiftool: 'yes'
+  mediainfo: 'yes'
+  ffprobe: 'yes'
+  qctools: 'yes'
+inputs:
+  mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
+outputs:
+  difference_csv: 'yes'
+  qctools_ext: 'qctools.xml.gz'
