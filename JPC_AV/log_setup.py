@@ -10,9 +10,12 @@ from colorlog import ColoredFormatter
 
 # Much of this script is taken from the AMIA open source prokect loglog. More information here: https://github.com/amiaopensource/loglog
 
+# Assigns getLogger function from imported module, creates logger 
 logger = logging.getLogger()
+# Sets 'lowest' log level
 logger.setLevel(logging.DEBUG)
 
+# Establishes path to 'logs' directory
 script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 root_dir = os.path.dirname(script_dir)
 logs_parent_dir = os.path.join(root_dir, 'logs')
@@ -23,8 +26,11 @@ logDir = log_dir_path
 logName = datetime.today().strftime('%Y-%m-%d_%H-%M-%S') + '_' + 'JPC_AV_log'
 logPath = logDir + "/" + logName + ".log"  
 
+# Define log formats which will be used in 'formatter' for the 2 log handlers
 LOG_FORMAT = '%(asctime)s - %(levelname)s: %(message)s'
 STDOUT_FORMAT = '%(asctime)s - %(message)s' 
+
+## This project uses 2 log handlers, one for the log file 'file_handler', and one for the terminal output 'console_handler' 
 
 # define file handler and set formatter
 file_handler = logging.FileHandler(logPath)
@@ -35,7 +41,7 @@ file_handler.setLevel(logging.DEBUG)
 # add file handler to logger
 logger.addHandler(file_handler)
 
-# Use ColoredFormatter for console output
+# define console_handler and set format for terminal output
 console_handler = colorlog.StreamHandler()
 console_formatter = colorlog.ColoredFormatter(
     '%(log_color)s' + STDOUT_FORMAT,
@@ -49,6 +55,7 @@ console_formatter = colorlog.ColoredFormatter(
 )
 console_handler.setFormatter(console_formatter)
 console_handler.setLevel(logging.DEBUG)
+# add console handler to logger
 logger.addHandler(console_handler)
 
 # Example logs (only execute if this file is run directly, not imported)
