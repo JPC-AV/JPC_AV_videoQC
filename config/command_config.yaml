@@ -14,8 +14,8 @@ tools:
     run_ffprobe: 'yes'
     check_ffprobe: 'yes'
   qctools: 
-    run_qctools: 'yes'
-    check_qctools: 'yes'
+    run_qctools: 'no'
+    check_qctools: 'yes' # not implemented yet
 outputs:
-  difference_csv: 'yes' # not implemented yet
+  difference_csv: 'no'
   qctools_ext: 'qctools.xml.gz'

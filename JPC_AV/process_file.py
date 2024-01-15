@@ -102,7 +102,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     logger.debug(f'running command: {full_command}')
     subprocess.run(full_command, shell=True)
 
-def write_to_csv(diff_list, tool_name, writer):
+def write_to_csv(diff_list, tool_name, config, writer):
     for diff in diff_list:
         # Split the difference string into lines
         lines = diff.strip().split('\n')
@@ -116,13 +116,14 @@ def write_to_csv(diff_list, tool_name, writer):
             else:
                 metadata_field = line.strip()
         
-        # Write data to CSV file
-        writer.writerow({
-            'Metadata Tool': tool_name,
-            'Metadata Field': metadata_field,
-            'Expected Value': expected_value,
-            'Actual Value': actual_value
-        })
+        if config == 'yes':
+            # Write data to CSV file
+            writer.writerow({
+                'Metadata Tool': tool_name,
+                'Metadata Field': metadata_field,
+                'Expected Value': expected_value,
+                'Actual Value': actual_value
+            })
 
         # Log the difference
         logger.critical(f'\n\t{diff}')
@@ -199,6 +200,9 @@ def main():
         csv_name += '_' + timestamp
         csv_path = destination_directory + "/" + csv_name + ".csv"
     
+    csv_config = command_config.command_dict['outputs']['difference_csv']
+
+    
     # Open CSV file in write mode
     with open(csv_path, 'w', newline='') as diffs_csv:
         # Define CSV header
@@ -212,22 +216,33 @@ def main():
             # If check_exfitool is set to 'yes' in command_config.yaml then
             exiftool_differences = parse_exiftool(exiftool_output_path)
             # Run parse functions defined in the '_check.py' scripts
-            write_to_csv(exiftool_differences, 'exiftool', writer)
+            write_to_csv(exiftool_differences, 'exiftool', csv_config, writer)
             # and if actual values are different from expected values, write differences to CSV and to log
 
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             mediainfo_differences = parse_mediainfo(mediainfo_output_path)
             # Run parse functions defined in the '_check.py' scripts
-            write_to_csv(mediainfo_differences, 'mediainfo', writer)
+            write_to_csv(mediainfo_differences, 'mediainfo', csv_config, writer)
             # and if actual values are different from expected values, write differences to CSV and to log
     
         if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
              # If check_exfitool is set to 'yes' in command_config.yaml then
             ffprobe_differences = parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
-            write_to_csv(ffprobe_differences, 'ffprobe', writer)
+            write_to_csv(ffprobe_differences, 'ffprobe', csv_config, writer)
             # and if actual values are different from expected values, write differences to CSV and to log
+
+    # Open CSV and read the content to variable 'rows'
+    with open(csv_path, 'r', newline='') as check_csv:
+        reader = csv.reader(check_csv)
+        rows = list(reader)  # Read the CSV file
+    
+    # If CSV file exists, and has only 1 row, then it only contains the header. 
+    # CSV will only contain header if there are no differences, or if difference_csv is set to 'no' in the command_config.yaml 
+    if os.path.exists(csv_path):
+        if len(rows) == 1:
+            os.remove(csv_path)
 
 if __name__ == "__main__":
     main()
