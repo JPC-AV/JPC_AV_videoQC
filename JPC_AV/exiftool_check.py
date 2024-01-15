@@ -47,7 +47,7 @@ def parse_exiftool(file_path):
             actual_value = exif_data[expected_key]
             # assigns the variable "actual_value" to the value that matches the key in the dictionary "General"
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-            if actual_value != expected_value:
+            if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
                 differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
                 # append this string to the list "differences"

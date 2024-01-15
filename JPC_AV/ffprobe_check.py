@@ -39,7 +39,7 @@ def parse_ffprobe(file_path):
             actual_value = str(ffmpeg_output['ffmpeg_video'][expected_key]).strip()
             # assigns the variable "actual_value" to the value that matches the key in the dictionary "General"
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-            if actual_value != expected_value:
+            if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
                 differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
                 # append this string to the list "differences"
@@ -51,7 +51,7 @@ def parse_ffprobe(file_path):
             actual_value = str(ffmpeg_output['ffmpeg_audio'][expected_key]).strip()
             # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-            if actual_value != expected_value:
+            if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
                 differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
                 # append this string to the list "differences"
@@ -65,10 +65,10 @@ def parse_ffprobe(file_path):
             differences.append(f"General: {expected_key} is empty")
             # append this string to the list "differences"
         
-    if expected_format_values['format_name'] != str(ffmpeg_output['format']['format_name']).replace(',', ' '):
+    if expected_format_values['format_name'] not in str(ffmpeg_output['format']['format_name']).replace(',', ' '):
         differences.append(f"Encoder setting 'format_name'\n\tExpected: {expected_format_values['format_name']}\n\tActual: {ffmpeg_output['format']['format_name']}\n")
         # append this string to the list "differences"
-    if expected_format_values['format_long_name'] != ffmpeg_output['format']['format_long_name']:
+    if expected_format_values['format_long_name'] not in ffmpeg_output['format']['format_long_name']:
         differences.append(f"Encoder setting 'format_long_name'\n\tExpected: {expected_format_values['format_name']}\n\tActual: {ffmpeg_output['format']['format_name']}\n")
         # append this string to the list "differences"
         
@@ -82,7 +82,7 @@ def parse_ffprobe(file_path):
                 actual_setting = str(settings_dict1[expected_key]).strip()
                 # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
                 # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-                if actual_setting != expected_value:
+                if actual_setting not in expected_value:
                 # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
                     differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
                     # append this string to the list "differences"
@@ -97,7 +97,7 @@ def parse_ffprobe(file_path):
                     actual_setting = settings_dict2[expected_key]
                     # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
                     # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-                    if actual_setting != expected_value:
+                    if actual_setting not in expected_value:
                     # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
                         differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
                         # append this string to the list "differences"
@@ -111,7 +111,7 @@ def parse_ffprobe(file_path):
                     actual_setting = settings_dict3[expected_key]
                     # assigns the variable "actual_value" to the value that matches the key in the dictionary "Video"
                     # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
-                    if actual_setting != expected_value:
+                    if actual_setting not in expected_value:
                     # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
                         differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
                         # append this string to the list "differences"
