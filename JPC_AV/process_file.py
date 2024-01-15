@@ -68,15 +68,15 @@ def check_directory(video_path):
 
     return directory_path
 
-def run_command(command, input_path, output_path):
+def run_command(command, input_path, output_type, output_path):
     '''
-    Run a shell command with 3 variables: command name, path to the input file, path to the output file
+    Run a shell command with 4 variables: command name, path to the input file, output type (often '>'), path to the output file
     '''
 
-    full_command = f"{command} \"{input_path}\"  > {output_path}"
+    full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
 
-    subprocess.run(full_command, shell=True)
     logger.debug(f'running command: {full_command}')
+    subprocess.run(full_command, shell=True)
 
 # Mediaconch needs its own function, because the command's flags and multiple inputs don't conform to the simple 3 part structure of the other commands
 def run_mediaconch_command(command, input_path, output_type, output_path):
@@ -97,8 +97,8 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     
     full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
-    subprocess.run(full_command, shell=True)
     logger.debug(f'running command: {full_command}')
+    subprocess.run(full_command, shell=True)
 
 def main():
     '''
@@ -146,24 +146,29 @@ def main():
     # Run exif, mediainfo and ffprobe using the 'run_command' function
     if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
-        run_command('exiftool', video_path, exiftool_output_path)
+        run_command('exiftool', video_path, '>', exiftool_output_path)
 
     if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
-        run_command('mediainfo -f', video_path, mediainfo_output_path)
+        run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
 
     if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
         ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
-        run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, ffprobe_output_path)
+        run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
+
+    if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
+        qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+        qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
+        run_command('qcli -i', video_path, '-o', qctools_output_path)
 
     logger.info(f'Processing complete. Output files saved in the directory: {destination_directory}')
 
     # Run parse functions defined in the '_check.py' scripts
-    if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
-        parse_mediainfo(mediainfo_output_path)
-
     if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
         parse_exiftool(exiftool_output_path)
+
+    if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
+        parse_mediainfo(mediainfo_output_path)
     
     if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
         parse_ffprobe(ffprobe_output_path)

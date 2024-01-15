@@ -56,7 +56,7 @@ exiftool_values:
   Display Width: '4'
   Display Height: '3'
   Display Unit: Display Aspect Ratio
-  Codec ID: A_FLAC
+  Codec ID: [ A_FLAC, A_PCM/INT/LIT ]
   Audio Channels: '2'
   Audio Sample Rate: '48000'
   Audio Bits Per Sample: '24'
@@ -77,8 +77,8 @@ ffmpeg_values:
     field_order: bt  
     bits_per_raw_sample: '10'
   audio_stream: 
-    codec_name: flac  
-    codec_long_name: FLAC (Free Lossless Audio Codec)  
+    codec_name: [ flac, pcm_s24le ]  
+    codec_long_name: [ FLAC (Free Lossless Audio Codec), PCM signed 24-bit little-endian ]  
     codec_type: audio
     codec_tag: '0x0000'
     sample_fmt: s32  
