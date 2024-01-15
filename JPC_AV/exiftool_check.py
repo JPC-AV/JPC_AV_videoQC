@@ -36,10 +36,10 @@ def parse_exiftool(file_path):
     ## Explination of the loops below:
     # The loops below assign the variables "expected_key" and "expected_value" to the key:value pairs in the "expected" dictionary defined at the beginning of the function
     # the variable "actual_value" is used to define the value of the key matching the "expected_key" in the expected_exif_values dictionary (defined above)
-    # if the actual_value variable and the expected_valu variable don't match, then a string stating both values is appened to a list called "differences"
+    # if the actual_value variable and the expected_valu variable don't match, then a string stating both values is appened to a list called "exiftool_differences"
 
-    differences = []
-    # Create empty list, "differences"
+    exiftool_differences = []
+    # Create empty list, "exiftool_differences"
     for expected_key, expected_value in expected_exif_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
         if expected_key in exif_data:
@@ -49,17 +49,17 @@ def parse_exiftool(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
-                differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
-                # append this string to the list "differences"
+                exiftool_differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
+                # append this string to the list "exiftool_differences"
 
-    if not differences:
-    # if the list "differences" is empty, then
+    if not exiftool_differences:
+    # if the list "exiftool_differences" is empty, then
         logger.debug("All specified fields and values found in the Exiftool output.")
     else:
-    # if the list "differences" is not empty, then
+    # if the list "exiftool_differences" is not empty, then
         logger.critical("Some specified Exiftool fields or values are missing or don't match:")
-        for diff in differences:
-            logger.critical(f'\n\t{diff}')
+
+    return exiftool_differences
 
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":

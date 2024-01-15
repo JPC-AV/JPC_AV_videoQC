@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 import json
+import csv
 from log_setup import logger
 from find_config import config_path
 from encoder_settings_check import parse_encoder_settings
@@ -30,8 +31,8 @@ def parse_ffprobe(file_path):
     ffmpeg_output['ffmpeg_audio'] = ffmpeg_data['streams'][1]
     ffmpeg_output['format'] = ffmpeg_data['format']
 
-    differences = []
-    # Create empty list, "differences"
+    ffprobe_differences = []
+    # Create empty list, "ffprobe_differences"
     for expected_key, expected_value in expected_video_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
         if expected_key in ffmpeg_output['ffmpeg_video']:
@@ -41,8 +42,8 @@ def parse_ffprobe(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
-                differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
-                # append this string to the list "differences"
+                ffprobe_differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
+                # append this string to the list "ffprobe_differences"
     
     for expected_key, expected_value in expected_audio_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
@@ -53,24 +54,24 @@ def parse_ffprobe(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
-                differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
-                # append this string to the list "differences"
+                ffprobe_differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
+                # append this string to the list "ffprobe_differences"
 
     for expected_key, expected_value in expected_format_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"
         if expected_key not in (ffmpeg_output['format']):
-            differences.append(f"metadata field: {expected_key} does not exist") 
+            ffprobe_differences.append(f"metadata field: {expected_key} does not exist\n") 
         elif len(ffmpeg_output['format'][expected_key]) == 0:
         # count the values in the nested dictionary "General" with 'len', if the values are zero, then:
-            differences.append(f"General: {expected_key} is empty")
-            # append this string to the list "differences"
+            ffprobe_differences.append(f"General: {expected_key} is empty\n")
+            # append this string to the list "ffprobe_differences"
         
     if expected_format_values['format_name'] not in str(ffmpeg_output['format']['format_name']).replace(',', ' '):
-        differences.append(f"Encoder setting 'format_name'\n\tExpected: {expected_format_values['format_name']}\n\tActual: {ffmpeg_output['format']['format_name']}\n")
-        # append this string to the list "differences"
+        ffprobe_differences.append(f"Encoder setting 'format_name'\n\tExpected: {expected_format_values['format_name']}\n\tActual: {ffmpeg_output['format']['format_name']}\n")
+        # append this string to the list "ffprobe_differences"
     if expected_format_values['format_long_name'] not in ffmpeg_output['format']['format_long_name']:
-        differences.append(f"Encoder setting 'format_long_name'\n\tExpected: {expected_format_values['format_name']}\n\tActual: {ffmpeg_output['format']['format_name']}\n")
-        # append this string to the list "differences"
+        ffprobe_differences.append(f"Encoder setting 'format_long_name'\n\tExpected: {expected_format_values['format_name']}\n\tActual: {ffmpeg_output['format']['format_name']}\n")
+        # append this string to the list "ffprobe_differences"
         
     if 'ENCODER_SETTINGS' in ffmpeg_output['format']['tags']:
         encoder_settings = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
@@ -84,8 +85,8 @@ def parse_ffprobe(file_path):
                 # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
                 if actual_setting not in expected_value:
                 # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
-                    differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
-                    # append this string to the list "differences"
+                    ffprobe_differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
+                    # append this string to the list "ffprobe_differences"
         for expected_key, expected_value in expected_settings_values_2.items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
             if expected_key in settings_dict2:
@@ -99,8 +100,8 @@ def parse_ffprobe(file_path):
                     # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
                     if actual_setting not in expected_value:
                     # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
-                        differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
-                        # append this string to the list "differences"
+                        ffprobe_differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
+                        # append this string to the list "ffprobe_differences"
         for expected_key, expected_value in expected_settings_values_3.items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
             if expected_key in settings_dict3:
@@ -113,19 +114,20 @@ def parse_ffprobe(file_path):
                     # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
                     if actual_setting not in expected_value:
                     # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
-                        differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
-                        # append this string to the list "differences"
+                        ffprobe_differences.append(f"Encoder setting {expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_setting}\n")
+                        # append this string to the list "ffprobe_differences"
     else:
         logger.critical("No 'encoder settings' in ffprobe output")
-    
-    if not differences:
-    # if the list "differences" is empty, then
-        logger.debug("All specified fields and values found in the ffmpeg output.")
+
+    if not ffprobe_differences:
+        # if the list "ffprobe_differences" is empty, then
+        logger.debug("All specified fields and values found in the ffprobe output.")
     else:
-    # if the list "differences" is not empty, then
-        logger.critical("Some specified ffmpeg fields or values are missing or don't match:")
-        for diff in differences:
-            logger.critical(f'\n\t{diff}')
+        # if the list "ffprobe_differences" is not empty, then
+        logger.critical("Some specified ffprobe fields or values are missing or don't match:")
+    
+    return ffprobe_differences
+
 
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":
@@ -138,3 +140,5 @@ if __name__ == "__main__":
         sys.exit(1)
     parse_ffprobe(file_path)
     #runs the function "parse_mediainfo" on the file assigned to the variable "file_path"
+
+    print(f'display_aspect_ratio\n\tExpected: 4:3\n\tActual: 400:297\n')
