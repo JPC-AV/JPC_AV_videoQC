@@ -114,10 +114,10 @@ def parse_mediainfo(file_path):
     for expected_key, expected_value in expected_custom_fields.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"
         if expected_key not in (section_data["General"]):
-            mediainfo_differences.append(f"metadata field in General: {expected_key} does not exist") 
+            mediainfo_differences.append(f"metadata field in General: {expected_key} does not exist\n") 
         elif len(section_data["General"][expected_key]) == 0:
         # count the values in the nested dictionary "General" with 'len', if the values are zero, then:
-            mediainfo_differences.append(f"General: {expected_key} is empty")
+            mediainfo_differences.append(f"General: {expected_key} is empty\n")
             # append this string to the list "mediainfo_differences"
     
     if not mediainfo_differences:
