@@ -10,6 +10,12 @@ An installation script is on our Roadmap and will be implemented in the future. 
 The scripts are written and tested in the follow environemnt:
 `conda create -n JPC_AV python=3.10.13`
 
+if no conda - `brew install --cask anaconda` && `export PATH="/usr/local/anaconda3/bin:$PATH"`
+
+or
+
+https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
+
 They make use of the following python modules which are not built-in:
 `pip install -r requirements.txt`
 
