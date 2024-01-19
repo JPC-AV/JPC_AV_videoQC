@@ -10,16 +10,14 @@ An installation script is on our Roadmap and will be implemented in the future. 
 The scripts are written and tested in the follow environemnt:
 `conda create -n JPC_AV python=3.10.13`
 
-if no conda - `brew install --cask anaconda` && `export PATH="/usr/local/anaconda3/bin:$PATH"`
+If conda is not installed, install it with homebrew: `brew install --cask anaconda` && `export PATH="/usr/local/anaconda3/bin:$PATH"`
 
-or
+or https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
-https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
-
-They make use of the following python modules which are not built-in:
+Install necessary python modules which are not built-in using pip and requirements.txt:
 `pip install -r requirements.txt`
 
-Command line tools:
+Lastly, these scripts require the following command line tools be installed:
 - MediaConch
 - MediaInfo
 - Exiftool
@@ -35,18 +33,17 @@ All actions performed by process_file.py are recorded in a log file located here
 The process_file.py will first check to ensure that the video file matches the JPC_AV file naming convention, such as `JPC_AV_00001.mkv`
 If the file does not match the file naming convention, the script will exit. 
 
-Next the script will create a directory named after the video file. The destination of the new directory is dictated by `config/config.yaml`
-To change the output destination change line 2 of `config.yaml`: 
-`output_path: '/Users/eddy/git_dir/JPC_AV/output'`
-Please ensure the path is enclosed in single quotation marks
-
-Once the destination directory has been created, outputs are written to the destination directory using the following metadata tools:
-- MediaConch (checks files against the MediaConch poilcy in the `config/` directory)
+process_file.py will run metadata tools on the input video file. The available tools are:
+- MediaConch (checks files against the MediaConch poilcy in the `config/` directory by default)
 - MediaInfo ("full" or `-f` output)
 - Exiftool
 - ffprobe (output in JSON format)
+- QCTools
 
-After the outputs are created the original video file is moved to the destination directory as well. 
+These tools can be toggled on/off by changing the config/command_config.yaml file. Set tools to 'yes' to run them 'no' to turn them off. 
 
-The outputs of these metadata tools are then checked against expected values.
-Successful checks are recorded to the log file, unsuccessful checks are recorded to the log and printed to the terminal (STOUT)
+Outputs are written to the same directory as the input file.
+
+The outputs of these metadata tools are then checked against expected values. 
+Expected values are stored in config/config.yaml. These checks can be turned on or off from config/command_config.yaml
+Successful checks are recorded to the log file, unsuccessful checks are recorded to the log, saved to a CSV called {filename}_metadata_difference_YYYYMMDD_HH-MM-SS.csv, and printed to the terminal (STOUT).
