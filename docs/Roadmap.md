@@ -2,14 +2,10 @@
 
 The following improvements are planned for JPC_AV_videoQC:
 
-- Config
-  - Pull expected fields from config.yaml, instead of functions inside python scripts
-- Restructure
-  - Combine metadata checks into metadata_checks.py to facilitate simpler importing into process_file.py
 - Additional functionality
-  - ffprobe checks (including encoder settings)
-  - qctools
-  - md5 checksum       
+  - md5 checksum
+  - check against expected QCTools values
+  - config "profiles" - scripts that modify configs for regularly used settings profiles
 - Install
-  - Run checks to see if dependencies are alreadyed installed
-  - Run `pip install` on all required tools
+  - install or setup script that ensures dependencies are all installed
+  - consider pre-configured conda environment as a deployment option
