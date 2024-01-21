@@ -129,7 +129,7 @@ def parse_ffprobe(file_path):
     return ffprobe_differences
 
 
-# Only execute if this file is run directly, not imported)
+# Only execute if this file is run directly, not imported
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python script.py <ffprobe_json_file>")

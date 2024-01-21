@@ -6,30 +6,49 @@ import sys
 import logging
 
 
+## This is script is for parsing the customized "Encoder settings" containing transfer information 
+# The Encoder Settings value that are expected (stored in cofing/config.yaml) are based on the Encoder Settings value of JPC_AV_05000:
+# "ENCODER_SETTINGS": "O=VHS, C=Color, S=Analog, VS= NTSC, F=24, A=4:3, R=640×480, T=Sony SVO-5800, O=FFV1mkv, C=Color, V=Composite, S=Analog Stereo, F=24, A=4:3, W=10-bit, R=640×480, M=YUV422p10, T=Blackmagic UltraStudio 4K Mini SN123456, ffmpeg vrecord; in-house, O=FFV1mkv, W=10-bit, R640x480, MYUV422p10 N=AJ Lawrence"
+# Because the sub fields within Encoder Settings use some of the same identifiers (for example "O" may equal either "SVHS" or "FFV1mkv"), the identifiers need to be split into sublists: settings_dict1, settings_dict2, settings_dict3
+
+# The parse_encoder_settings function is intended to be passed to the parse_ffprobe function
+# parse_ffprobe reads the field:value pairs of a JSON formatted ffprobe output and assigns the value of the filed format/tags/encoder settings to the variable encoder_settings
 def parse_encoder_settings(encoder_settings):
-    # Splitting the settings string into key-value pairs
+    # Splitting the settings string on "," into key:value pairs
     settings_list = [pair.strip() for pair in encoder_settings.split(",")]
 
-    # Creating sublists based on 'O='
+    # By iterating through the key:value pairs of ENCODER SETTINGS stored in settings_list, 3 subslists can be created, each of the 3 lists starting with '0=' to avoid duplicate identifiers of metadata fields
     sublists = []
+    # sublists will be a nested list, it will hold 3 separate lists for the 3 sections within encoder settings
     current_sublist = []
+    # current_sublist will temporarily hold a list at a time, before that list is appended to the nested list sublists
+    
     for pair in settings_list:
+    # Iterate through the key:value pairs
         if 'O=' in pair:
+        # if pair begins with "0="
             if current_sublist:
                 sublists.append(current_sublist)
+                # If current pair is "0=" and current_sublist is populated, append active list to sublists
             current_sublist = [pair]
+            # If current pair is "0=" and current_sublist is not populated, start current_sublist with pair
         else:
             current_sublist.append(pair)
+            # If current pair is not "0=" append pair to current_sublist
 
-    # Adding the last sublist
     sublists.append(current_sublist)
+    # appends the last sublists to the nested list sublists
 
-    # Creating dictionaries from sublists
+    # Assign each of the lists within the nested list 'sublists' to a dictionary of key:value pairs split on the '=' character
     settings_dict1 = {}
     for pair in sublists[0]:
         key, value = pair.split("=")
         settings_dict1[key] = value
 
+    # The field identifier 'T' in the 2nd list of encoder settings holds multiple values, but the values are separted by a ',' 
+    # for example: 'T=Blackmagic UltraStudio 4K Mini SN123456, ffmpeg vrecord; in-house,'
+    # settings list was split on ',' so the additional values for 'T' are stored as individual items in the list. All other items in the list will contain 'identifier=value'. 
+    # If an item in the list does not contain '=' then it is append as an additonal value to the key 'T' making the value into a list of values  
     settings_dict2 = {}
     for pair in sublists[1]:
         if "=" in pair:
@@ -38,6 +57,8 @@ def parse_encoder_settings(encoder_settings):
         else:
             settings_dict2['T'] = [settings_dict2['T'], pair]
 
+    # As with the identifier 'T' in the last list, 'W' can hold multiple values. Items from 3rd sublist not containing '=' are appended to the key 'W' in settings_dict3
+    # For example: W=10-bit, R640x480, MYUV422p10
     settings_dict3 = {}
     for pair in sublists[2][:3]:
         if "=" in pair:
@@ -46,22 +67,22 @@ def parse_encoder_settings(encoder_settings):
         else:
             settings_dict3['W'] = [settings_dict3['W'], pair]
 
+    # The lasts values in the encoder setting list are for whatever reason not seperated by a ','
+    # For example: 'MYUV422p10 N=AJ Lawrence'
+    # This statement takes the 4th item in the 3rd sublist and splits it on a space to retireve the last value for 'W'. In the example above, 'MYUV422p10'. 
     if isinstance(settings_dict3['W'], list):
         settings_dict3['W'].append(sublists[2][3].split(' ', 1)[0])
         
+    # The 4th item in the 3rd sublist, split in the conditional above, also stores the last field of encoder settings.
+    # In the case of JPC_AV_05000 this is 'N=AJ Lawrence'. To seperate 'N=AJ Lawrence' from 'MYUV422p10 N=AJ Lawrence', the command below is used:
     key, value = (sublists[2][3].split(' ', 1)[1]).split("=")
+    # The command above takes the 2nd half of the 4th item in the 3rd sublist, and splits it on the character '=' assigning the string before '=' to key, and after '=' to value
     settings_dict3[key] = value
-
+    # These variables are then added as a key:value pair to the dictionary settings_dict3
+    
     return settings_dict1, settings_dict2, settings_dict3
 
-    #print(settings_dict1)
-    #print(settings_dict2)
-    #print(settings_dict3)
-
-    # https://www.google.com/search?q=python+how+to+append+to+an+existing+value+in+dictionary&oq=&gs_lcrp=EgZjaHJvbWUqCQgCEEUYOxjCAzIJCAAQRRg7GMIDMgkIARBFGDsYwgMyCQgCEEUYOxjCAzIJCAMQRRg7GMIDMgkIBBBFGDsYwgMyCQgFEEUYOxjCAzIJCAYQRRg7GMIDMgkIBxBFGDsYwgPSAQo3NDI2MTNqMGo3qAIIsAIB&sourceid=chrome&ie=UTF-8#kpvalbx=_eslTZbzAMcCz0PEPpOCQ-Aw_27
-    # https://www.geeksforgeeks.org/python-split-list-into-lists-by-particular-value/#
-
-# Only execute if this file is run directly, not imported)
+# Only execute if this file is run directly, not imported
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python script.py <ffprobe_json_file>")
