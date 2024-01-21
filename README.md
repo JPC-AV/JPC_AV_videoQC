@@ -12,7 +12,7 @@ The scripts are written and tested in the follow environemnt:
 
 (conda is not a requirement for running these scripts, any python 3.10 + environement is compatible.)
 
-You can install conda with homebrew: `brew install --cask anaconda` && `export PATH="/usr/local/anaconda3/bin:$PATH"`
+You can install conda with homebrew: `brew install --cask anaconda` && `export PATH="/usr/local/anaconda3/bin:$PATH"` (or `export PATH="/opt/homebrew/anaconda3/bin:$PATH"` depending on Apple Silicon)
 
 or https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
