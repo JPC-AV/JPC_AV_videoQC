@@ -3,8 +3,9 @@
 
 import os
 import sys
+import json
 import logging
-
+from log_setup import logger
 
 ## This is script is for parsing the customized "Encoder settings" containing transfer information 
 # The Encoder Settings value that are expected (stored in cofing/config.yaml) are based on the Encoder Settings value of JPC_AV_05000:
@@ -79,7 +80,7 @@ def parse_encoder_settings(encoder_settings):
     # The command above takes the 2nd half of the 4th item in the 3rd sublist, and splits it on the character '=' assigning the string before '=' to key, and after '=' to value
     settings_dict3[key] = value
     # These variables are then added as a key:value pair to the dictionary settings_dict3
-    
+
     return settings_dict1, settings_dict2, settings_dict3
 
 # Only execute if this file is run directly, not imported
@@ -91,5 +92,13 @@ if __name__ == "__main__":
     if not os.path.isfile(file_path):
         print(f"Error: {file_path} is not a valid file.")
         sys.exit(1)
-    # Need to add a step here that extracts encoder settings from ffprobe file
-    # parse_encoder_settings(file_path)
+    with open(file_path, 'r') as file:
+        ffmpeg_data = json.load(file)
+    ffmpeg_output = {}
+    ffmpeg_output['format'] = ffmpeg_data['format']
+    if 'ENCODER_SETTINGS' in ffmpeg_output['format']['tags']:
+        encoder_settings = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
+        settings_dict1, settings_dict2, settings_dict3 = parse_encoder_settings(encoder_settings)
+        logger.debug(f"Encoder Settings are:\n{settings_dict1}\n{settings_dict2}\n{settings_dict3}")
+    else:
+        logger.critical("No 'encoder settings' in ffprobe output")

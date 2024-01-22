@@ -138,7 +138,6 @@ if __name__ == "__main__":
     if not os.path.isfile(file_path):
         print(f"Error: {file_path} is not a valid file.")
         sys.exit(1)
-    parse_ffprobe(file_path)
-    #runs the function "parse_mediainfo" on the file assigned to the variable "file_path"
-
-    print(f'display_aspect_ratio\n\tExpected: 4:3\n\tActual: 400:297\n')
+    ffprobe_differences = parse_ffprobe(file_path)
+    if ffprobe_differences:
+        logger.critical(f"Some specified ffprobe fields or values are missing or don't match: {ffprobe_differences}")

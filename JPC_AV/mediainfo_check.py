@@ -125,7 +125,7 @@ def parse_mediainfo(file_path):
         logger.debug("All specified fields and values found in the MediaInfo output.")
     else:
     # if the list "mediainfo_differences" is not empty, then
-        logging.critical("Some specified MediaInfo fields or values are missing or don't match:")
+        logger.critical("Some specified MediaInfo fields or values are missing or don't match:")
     
     return mediainfo_differences
 
@@ -138,5 +138,6 @@ if __name__ == "__main__":
     if not os.path.isfile(file_path):
         print(f"Error: {file_path} is not a valid file.")
         sys.exit(1)
-    parse_mediainfo(file_path)
-    #runs the function "parse_mediainfo" on the file assigned to the variable "file_path"
+    mediainfo_differences = parse_mediainfo(file_path)
+    if mediainfo_differences:
+        logger.critical(f"Some specified MediaInfo fields or values are missing or don't match: {mediainfo_differences}")

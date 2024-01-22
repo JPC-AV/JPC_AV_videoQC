@@ -132,7 +132,7 @@ def main():
     '''
     process_file.py takes 1 input file as an argument, like this:
     python process_file.py <input_file.mkv>
-    it confirms the file is valid, creates an output directory, generates metadata on the file then checks it against expected values.
+    it confirms the file is valid generates metadata on the file then checks it against expected values.
     '''
 
     if len(sys.argv) != 2:

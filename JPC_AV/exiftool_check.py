@@ -72,5 +72,7 @@ if __name__ == "__main__":
         sys.exit(1)
         # assigns variable "file_path" to the text file "JPCspecs_ex.txt"
         # # This part of the script is for testing purposes and it will need to change to assign file_path programatically when run on a directory or something... TBD
-    parse_exiftool(file_path)
+    exiftool_differences = parse_exiftool(file_path)
     #runs the function "parse_exiftool" on the file assigned to the variable "file_path"
+    if exiftool_differences:
+        logger.critical(f"Some specified Exiftool fields or values are missing or don't match: {exiftool_differences}")
