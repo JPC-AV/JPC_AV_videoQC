@@ -140,4 +140,5 @@ if __name__ == "__main__":
         sys.exit(1)
     mediainfo_differences = parse_mediainfo(file_path)
     if mediainfo_differences:
-        logger.critical(f"Some specified MediaInfo fields or values are missing or don't match: {mediainfo_differences}")
+        for diff in mediainfo_differences:
+            logger.critical(f"\n\t{diff}")

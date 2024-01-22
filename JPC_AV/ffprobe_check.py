@@ -140,4 +140,5 @@ if __name__ == "__main__":
         sys.exit(1)
     ffprobe_differences = parse_ffprobe(file_path)
     if ffprobe_differences:
-        logger.critical(f"Some specified ffprobe fields or values are missing or don't match: {ffprobe_differences}")
+        for diff in ffprobe_differences:
+            logger.critical(f"\n\t{diff}")

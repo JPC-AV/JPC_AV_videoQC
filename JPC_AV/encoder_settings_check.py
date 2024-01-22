@@ -100,5 +100,6 @@ if __name__ == "__main__":
         encoder_settings = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
         settings_dict1, settings_dict2, settings_dict3 = parse_encoder_settings(encoder_settings)
         logger.debug(f"Encoder Settings are:\n{settings_dict1}\n{settings_dict2}\n{settings_dict3}")
+        logger.warning("To check encoder settings against expected values please run ffprobe_check")
     else:
         logger.critical("No 'encoder settings' in ffprobe output")

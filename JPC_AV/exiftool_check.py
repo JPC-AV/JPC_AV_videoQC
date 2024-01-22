@@ -75,4 +75,5 @@ if __name__ == "__main__":
     exiftool_differences = parse_exiftool(file_path)
     #runs the function "parse_exiftool" on the file assigned to the variable "file_path"
     if exiftool_differences:
-        logger.critical(f"Some specified Exiftool fields or values are missing or don't match: {exiftool_differences}")
+        for diff in exiftool_differences:
+            logger.critical(f"\n\t{diff}")
