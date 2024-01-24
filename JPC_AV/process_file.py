@@ -160,9 +160,11 @@ def main():
     
     # Check to confirm directory is the same name as the video file name
     destination_directory = check_directory(video_path)
-    fixity_result_file = os.path.join(destination_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
+    
     # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to fixity_result_file
-    check_fixity(destination_directory, fixity_result_file)
+    if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
+        fixity_result_file = os.path.join(destination_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
+        check_fixity(destination_directory, fixity_result_file)
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
     if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
