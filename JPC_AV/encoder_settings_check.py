@@ -18,11 +18,11 @@ def parse_encoder_settings(encoder_settings):
     # Splitting the settings string on "," into key:value pairs
     settings_list = [pair.strip() for pair in encoder_settings.split(",")]
 
-    # By iterating through the key:value pairs of ENCODER SETTINGS stored in settings_list, 3 subslists can be created, each of the 3 lists starting with '0=' to avoid duplicate identifiers of metadata fields
+    # By iterating through the key:value pairs of ENCODER SETTINGS stored in settings_list, 3 subsists can be created, each of the 3 lists starting with '0=' to avoid duplicate identifiers of metadata fields
     sublists = []
     # sublists will be a nested list, it will hold 3 separate lists for the 3 sections within encoder settings
     current_sublist = []
-    # current_sublist will temporarily hold a list at a time, before that list is appended to the nested list sublists
+    # current_sublist will temporarily hold a list at a time, before that list is appended to the nested list subsists
     
     for pair in settings_list:
     # Iterate through the key:value pairs
@@ -30,7 +30,7 @@ def parse_encoder_settings(encoder_settings):
         # if pair begins with "0="
             if current_sublist:
                 sublists.append(current_sublist)
-                # If current pair is "0=" and current_sublist is populated, append active list to sublists
+                # If current pair is "0=" and current_sublist is populated, append active list to the nested list 'subsists'
             current_sublist = [pair]
             # If current pair is "0=" and current_sublist is not populated, start current_sublist with pair
         else:
@@ -46,10 +46,10 @@ def parse_encoder_settings(encoder_settings):
         key, value = pair.split("=")
         settings_dict1[key] = value
 
-    # The field identifier 'T' in the 2nd list of encoder settings holds multiple values, but the values are separted by a ',' 
+    # The field identifier 'T' in the 2nd list of encoder settings holds multiple values, but the values are separated by a ',' 
     # for example: 'T=Blackmagic UltraStudio 4K Mini SN123456, ffmpeg vrecord; in-house,'
     # settings list was split on ',' so the additional values for 'T' are stored as individual items in the list. All other items in the list will contain 'identifier=value'. 
-    # If an item in the list does not contain '=' then it is append as an additonal value to the key 'T' making the value into a list of values  
+    # If an item in the list does not contain '=' then it is append as an additional value to the key 'T' making the value into a list of values  
     settings_dict2 = {}
     for pair in sublists[1]:
         if "=" in pair:
@@ -68,14 +68,14 @@ def parse_encoder_settings(encoder_settings):
         else:
             settings_dict3['W'] = [settings_dict3['W'], pair]
 
-    # The lasts values in the encoder setting list are for whatever reason not seperated by a ','
+    # The lasts values in the encoder setting list are for whatever reason not separated by a ','
     # For example: 'MYUV422p10 N=AJ Lawrence'
-    # This statement takes the 4th item in the 3rd sublist and splits it on a space to retireve the last value for 'W'. In the example above, 'MYUV422p10'. 
+    # This statement takes the 4th item in the 3rd sublist and splits it on a space to retrieve the last value for 'W'. In the example above, 'MYUV422p10'. 
     if isinstance(settings_dict3['W'], list):
         settings_dict3['W'].append(sublists[2][3].split(' ', 1)[0])
         
     # The 4th item in the 3rd sublist, split in the conditional above, also stores the last field of encoder settings.
-    # In the case of JPC_AV_05000 this is 'N=AJ Lawrence'. To seperate 'N=AJ Lawrence' from 'MYUV422p10 N=AJ Lawrence', the command below is used:
+    # In the case of JPC_AV_05000 this is 'N=AJ Lawrence'. To separate 'N=AJ Lawrence' from 'MYUV422p10 N=AJ Lawrence', the command below is used:
     key, value = (sublists[2][3].split(' ', 1)[1]).split("=")
     # The command above takes the 2nd half of the 4th item in the 3rd sublist, and splits it on the character '=' assigning the string before '=' to key, and after '=' to value
     settings_dict3[key] = value

@@ -12,6 +12,7 @@ from datetime import datetime
 from log_setup import logger, console_handler
 from deps_setup import required_commands, check_external_dependency, check_py_version
 from find_config import config_path, command_config
+from fixity_check import check_fixity, read_checksum_from_file, hashlib_md5
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
@@ -160,6 +161,8 @@ def main():
     
     # Create a directory with the same name as the video file
     destination_directory = check_directory(video_path)
+
+    check_fixity(destination_directory)
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
     if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
@@ -171,7 +174,7 @@ def main():
             if 'fail' in mc_file.read():
                 logger.critical('MediaConch policy failed') 
 
-    # Run exif, mediainfo and ffprobe using the 'run_command' function
+    # Run exiftool, mediainfo and ffprobe using the 'run_command' function
     if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
         run_command('exiftool', video_path, '>', exiftool_output_path)
@@ -201,7 +204,6 @@ def main():
         csv_path = destination_directory + "/" + csv_name + ".csv"
     
     csv_config = command_config.command_dict['outputs']['difference_csv']
-
     
     # Open CSV file in write mode
     with open(csv_path, 'w', newline='') as diffs_csv:
