@@ -27,7 +27,7 @@ def check_fixity(directory, fixity_result_file):
                     else:
                         logger.critical(f'Fixity check failed for {video_file_path}')
                         result_file = open(fixity_result_file, 'w')
-                        print(f'Fixity check failed for {video_file_path}\n checksum read from .md5 file = {expected_checksum}\n checksum created from MKV file = {actual_checksum}', file = result_file)
+                        print(f'Fixity check failed for {os.path.basename(video_file_path)}\n checksum read from .md5 file = {expected_checksum}\n checksum created from MKV file = {actual_checksum}', file = result_file)
                         result_file.close()
                 else:
                     logger.critical(f'Video file not found: {video_file_path}')
