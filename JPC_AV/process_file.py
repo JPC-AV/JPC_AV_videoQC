@@ -59,7 +59,6 @@ def check_directory(video_path):
     video_name = os.path.splitext(os.path.basename(video_path))[0]
     
     directory_path = os.path.dirname(video_path)
-
     directory_name = os.path.basename(directory_path)
 
     if video_name == directory_name:
@@ -159,10 +158,11 @@ def main():
 
     video_id = os.path.splitext(os.path.basename(video_name))[0]
     
-    # Create a directory with the same name as the video file
+    # Check to confirm directory is the same name as the video file name
     destination_directory = check_directory(video_path)
-
-    check_fixity(destination_directory)
+    fixity_result_file = os.path.join(destination_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
+    # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to fixity_result_file
+    check_fixity(destination_directory, fixity_result_file)
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
     if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':

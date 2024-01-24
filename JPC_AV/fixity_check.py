@@ -4,7 +4,7 @@ import hashlib
 import logging
 from log_setup import logger
 
-def check_fixity(directory):
+def check_fixity(directory, fixity_result_file):
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith('_checksums.md5'):
@@ -21,10 +21,16 @@ def check_fixity(directory):
                     # Compare the calculated checksum with the one from the file
                     if actual_checksum == expected_checksum:
                         logger.info(f'Fixity check passed for {video_file_path}')
+                        result_file = open(fixity_result_file, 'w')
+                        print(f'Fixity check passed for {video_file_path}', file = result_file)
+                        result_file.close()
                     else:
                         logger.critical(f'Fixity check failed for {video_file_path}')
+                        result_file = open(fixity_result_file, 'w')
+                        print(f'Fixity check failed for {video_file_path}\n checksum read from .md5 file = {expected_checksum}\n checksum created from MKV file = {actual_checksum}', file = result_file)
+                        result_file.close()
                 else:
-                    logger.critical(f'Video file not found for {checksum_file_path}')
+                    logger.critical(f'Video file not found: {video_file_path}')
 
 def read_checksum_from_file(file_path):
     with open(file_path, 'r') as checksum_file:
