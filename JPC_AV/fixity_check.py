@@ -6,7 +6,7 @@ import logging
 from log_setup import logger
 
 def check_fixity(directory, video_id):
-    fixity_result_file = os.path.join(directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
+    fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith('_checksums.md5'):

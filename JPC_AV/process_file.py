@@ -58,13 +58,18 @@ def check_directory(video_path):
     
     video_name = os.path.splitext(os.path.basename(video_path))[0]
     
-    directory_path = os.path.dirname(video_path)
-    directory_name = os.path.basename(directory_path)
+    source_path = os.path.dirname(video_path)
+    directory_name = os.path.basename(source_path)
 
     if video_name == directory_name:
         logger.debug(f'Video ID matches directory name')
     else:
         logger.critical(f'Video ID, {video_name}, does not match directory name: {directory_name}')
+    
+    directory_path = os.path.join(source_path, f'{video_name}_qc_metadata')
+
+    if not os.path.exists(directory_path):
+        os.makedirs(directory_path)
     
     logger.debug(f'Metadata files will be written to {directory_path}')
 
@@ -160,10 +165,11 @@ def main():
     
     # Check to confirm directory is the same name as the video file name
     destination_directory = check_directory(video_path)
+    source_directory = os.path.dirname(destination_directory)
     
     # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to fixity_result_file
     if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
-        check_fixity(destination_directory, video_id)
+        check_fixity(source_directory, video_id)
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
     if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
