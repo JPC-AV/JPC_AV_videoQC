@@ -1,15 +1,17 @@
 import os
 import sys
 import hashlib
+from datetime import datetime
 import logging
 from log_setup import logger
 
-def check_fixity(directory, fixity_result_file):
+def check_fixity(directory, video_id):
+    fixity_result_file = os.path.join(directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith('_checksums.md5'):
                 checksum_file_path = os.path.join(root, file)
-                video_file_path = os.path.join(root, file.replace('_checksums.md5', '.mkv'))
+                video_file_path = os.path.join(root, f'{video_id}.mkv')
 
                 if os.path.exists(video_file_path):
                     # Read the MD5 checksum from the _checksums.md5 file
