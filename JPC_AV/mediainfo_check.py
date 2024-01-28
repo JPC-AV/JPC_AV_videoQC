@@ -122,7 +122,7 @@ def parse_mediainfo(file_path):
     
     if not mediainfo_differences:
     # if the list "mediainfo_differences" is empty, then
-        logger.debug("All specified fields and values found in the MediaInfo output.")
+        logger.info("All specified fields and values found in the MediaInfo output.")
     else:
     # if the list "mediainfo_differences" is not empty, then
         logger.critical("Some specified MediaInfo fields or values are missing or don't match:")

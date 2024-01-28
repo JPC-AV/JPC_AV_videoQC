@@ -33,10 +33,10 @@ def parse_exiftool(file_path):
         exif_data[key] = value
         # value is matched to the key, in a key:value pair
 
-    ## Explination of the loops below:
+    ## Explanation of the loops below:
     # The loops below assign the variables "expected_key" and "expected_value" to the key:value pairs in the "expected" dictionary defined at the beginning of the function
     # the variable "actual_value" is used to define the value of the key matching the "expected_key" in the expected_exif_values dictionary (defined above)
-    # if the actual_value variable and the expected_valu variable don't match, then a string stating both values is appened to a list called "exiftool_differences"
+    # if the actual_value variable and the expected_value variable don't match, then a string stating both values is append to a list called "exiftool_differences"
 
     exiftool_differences = []
     # Create empty list, "exiftool_differences"
@@ -54,7 +54,7 @@ def parse_exiftool(file_path):
 
     if not exiftool_differences:
     # if the list "exiftool_differences" is empty, then
-        logger.debug("All specified fields and values found in the Exiftool output.")
+        logger.info(f"All specified fields and values found in the Exiftool output.")
     else:
     # if the list "exiftool_differences" is not empty, then
         logger.critical("Some specified Exiftool fields or values are missing or don't match:")

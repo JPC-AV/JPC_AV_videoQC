@@ -121,7 +121,7 @@ def parse_ffprobe(file_path):
 
     if not ffprobe_differences:
         # if the list "ffprobe_differences" is empty, then
-        logger.debug("All specified fields and values found in the ffprobe output.")
+        logger.info("All specified fields and values found in the ffprobe output.")
     else:
         # if the list "ffprobe_differences" is not empty, then
         logger.critical("Some specified ffprobe fields or values are missing or don't match:")

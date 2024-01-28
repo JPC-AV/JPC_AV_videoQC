@@ -28,7 +28,7 @@ logPath = logDir + "/" + logName + ".log"
 
 # Define log formats which will be used in 'formatter' for the 2 log handlers
 LOG_FORMAT = '%(asctime)s - %(levelname)s: %(message)s'
-STDOUT_FORMAT = '%(asctime)s - %(message)s' 
+STDOUT_FORMAT = '%(message)s' 
 
 ## This project uses 2 log handlers, one for the log file 'file_handler', and one for the terminal output 'console_handler' 
 
