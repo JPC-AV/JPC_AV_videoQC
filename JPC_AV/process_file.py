@@ -107,32 +107,6 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     logger.debug(f'running command: {full_command}')
     subprocess.run(full_command, shell=True)
 
-def write_to_csv(diff_list, tool_name, config, writer):
-    for diff in diff_list:
-        # Split the difference string into lines
-        lines = diff.strip().split('\n')
-        
-        # Iterate through the rest of the lines to find metadata field, expected, and actual values
-        for line in lines:
-            if line.startswith('\tExpected:'):
-                expected_value = line.split(': ')[1].strip()
-            elif line.startswith('\tActual:'):
-                actual_value = line.split(': ')[1].strip()
-            else:
-                metadata_field = line.strip()
-        
-        if config == 'yes':
-            # Write data to CSV file
-            writer.writerow({
-                'Metadata Tool': tool_name,
-                'Metadata Field': metadata_field,
-                'Expected Value': expected_value,
-                'Actual Value': actual_value
-            })
-
-        # Log the difference
-        logger.critical(f'\n\t{diff}')
-
 def main():
     '''
     process_file.py takes 1 input file as an argument, like this:
@@ -170,86 +144,49 @@ def main():
     # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to fixity_result_file
     if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
         check_fixity(source_directory, video_id)
-    
-    # Create CSV for storing differences between expected metadata values and actual values
-    csv_name = video_id + '_' + 'metadata_difference'
-    csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
-    if os.path.exists(csv_path):
-        # if CSV file already exists, append a timestamp to the new csv_name
-        timestamp = datetime.now().strftime("%Y%m%d_%H-%M-%S")
-        csv_name += '_' + timestamp
-        csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
-    
-    csv_config = command_config.command_dict['outputs']['difference_csv']
-    
-    # Open CSV file in write mode
-    with open(csv_path, 'w', newline='') as diffs_csv:
-        # Define CSV header
-        fieldnames = ['Metadata Tool', 'Metadata Field', 'Expected Value', 'Actual Value']
-        writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
-        
-        # Write header to CSV file
-        writer.writeheader()
    
-        # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
-        if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
-            mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
-            run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
+    # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
+    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
+        mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
+        run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
 
-            # open the mediaconch csv ouput and check for the word 'fail'
-            with open(mediaconch_output_path) as mc_file:
-                if 'fail' in mc_file.read():
-                    logger.critical('MediaConch policy failed') 
+        # open the mediaconch csv ouput and check for the word 'fail'
+        with open(mediaconch_output_path) as mc_file:
+            if 'fail' in mc_file.read():
+                logger.critical('MediaConch policy failed') 
 
-        # Run exiftool, mediainfo and ffprobe using the 'run_command' function
-        if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
-            exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
-            run_command('exiftool', video_path, '>', exiftool_output_path)
+    # Run exiftool, mediainfo and ffprobe using the 'run_command' function
+    if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
+        exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
+        run_command('exiftool', video_path, '>', exiftool_output_path)
 
-        if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
-            # If check_exfitool is set to 'yes' in command_config.yaml then
-            exiftool_differences = parse_exiftool(exiftool_output_path)
-            # Run parse functions defined in the '_check.py' scripts
-            write_to_csv(exiftool_differences, 'exiftool', csv_config, writer)
-            # and if actual values are different from expected values, write differences to CSV and to log
+    if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
+        # If check_exfitool is set to 'yes' in command_config.yaml then
+        parse_exiftool(exiftool_output_path)
+        # Run parse functions defined in the '_check.py' scripts
 
-        if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
-            mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
-            run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
-        
-        if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
-            # If check_mediainfo is set to 'yes' in command_config.yaml then
-            mediainfo_differences = parse_mediainfo(mediainfo_output_path)
-            # Run parse functions defined in the '_check.py' scripts
-            write_to_csv(mediainfo_differences, 'mediainfo', csv_config, writer)
-            # and if actual values are different from expected values, write differences to CSV and to log
-
-        if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
-            ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
-            run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
-
-        if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
-             # If check_exfitool is set to 'yes' in command_config.yaml then
-            ffprobe_differences = parse_ffprobe(ffprobe_output_path)
-            # Run parse functions defined in the '_check.py' scripts
-            write_to_csv(ffprobe_differences, 'ffprobe', csv_config, writer)
-            # and if actual values are different from expected values, write differences to CSV and to log
-
-        if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
-            qctools_ext = command_config.command_dict['outputs']['qctools_ext']
-            qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
-            run_command('qcli -i', video_path, '-o', qctools_output_path)
-
-            # Open CSV and read the content to variable 'rows'
-    with open(csv_path, 'r', newline='') as check_csv:
-        reader = csv.reader(check_csv)
-        rows = list(reader)  # Read the CSV file
+    if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
+        mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
+        run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
     
-    # If CSV file exists, and has only 1 row, then it only contains the header. 
-    # CSV will only contain header if there are no differences, or if difference_csv is set to 'no' in the command_config.yaml 
-    if os.path.exists(csv_path):
-        if len(rows) == 1:
-            os.remove(csv_path)
+    if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
+        # If check_mediainfo is set to 'yes' in command_config.yaml then
+        parse_mediainfo(mediainfo_output_path)
+        # Run parse functions defined in the '_check.py' scripts
+
+    if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
+        ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
+        run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
+
+    if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
+        # If check_exfitool is set to 'yes' in command_config.yaml then
+        parse_ffprobe(ffprobe_output_path)
+        # Run parse functions defined in the '_check.py' scripts
+
+    if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
+        qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+        qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
+        run_command('qcli -i', video_path, '-o', qctools_output_path)
 
     logger.debug(f'\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
     

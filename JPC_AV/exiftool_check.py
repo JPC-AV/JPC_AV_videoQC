@@ -49,7 +49,7 @@ def parse_exiftool(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
-                exiftool_differences.append(f"{expected_key}\n\tExpected: {expected_value}\n\tActual: {actual_value}\n")
+                exiftool_differences.append(f"Metadata field {expected_key} has a value of: {actual_value}\nThe expected value is: {expected_value}\n")
                 # append this string to the list "exiftool_differences"
 
     if not exiftool_differences:
@@ -58,6 +58,8 @@ def parse_exiftool(file_path):
     else:
     # if the list "exiftool_differences" is not empty, then
         logger.critical("Some specified Exiftool fields or values are missing or don't match:")
+        for diff in exiftool_differences:
+            logger.critical(f'{diff}')
 
     return exiftool_differences
 
@@ -71,7 +73,6 @@ if __name__ == "__main__":
         print(f"Error: {file_path} is not a valid file.")
         sys.exit(1)
         # assigns variable "file_path" to the text file "JPCspecs_ex.txt"
-        # # This part of the script is for testing purposes and it will need to change to assign file_path programatically when run on a directory or something... TBD
     exiftool_differences = parse_exiftool(file_path)
     #runs the function "parse_exiftool" on the file assigned to the variable "file_path"
     if exiftool_differences:
