@@ -119,7 +119,7 @@ def move_vrec_files(directory, video_id):
         if (
             os.path.isfile(file_path)
             and "JPC_AV_" in filename
-            and filename.endswith(('_QC_output_graphs.jpeg', '_vrecord_input.log', '.mkv.qctools.mkv', '.framemd5'))
+            and filename.endswith(('_QC_output_graphs.jpeg', '_vrecord_input.log', '_capture_options.log', '.mkv.qctools.mkv', '.framemd5'))
         ):
             # Create the target directory if it doesn't exist
             vrecord_directory = os.path.join(directory, f'{video_id}_vrecord_metadata')
