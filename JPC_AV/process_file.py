@@ -173,6 +173,9 @@ def main():
     # Moves vrecord files to subdirectory  
     move_vrec_files(source_directory, video_id)
     
+    # Initialize md5_checksum variable, so if it is not assigned in output_fixity, it is 'None' if run in check_fixity
+    md5_checksum = None 
+
     # Create checksum for video file output results to '{video_id}_YYYY_MM_DD_fixity.txt' 
     if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
         md5_checksum = output_fixity(destination_directory, video_path)
