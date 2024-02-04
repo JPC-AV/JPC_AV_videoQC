@@ -13,7 +13,7 @@ from datetime import datetime
 from log_setup import logger, console_handler
 from deps_setup import required_commands, check_external_dependency, check_py_version
 from find_config import config_path, command_config
-from fixity_check import check_fixity, read_checksum_from_file, hashlib_md5
+from fixity_check import check_fixity, output_fixity
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
@@ -173,9 +173,13 @@ def main():
     # Moves vrecord files to subdirectory  
     move_vrec_files(source_directory, video_id)
     
-    # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to fixity_result_file
+    # Create checksum for video file output results to '{video_id}_YYYY_MM_DD_fixity.txt' 
+    if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
+        md5_checksum = output_fixity(destination_directory, video_path)
+    
+    # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to '{video_id}_YYYY_MM_DD_fixity_check.txt' 
     if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
-        check_fixity(source_directory, video_id)
+        check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
    
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
     if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':

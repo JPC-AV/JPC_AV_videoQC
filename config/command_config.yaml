@@ -20,5 +20,7 @@ outputs:
   difference_csv: 'no'
   qctools_ext: 'qctools.xml.gz'
   fixity:
+    output_fixity: 'yes'
     check_fixity: 'yes'
-    embed_fixity: 'no' #not implemented yet
+    embed_stream_fixity: 'no' # not implemented yet
+    check_steam_fixity: 'no' # not implemented yet

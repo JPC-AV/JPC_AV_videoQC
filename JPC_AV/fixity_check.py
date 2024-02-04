@@ -5,21 +5,22 @@ from datetime import datetime
 import logging
 from log_setup import logger
 
-def check_fixity(directory, video_id):
-    fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
+def check_fixity(directory, video_id, actual_checksum=None):
+    fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity_check.txt')
+    # Walks files of the source directory looking for file with '_checksums.md5' suffix
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith('_checksums.md5'):
                 checksum_file_path = os.path.join(root, file)
                 video_file_path = os.path.join(root, f'{video_id}.mkv')
-
+                # If video file exists, then:
                 if os.path.exists(video_file_path):
                     # Read the MD5 checksum from the _checksums.md5 file
                     expected_checksum = read_checksum_from_file(checksum_file_path)
-
-                    # Calculate the MD5 checksum of the video file
-                    actual_checksum = hashlib_md5(video_file_path)
-
+                    # If checksum has not yet been calculated, then:
+                    if actual_checksum is None:
+                        # Calculate the MD5 checksum of the video file
+                        actual_checksum = hashlib_md5(video_file_path)
                     # Compare the calculated checksum with the one from the file
                     if actual_checksum == expected_checksum:
                         logger.info(f'Fixity check passed for {video_file_path}')
@@ -34,6 +35,22 @@ def check_fixity(directory, video_id):
                 else:
                     logger.critical(f'Video file not found: {video_file_path}')
 
+def output_fixity(destination_directory, video_path):
+    # Parse video_id from video file path
+    video_id = os.path.splitext(os.path.basename(os.path.basename(video_path)))[0]
+    # Create fixity results file
+    fixity_result_file = os.path.join(destination_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
+    # Calculate the MD5 checksum of the video file
+    md5_checksum = hashlib_md5(video_path)
+    # Open fixity_result_file
+    result_file = open(fixity_result_file, 'w')
+    # Print Md5 in 'filename[tab]Checksum' format
+    print(f'{os.path.basename(video_path)}\t{md5_checksum}', file = result_file)
+    # Close fixity_result_file
+    result_file.close()
+    logger.debug(f'\nMD5 checksum written to {fixity_result_file}')
+    return md5_checksum
+
 def read_checksum_from_file(file_path):
     with open(file_path, 'r') as checksum_file:
         content = checksum_file.read()
@@ -42,26 +59,11 @@ def read_checksum_from_file(file_path):
     checksum_parts = content.split()
     for part in checksum_parts:
         if len(part) == 32 and all(c in '0123456789abcdefABCDEF' for c in part):
-            logger.info(f'md5 checksum from {os.path.basename(file_path)} found: {part}')
+            logger.info(f'MD5 checksum found in {os.path.basename(file_path)}: {part}')
             return part
 
     logger.critical(f'md5 checksum not found in {file_path}')
     return None
-
-## The function below, hashlib_md5 is a slightly modified version of the function from the open-source project IFIscripts
-## More here: https://github.com/Irish-Film-Institute/IFIscripts/blob/master/scripts/copyit.py
-## IFIscripts license information below:
-# The MIT License (MIT)
-# Copyright (c) 2015-2018 Kieran O'Leary for the Irish Film Institute.
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the 'Software'), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
 
 def hashlib_md5(filename):
     '''
@@ -85,8 +87,23 @@ def hashlib_md5(filename):
                 sys.stdout.flush()
                 last_percent_done = percent_done
     md5_output = md5_object.hexdigest()
-    logger.debug(f'calculated md5 checksum is {md5_output}')
+    logger.info(f'Calculated md5 checksum is {md5_output}')
     return md5_output
+
+## The function above, hashlib_md5 is a slightly modified version of the function from the open-source project IFIscripts
+## More here: https://github.com/Irish-Film-Institute/IFIscripts/blob/master/scripts/copyit.py
+## IFIscripts license information below:
+# The MIT License (MIT)
+# Copyright (c) 2015-2018 Kieran O'Leary for the Irish Film Institute.
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the 'Software'), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
