@@ -17,7 +17,7 @@ from fixity_check import check_fixity, output_fixity
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
-from embed_fixity import embed_fixity
+from embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
 
 # Read command_config.yaml and retrieve log level
 log_level_str = command_config.command_dict['log_level']
@@ -100,9 +100,9 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     policy_path = os.path.join(config_path.config_dir, policy_file)
     
     if not os.path.exists(policy_path):
-        logger.critical(f'Policy file not found: {policy_file}')
+        logger.critical(f'\nPolicy file not found: {policy_file}')
     else:
-        logger.debug(f'Using MediaConch policy {policy_file}')
+        logger.debug(f'\nUsing MediaConch policy {policy_file}')
     
     full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
@@ -185,10 +185,17 @@ def main():
     if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
         check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
 
-    # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to '{video_id}_YYYY_MM_DD_fixity_check.txt' 
-    if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
-        embed_fixity(video_path)
-   
+    # Extract VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags
+    existing_tags = extract_tags(video_path)
+    existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+    # Check if VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags exists, either embed stream md5s or validate accordingly
+    if existing_video_hash is None or existing_audio_hash is None :
+        if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+            embed_fixity(video_path)
+    else:
+        if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
+            validate_embedded_md5(video_path)
+    
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
     if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
         mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')

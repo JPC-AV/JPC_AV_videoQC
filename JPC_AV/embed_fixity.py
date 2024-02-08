@@ -106,6 +106,41 @@ def write_tags_to_mkv(mkv_file, temp_xml_file):
     if stderr:
         logger.critical(f"Running mkvpropedit:\n{stderr.decode('utf-8')}")  # Print any errors if they occur
 
+def extract_hashes(xml_tags):
+    video_hash = None
+    audio_hash = None
+
+    root = ET.fromstring(xml_tags)
+
+    # Find 'video_stream_hash' element
+    v_stream_element = root.find('.//Simple[Name="VIDEO_STREAM_HASH"]/String')
+    if v_stream_element is not None:
+        # Assign MD5 in VIDEO_STREAM_HASH to video_hash
+        video_hash = v_stream_element.text
+    else:
+        logger.warning(f'No video stream hash found')
+
+    # Find 'video_stream_hash' element
+    a_stream_element = root.find('.//Simple[Name="AUDIO_STREAM_HASH"]/String')
+    if a_stream_element is not None:
+        # Assign MD5 in AUDIO_STREAM_HASH to video_hash
+        audio_hash = a_stream_element.text
+    else:
+        logger.warning(f'No audio stream hash found')
+
+    return video_hash, audio_hash
+
+def compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash):
+    if existing_video_hash == video_hash:
+        logger.info("Video hashes match.")
+    else:
+        logger.critical(f"Video hashes do not match. \nMD5 stored in MKV file: {video_hash} \nGenerated MD5: {existing_video_hash}")
+
+    if existing_audio_hash == audio_hash:
+        logger.info("Audio hashes match.")
+    else:
+        logger.critical(f"Audio hashes do not match. \nMD5 stored in MKV file: {video_hash} \nGenerated MD5: {existing_video_hash}")
+
 def embed_fixity(video_path):
 
     # Make md5 of video/audio stream
@@ -127,6 +162,18 @@ def embed_fixity(video_path):
 
     # Remove the temporary XML file
     os.remove(temp_xml_file)
+
+def validate_embedded_md5(video_path):
+
+    logger.debug(f'\nExtracting existing video and audio stream hashes')
+    existing_tags = extract_tags(video_path)
+    existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+
+    logger.debug(f'\nGenerating video and audio stream hashes. This may take a moment...')
+    video_hash, audio_hash = make_stream_hash(video_path)
+
+    logger.debug(f'Validating stream fixity')
+    compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
 
 #if __name__ == "__main__":
  #   main()

@@ -23,4 +23,4 @@ outputs:
     output_fixity: 'yes'
     check_fixity: 'no'
     embed_stream_fixity: 'yes' 
-    check_steam_fixity: 'no' # not implemented yet
+    check_stream_fixity: 'yes'
