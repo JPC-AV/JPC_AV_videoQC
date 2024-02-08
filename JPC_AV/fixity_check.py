@@ -10,7 +10,7 @@ def check_fixity(directory, video_id, actual_checksum=None):
     # Walks files of the source directory looking for file with '_checksums.md5' suffix
     for root, dirs, files in os.walk(directory):
         for file in files:
-            if file.endswith('_checksums.md5'):
+            if file.endswith('_checksums.md5') or file.endswith('_fixity.txt'):
                 checksum_file_path = os.path.join(root, file)
                 video_file_path = os.path.join(root, f'{video_id}.mkv')
                 # If video file exists, then:
@@ -35,11 +35,11 @@ def check_fixity(directory, video_id, actual_checksum=None):
                 else:
                     logger.critical(f'Video file not found: {video_file_path}')
 
-def output_fixity(destination_directory, video_path):
+def output_fixity(source_directory, video_path):
     # Parse video_id from video file path
     video_id = os.path.splitext(os.path.basename(os.path.basename(video_path)))[0]
     # Create fixity results file
-    fixity_result_file = os.path.join(destination_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
+    fixity_result_file = os.path.join(source_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
     # Calculate the MD5 checksum of the video file
     md5_checksum = hashlib_md5(video_path)
     # Open fixity_result_file

@@ -15,12 +15,12 @@ tools:
     check_ffprobe: 'yes'
   qctools: 
     run_qctools: 'no'
-    check_qctools: 'yes' # not implemented yet
+    check_qctools: 'no' # not implemented yet
 outputs:
   difference_csv: 'no'
   qctools_ext: 'qctools.xml.gz'
   fixity:
-    output_fixity: 'yes'
-    check_fixity: 'no'
-    embed_stream_fixity: 'yes' 
+    output_fixity: 'no'
+    check_fixity: 'yes'
+    embed_stream_fixity: 'no' 
     check_stream_fixity: 'yes'

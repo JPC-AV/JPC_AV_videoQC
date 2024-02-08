@@ -102,7 +102,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     if not os.path.exists(policy_path):
         logger.critical(f'\nPolicy file not found: {policy_file}')
     else:
-        logger.debug(f'\nUsing MediaConch policy {policy_file}')
+        logger.debug(f'Using MediaConch policy {policy_file}')
     
     full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
@@ -179,7 +179,7 @@ def main():
 
     # Create checksum for video file output results to '{video_id}_YYYY_MM_DD_fixity.txt' 
     if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
-        md5_checksum = output_fixity(destination_directory, video_path)
+        md5_checksum = output_fixity(source_directory, video_path)
     
     # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to '{video_id}_YYYY_MM_DD_fixity_check.txt' 
     if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
