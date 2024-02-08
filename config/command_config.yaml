@@ -21,6 +21,6 @@ outputs:
   qctools_ext: 'qctools.xml.gz'
   fixity:
     output_fixity: 'yes'
-    check_fixity: 'yes'
-    embed_stream_fixity: 'no' # not implemented yet
+    check_fixity: 'no'
+    embed_stream_fixity: 'yes' 
     check_steam_fixity: 'no' # not implemented yet
