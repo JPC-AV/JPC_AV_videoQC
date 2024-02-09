@@ -19,7 +19,7 @@ from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
 from embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
-from yaml_profiles import apply_profile
+from yaml_profiles import apply_profile, profile_step1, profile_step2
 
 # Read command_config.yaml and retrieve log level
 log_level_str = command_config.command_dict['log_level']
@@ -155,9 +155,9 @@ def parse_arguments():
     selected_profile = None
     if args.profile:
         if args.profile == "step1":
-            selected_profile = "Step 1"
+            selected_profile = profile_step1
         elif args.profile == "step2":
-            selected_profile = "Step 2"
+            selected_profile = profile_step2
 
     return video_path, selected_profile
 
