@@ -104,7 +104,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     if not os.path.exists(policy_path):
         logger.critical(f'\nPolicy file not found: {policy_file}')
     else:
-        logger.debug(f'Using MediaConch policy {policy_file}')
+        logger.debug(f'\nUsing MediaConch policy {policy_file}')
     
     full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
@@ -178,7 +178,7 @@ def main():
             sys.exit(1)
     
     if selected_profile:
-        apply_profile(command_config.command_dict, selected_profile)
+        apply_profile(command_config, selected_profile)
     
     video_name = os.path.basename(video_path)
     
@@ -226,8 +226,8 @@ def main():
                 logger.critical('MediaConch policy failed') 
 
     # Run exiftool, mediainfo and ffprobe using the 'run_command' function
+    exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
     if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
-        exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
         run_command('exiftool', video_path, '>', exiftool_output_path)
 
     if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
@@ -235,8 +235,8 @@ def main():
         parse_exiftool(exiftool_output_path)
         # Run parse functions defined in the '_check.py' scripts
 
+    mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
     if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
-        mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
         run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
     
     if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
@@ -244,8 +244,8 @@ def main():
         parse_mediainfo(mediainfo_output_path)
         # Run parse functions defined in the '_check.py' scripts
 
+    ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
     if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
-        ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
         run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
 
     if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':

@@ -117,14 +117,16 @@ def extract_hashes(xml_tags):
     if v_stream_element is not None:
         # Assign MD5 in VIDEO_STREAM_HASH to video_hash
         video_hash = v_stream_element.text
+        logger.info(f'Video stream md5 found: {video_hash}')
     else:
         logger.warning(f'No video stream hash found')
 
     # Find 'video_stream_hash' element
     a_stream_element = root.find('.//Simple[Name="AUDIO_STREAM_HASH"]/String')
     if a_stream_element is not None:
-        # Assign MD5 in AUDIO_STREAM_HASH to video_hash
+        # Assign MD5 in AUDIO_STREAM_HASH to audio_hash
         audio_hash = a_stream_element.text
+        logger.info(f'Audio stream md5 found: {audio_hash}')
     else:
         logger.warning(f'No audio stream hash found')
 

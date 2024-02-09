@@ -1,26 +1,26 @@
 ---
-log_level: 'DEBUG'
-tools:
-  mediaconch: 
-    run_mediaconch: 'yes'
-    mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
-  exiftool:
-    run_exiftool: 'yes'
-    check_exiftool: 'yes'
-  mediainfo: 
-    run_mediainfo: 'yes'
-    check_mediainfo: 'yes'
-  ffprobe: 
-    run_ffprobe: 'yes'
-    check_ffprobe: 'yes'
-  qctools: 
-    run_qctools: 'no'
-    check_qctools: 'no' # not implemented yet
+log_level: DEBUG
 outputs:
   difference_csv: 'no'
-  qctools_ext: 'qctools.xml.gz'
   fixity:
-    output_fixity: 'no'
     check_fixity: 'yes'
-    embed_stream_fixity: 'no' 
     check_stream_fixity: 'yes'
+    embed_stream_fixity: 'no'
+    output_fixity: 'no'
+  qctools_ext: qctools.xml.gz
+tools:
+  exiftool:
+    check_exiftool: 'yes'
+    run_exiftool: 'no'
+  ffprobe:
+    check_ffprobe: 'yes'
+    run_ffprobe: 'no'
+  mediaconch:
+    mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
+    run_mediaconch: 'yes'
+  mediainfo:
+    check_mediainfo: 'yes'
+    run_mediainfo: 'no'
+  qctools:
+    check_qctools: 'no'
+    run_qctools: 'yes'
