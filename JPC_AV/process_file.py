@@ -9,6 +9,7 @@ import logging
 import yaml
 import csv
 import shutil
+import argparse
 from datetime import datetime
 from log_setup import logger, console_handler
 from deps_setup import required_commands, check_external_dependency, check_py_version
@@ -18,6 +19,7 @@ from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
 from embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
+from yaml_profiles import apply_profile
 
 # Read command_config.yaml and retrieve log level
 log_level_str = command_config.command_dict['log_level']
@@ -137,6 +139,28 @@ def move_vrec_files(directory, video_id):
     else:
         logger.debug("\nNo vrecord files found.\n")
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Process video file with optional settings")
+    parser.add_argument("video_file", help="Path to the input video file")
+    parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
+
+    args = parser.parse_args()
+
+    video_path = args.video_file
+
+    if not os.path.isfile(video_path):
+        print(f"Error: {video_path} is not a valid file.")
+        sys.exit(1)
+
+    selected_profile = None
+    if args.profile:
+        if args.profile == "step1":
+            selected_profile = "Step 1"
+        elif args.profile == "step2":
+            selected_profile = "Step 2"
+
+    return video_path, selected_profile
+
 def main():
     '''
     process_file.py takes 1 input file as an argument, like this:
@@ -144,15 +168,7 @@ def main():
     it confirms the file is valid generates metadata on the file then checks it against expected values.
     '''
 
-    if len(sys.argv) != 2:
-        print("Usage: python script.py <video_file>")
-        sys.exit(1)
-
-    video_path = sys.argv[1]
-
-    if not os.path.isfile(video_path):
-        print(f"Error: {video_path} is not a valid file.")
-        sys.exit(1)
+    video_path, selected_profile = parse_arguments()
 
     check_py_version()
     
@@ -160,6 +176,9 @@ def main():
         if not check_external_dependency(command):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
+    
+    if selected_profile:
+        apply_profile(command_config.command_dict, selected_profile)
     
     video_name = os.path.basename(video_path)
     
