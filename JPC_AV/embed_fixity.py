@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import subprocess
 import tempfile
 import os
+import sys
 import logging
 from log_setup import logger
 
@@ -185,5 +186,12 @@ def validate_embedded_md5(video_path):
     logger.debug(f'Validating stream fixity')
     compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
 
-#if __name__ == "__main__":
- #   main()
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+            print("Usage: python embed_fixity.py <mkv_file>")
+            sys.exit(1)
+    file_path = sys.argv[1]
+    if not os.path.isfile(file_path):
+        print(f"Error: {file_path} is not a valid file.")
+        sys.exit(1)
+    embed_fixity(file_path)
