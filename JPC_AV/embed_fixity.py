@@ -117,7 +117,6 @@ def extract_hashes(xml_tags):
     if v_stream_element is not None:
         # Assign MD5 in VIDEO_STREAM_HASH to video_hash
         video_hash = v_stream_element.text
-        logger.info(f'Video stream md5 found: {video_hash}')
     else:
         logger.warning(f'No video stream hash found')
 
@@ -126,7 +125,6 @@ def extract_hashes(xml_tags):
     if a_stream_element is not None:
         # Assign MD5 in AUDIO_STREAM_HASH to audio_hash
         audio_hash = a_stream_element.text
-        logger.info(f'Audio stream md5 found: {audio_hash}')
     else:
         logger.warning(f'No audio stream hash found')
 
@@ -170,6 +168,16 @@ def validate_embedded_md5(video_path):
     logger.debug(f'\nExtracting existing video and audio stream hashes')
     existing_tags = extract_tags(video_path)
     existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+    # Print result of extracting hashes:
+    if video_hash is not None:
+        logger.info(f'Video stream md5 found: {video_hash}')
+    else:
+        logger.warning(f'No video stream hash found')
+
+    if audio_hash is not None:
+        logger.info(f'Audio stream md5 found: {audio_hash}')
+    else:
+        logger.warning(f'No audio stream hash found')
 
     logger.debug(f'\nGenerating video and audio stream hashes. This may take a moment...')
     video_hash, audio_hash = make_stream_hash(video_path)
