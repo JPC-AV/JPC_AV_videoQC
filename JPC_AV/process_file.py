@@ -192,6 +192,21 @@ def main():
 
     # Moves vrecord files to subdirectory  
     move_vrec_files(source_directory, video_id)
+
+    # Embed stream md5 hashes into MKV tags 
+    if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+        existing_tags = extract_tags(video_path)
+        existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+        # Check if VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags exists
+        if existing_video_hash is None or existing_audio_hash is None :
+            embed_fixity(video_path)
+        else:
+            logger.critical(f"Existing stream hashes found! Overwriting stream hashes.")
+            embed_fixity(video_path)
+    
+    # Validate stream hashes
+    if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
+        validate_embedded_md5(video_path)
     
     # Initialize md5_checksum variable, so if it is not assigned in output_fixity, it is 'None' if run in check_fixity
     md5_checksum = None 
@@ -203,17 +218,6 @@ def main():
     # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to '{video_id}_YYYY_MM_DD_fixity_check.txt' 
     if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
         check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
-
-    # Extract VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags
-    existing_tags = extract_tags(video_path)
-    existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
-    # Check if VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags exists, either embed stream md5s or validate accordingly
-    if existing_video_hash is None or existing_audio_hash is None :
-        if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
-            embed_fixity(video_path)
-    else:
-        if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
-            validate_embedded_md5(video_path)
     
     # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
     if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':

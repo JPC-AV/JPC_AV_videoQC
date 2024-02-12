@@ -170,12 +170,12 @@ def validate_embedded_md5(video_path):
     existing_tags = extract_tags(video_path)
     existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
     # Print result of extracting hashes:
-    if video_hash is not None:
+    if existing_video_hash is not None:
         logger.info(f'Video stream md5 found: {video_hash}')
     else:
         logger.warning(f'No video stream hash found')
 
-    if audio_hash is not None:
+    if existing_audio_hash is not None:
         logger.info(f'Audio stream md5 found: {audio_hash}')
     else:
         logger.warning(f'No audio stream hash found')
