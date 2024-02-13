@@ -36,7 +36,7 @@ log_level_mapping = {
 if log_level_str in log_level_mapping:
     console_handler.setLevel(log_level_mapping[log_level_str])
 
-def is_valid_filename(filename):
+def is_valid_filename(video_path):
     '''
     Locates approved values for the file name, stored in key:value pairs under 'filename_values' in config/config.yaml
     The file name pattern is in 3 sections: Collection, Media type, and file extension
@@ -46,38 +46,45 @@ def is_valid_filename(filename):
     
     pattern = r'^{Collection}_{MediaType}_\d{{5}}\.{FileExtension}$'.format(**approved_values)
     
+    video_filename = os.path.basename(video_path)
+    video_id = None
+    
     # Check if the filename matches the pattern
-    if re.match(pattern, filename, re.IGNORECASE):
-        logger.info(f"\nThe file name '{filename}' is valid.")
+    if re.match(pattern, video_filename, re.IGNORECASE):
+        logger.info(f"\nThe file name '{video_filename}' is valid.")
     else:
-        logger.critical(f"The file name '{filename}' does not match the naming convention. Exiting script!")
+        logger.critical(f"The file name '{video_filename}' does not match the naming convention. Exiting script!")
         sys.exit()
-
-def check_directory(video_path):
-    '''
-    defines the name of the output directory as the file name of the input video file
-    checks for output path - the parent directory of the output directory - set in config/config.yaml 
-    if the output path is not set, defaults to a directory called 'output' in the root dir of the scripts
-    '''
     
-    video_name = os.path.splitext(os.path.basename(video_path))[0]
-    
-    source_path = os.path.dirname(video_path)
-    directory_name = os.path.basename(source_path)
+    video_id = os.path.splitext(os.path.basename(video_filename))[0]
 
-    if video_name == directory_name:
+    return video_id
+
+def check_directory(source_directory, video_id):
+    '''
+    confirms source directory has the same name as the input video file
+    '''
+
+    directory_name = os.path.basename(source_directory)
+    
+    if video_id == directory_name:
         logger.info(f'Video ID matches directory name\n')
     else:
-        logger.critical(f'Video ID, {video_name}, does not match directory name: {directory_name}')
+        logger.critical(f'Video ID, {video_id}, does not match directory name: {directory_name}')
     
-    directory_path = os.path.join(source_path, f'{video_name}_qc_metadata')
+def make_qc_output_dir(source_directory, video_id):
+    '''
+    Creates output directory for metadata files
+    '''
 
-    if not os.path.exists(directory_path):
-        os.makedirs(directory_path)
+    destination_directory = os.path.join(source_directory, f'{video_id}_qc_metadata')
+
+    if not os.path.exists(destination_directory):
+        os.makedirs(destination_directory)
     
-    logger.debug(f'Metadata files will be written to {directory_path}')
+    logger.debug(f'Metadata files will be written to {destination_directory}')
 
-    return directory_path
+    return destination_directory
 
 def run_command(command, input_path, output_type, output_path):
     '''
@@ -141,16 +148,40 @@ def move_vrec_files(directory, video_id):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process video file with optional settings")
-    parser.add_argument("video_file", help="Path to the input video file")
+    parser.add_argument("path", help="Path to the input video file or directory")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
+    parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
+    parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
 
     args = parser.parse_args()
 
-    video_path = args.video_file
+    input_path = args.path
 
-    if not os.path.isfile(video_path):
-        print(f"Error: {video_path} is not a valid file.")
-        sys.exit(1)
+    if args.directory:
+        if not os.path.isdir(input_path):
+            logger.critical(f"Error: {input_path} is not a valid directory.")
+            sys.exit(1)
+        source_directory = input_path
+        logger.info(f'Input directory found: {source_directory}')
+        # Create empty list to store any found mkv files
+        found_mkvs = []
+        for filename in os.listdir(source_directory):
+            if filename.lower().endswith('.mkv'):
+                found_mkvs.append(filename)
+        if found_mkvs:
+            video_path = os.path.join(source_directory, found_mkvs[0])
+            logger.info(f'Input video file found: {video_path}')
+        else:
+            logger.critical("Error: No suitable video file found in the directory.")
+            sys.exit(1)
+    else:   # Can change this to 'elif args.file:' if we want to make diff default behavior or require flag
+        if not os.path.isfile(input_path):
+            logger.critical(f"Error: {input_path} is not a valid file.")
+            sys.exit(1)
+        source_directory = os.path.dirname(input_path)
+        logger.info(f'Input directory found: {source_directory}')
+        video_path = input_path
+        logger.info(f'Input video file found: {video_path}')
 
     selected_profile = None
     if args.profile:
@@ -159,16 +190,16 @@ def parse_arguments():
         elif args.profile == "step2":
             selected_profile = profile_step2
 
-    return video_path, selected_profile
+    return source_directory, video_path, selected_profile
 
 def main():
     '''
     process_file.py takes 1 input file as an argument, like this:
-    python process_file.py <input_file.mkv>
+    python process_file.py <input_file.mkv> or <input_directory>
     it confirms the file is valid generates metadata on the file then checks it against expected values.
     '''
 
-    video_path, selected_profile = parse_arguments()
+    source_directory, video_path, selected_profile = parse_arguments()
 
     check_py_version()
     
@@ -180,15 +211,12 @@ def main():
     if selected_profile:
         apply_profile(command_config, selected_profile)
     
-    video_name = os.path.basename(video_path)
-    
-    is_valid_filename(video_name)
-
-    video_id = os.path.splitext(os.path.basename(video_name))[0]
-    
+    # Confirms video filename matches convention, outputs video_id (i.e. 'JPC_AV_05000')
+    video_id = is_valid_filename(video_path)
     # Check to confirm directory is the same name as the video file name
-    destination_directory = check_directory(video_path)
-    source_directory = os.path.dirname(destination_directory)
+    check_directory(source_directory, video_id)
+    # Create 'destination directory' for qc outputs
+    destination_directory = make_qc_output_dir(source_directory, video_id)
 
     # Moves vrecord files to subdirectory  
     move_vrec_files(source_directory, video_id)

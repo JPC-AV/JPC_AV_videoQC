@@ -45,7 +45,7 @@ def output_fixity(source_directory, video_path):
     # Open fixity_result_file
     result_file = open(fixity_result_file, 'w')
     # Print Md5 in 'filename[tab]Checksum' format
-    print(f'{os.path.basename(video_path)}\t{md5_checksum}', file = result_file)
+    print(f'{md5_checksum}  {os.path.basename(video_path)}', file = result_file)
     # Close fixity_result_file
     result_file.close()
     logger.debug(f'\nMD5 checksum written to {fixity_result_file}')
@@ -59,7 +59,7 @@ def read_checksum_from_file(file_path):
     checksum_parts = content.split()
     for part in checksum_parts:
         if len(part) == 32 and all(c in '0123456789abcdefABCDEF' for c in part):
-            logger.info(f'MD5 checksum found in {os.path.basename(file_path)}: {part}')
+            logger.info(f'\nMD5 checksum found in {os.path.basename(file_path)}: {part}')
             return part
 
     logger.critical(f'md5 checksum not found in {file_path}')

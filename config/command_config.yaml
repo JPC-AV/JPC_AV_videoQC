@@ -11,16 +11,16 @@ outputs:
 tools:
   exiftool:
     check_exiftool: 'yes'
-    run_exiftool: 'no'
+    run_exiftool: 'yes'
   ffprobe:
     check_ffprobe: 'yes'
-    run_ffprobe: 'no'
+    run_ffprobe: 'yes'
   mediaconch:
     mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
     run_mediaconch: 'yes'
   mediainfo:
     check_mediainfo: 'yes'
-    run_mediainfo: 'no'
+    run_mediainfo: 'yes'
   qctools:
     check_qctools: 'no'
-    run_qctools: 'yes'
+    run_qctools: 'no'
