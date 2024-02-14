@@ -146,42 +146,52 @@ def move_vrec_files(directory, video_id):
     else:
         logger.debug("\nNo vrecord files found.\n")
 
+def find_mkv(source_directory):
+    # Create empty list to store any found mkv files
+    found_mkvs = []
+    for filename in os.listdir(source_directory):
+        if filename.lower().endswith('.mkv'):
+            if 'qctools' not in filename.lower():
+                found_mkvs.append(filename)
+    # check if found_mkvs is more than one
+    if found_mkvs:
+        if len(found_mkvs) == 1:
+            video_path = os.path.join(source_directory, found_mkvs[0])
+            logger.info(f'\nInput video file found: {video_path}')
+        else:
+            logger.critical(f'\nMore than 1 mkv found in {source_directory}: {found_mkvs}')
+            sys.exit(1)
+    else:
+        logger.critical("Error: No mkv video file found in the directory.")
+        sys.exit(1)
+    
+    return video_path
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process video file with optional settings")
-    parser.add_argument("path", help="Path to the input video file or directory")
+    parser.add_argument("paths", nargs='+', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
     parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
     parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
 
     args = parser.parse_args()
 
-    input_path = args.path
+    input_paths = args.paths
+    source_directories = []
 
-    if args.directory:
-        if not os.path.isdir(input_path):
-            logger.critical(f"Error: {input_path} is not a valid directory.")
-            sys.exit(1)
-        source_directory = input_path
-        logger.info(f'Input directory found: {source_directory}')
-        # Create empty list to store any found mkv files
-        found_mkvs = []
-        for filename in os.listdir(source_directory):
-            if filename.lower().endswith('.mkv'):
-                found_mkvs.append(filename)
-        if found_mkvs:
-            video_path = os.path.join(source_directory, found_mkvs[0])
-            logger.info(f'Input video file found: {video_path}')
-        else:
-            logger.critical("Error: No suitable video file found in the directory.")
-            sys.exit(1)
-    else:   # Can change this to 'elif args.file:' if we want to make diff default behavior or require flag
-        if not os.path.isfile(input_path):
-            logger.critical(f"Error: {input_path} is not a valid file.")
-            sys.exit(1)
-        source_directory = os.path.dirname(input_path)
-        logger.info(f'Input directory found: {source_directory}')
-        video_path = input_path
-        logger.info(f'Input video file found: {video_path}')
+    for input_path in input_paths:
+        if args.directory:
+            if not os.path.isdir(input_path):
+                logger.critical(f"Error: {input_path} is not a valid directory.")
+                sys.exit(1)
+            source_directories.append(input_path)
+            logger.info(f'Input directory found: {input_path}')
+        else:   # Can change this to 'elif args.file:' if we want to make diff default behavior or require flag
+            if not os.path.isfile(input_path):
+                logger.critical(f"Error: {input_path} is not a valid file.")
+                sys.exit(1)
+            source_directories.append(os.path.dirname(input_path))
+            logger.info(f'Input directory found: {(os.path.dirname(input_path))}')
 
     selected_profile = None
     if args.profile:
@@ -190,16 +200,16 @@ def parse_arguments():
         elif args.profile == "step2":
             selected_profile = profile_step2
 
-    return source_directory, video_path, selected_profile
+    return source_directories, selected_profile
 
 def main():
     '''
-    process_file.py takes 1 input file as an argument, like this:
+    process_file.py takes 1 input file or directory as an argument, like this:
     python process_file.py <input_file.mkv> or <input_directory>
-    it confirms the file is valid generates metadata on the file then checks it against expected values.
+    it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
-    source_directory, video_path, selected_profile = parse_arguments()
+    source_directories, selected_profile = parse_arguments()
 
     check_py_version()
     
@@ -211,88 +221,95 @@ def main():
     if selected_profile:
         apply_profile(command_config, selected_profile)
     
-    # Confirms video filename matches convention, outputs video_id (i.e. 'JPC_AV_05000')
-    video_id = is_valid_filename(video_path)
-    # Check to confirm directory is the same name as the video file name
-    check_directory(source_directory, video_id)
-    # Create 'destination directory' for qc outputs
-    destination_directory = make_qc_output_dir(source_directory, video_id)
+    for source_directory in source_directories:
+        video_path = find_mkv(source_directory)
 
-    # Moves vrecord files to subdirectory  
-    move_vrec_files(source_directory, video_id)
-
-    # Embed stream md5 hashes into MKV tags 
-    if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
-        existing_tags = extract_tags(video_path)
-        existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
-        # Check if VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags exists
-        if existing_video_hash is None or existing_audio_hash is None :
-            embed_fixity(video_path)
-        else:
-            logger.critical(f"Existing stream hashes found! Overwriting stream hashes.")
-            embed_fixity(video_path)
+        logger.warning(f'\nNow processing {video_path}')
     
-    # Validate stream hashes
-    if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
-        validate_embedded_md5(video_path)
-    
-    # Initialize md5_checksum variable, so if it is not assigned in output_fixity, it is 'None' if run in check_fixity
-    md5_checksum = None 
+        # Confirms video filename matches convention, outputs video_id (i.e. 'JPC_AV_05000')
+        video_id = is_valid_filename(video_path)
+        # Check to confirm directory is the same name as the video file name
+        check_directory(source_directory, video_id)
+        # Create 'destination directory' for qc outputs
+        destination_directory = make_qc_output_dir(source_directory, video_id)
 
-    # Create checksum for video file output results to '{video_id}_YYYY_MM_DD_fixity.txt' 
-    if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
-        md5_checksum = output_fixity(source_directory, video_path)
-    
-    # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to '{video_id}_YYYY_MM_DD_fixity_check.txt' 
-    if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
-        check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
-    
-    # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
-    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
-        mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
-        run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
+        # Moves vrecord files to subdirectory  
+        move_vrec_files(source_directory, video_id)
 
-        # open the mediaconch csv ouput and check for the word 'fail'
-        with open(mediaconch_output_path) as mc_file:
-            if 'fail' in mc_file.read():
-                logger.critical('MediaConch policy failed') 
+        # Embed stream md5 hashes into MKV tags 
+        if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+            existing_tags = extract_tags(video_path)
+            existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+            # Check if VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags exists
+            if existing_video_hash is None or existing_audio_hash is None :
+                embed_fixity(video_path)
+            else:
+                logger.critical(f"Existing stream hashes found! Overwriting stream hashes.")
+                embed_fixity(video_path)
+        
+        # Validate stream hashes
+        if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
+            validate_embedded_md5(video_path)
+        
+        # Initialize md5_checksum variable, so if it is not assigned in output_fixity, it is 'None' if run in check_fixity
+        md5_checksum = None 
 
-    # Run exiftool, mediainfo and ffprobe using the 'run_command' function
-    exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
-    if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
-        run_command('exiftool', video_path, '>', exiftool_output_path)
+        # Create checksum for video file output results to '{video_id}_YYYY_MM_DD_fixity.txt' 
+        if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
+            md5_checksum = output_fixity(source_directory, video_path)
+        
+        # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to '{video_id}_YYYY_MM_DD_fixity_check.txt' 
+        if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
+            check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
+        
+        # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
+        if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
+            mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
+            run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
 
-    if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
-        # If check_exfitool is set to 'yes' in command_config.yaml then
-        parse_exiftool(exiftool_output_path)
-        # Run parse functions defined in the '_check.py' scripts
+            # open the mediaconch csv ouput and check for the word 'fail'
+            with open(mediaconch_output_path) as mc_file:
+                if 'fail' in mc_file.read():
+                    logger.critical('MediaConch policy failed') 
 
-    mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
-    if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
-        run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
-    
-    if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
-        # If check_mediainfo is set to 'yes' in command_config.yaml then
-        parse_mediainfo(mediainfo_output_path)
-        # Run parse functions defined in the '_check.py' scripts
+        # Run exiftool, mediainfo and ffprobe using the 'run_command' function
+        exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
+        if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
+            run_command('exiftool', video_path, '>', exiftool_output_path)
 
-    ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
-    if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
-        run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
+        if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
+            # If check_exfitool is set to 'yes' in command_config.yaml then
+            parse_exiftool(exiftool_output_path)
+            # Run parse functions defined in the '_check.py' scripts
 
-    if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
-        # If check_exfitool is set to 'yes' in command_config.yaml then
-        parse_ffprobe(ffprobe_output_path)
-        # Run parse functions defined in the '_check.py' scripts
+        mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
+        if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
+            run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
+        
+        if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
+            # If check_mediainfo is set to 'yes' in command_config.yaml then
+            parse_mediainfo(mediainfo_output_path)
+            # Run parse functions defined in the '_check.py' scripts
 
-    if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
-        qctools_ext = command_config.command_dict['outputs']['qctools_ext']
-        qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
-        run_command('qcli -i', video_path, '-o', qctools_output_path)
+        ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
+        if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
+            run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
 
-    logger.debug(f'\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
-    
-    logger.info(f'\nProcessing complete. Output files saved in the directory: {destination_directory}')
+        if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
+            # If check_exfitool is set to 'yes' in command_config.yaml then
+            parse_ffprobe(ffprobe_output_path)
+            # Run parse functions defined in the '_check.py' scripts
+
+        if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
+            qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+            qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
+            run_command('qcli -i', video_path, '-o', qctools_output_path)
+
+        logger.debug(f'\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
+        
+        logger.info(f'\nProcessing of {video_id} complete. Output files saved in the directory: {destination_directory}')
+
+    logger.info(f'\n\nAll files processed!')
 
 if __name__ == "__main__":
     main()
