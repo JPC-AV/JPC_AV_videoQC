@@ -180,18 +180,18 @@ def parse_arguments():
     source_directories = []
 
     for input_path in input_paths:
-        if args.directory:
-            if not os.path.isdir(input_path):
-                logger.critical(f"Error: {input_path} is not a valid directory.")
-                sys.exit(1)
-            source_directories.append(input_path)
-            logger.info(f'Input directory found: {input_path}')
-        else:   # Can change this to 'elif args.file:' if we want to make diff default behavior or require flag
+        if args.file:
             if not os.path.isfile(input_path):
                 logger.critical(f"Error: {input_path} is not a valid file.")
                 sys.exit(1)
             source_directories.append(os.path.dirname(input_path))
             logger.info(f'Input directory found: {(os.path.dirname(input_path))}')
+        else:
+            if not os.path.isdir(input_path):
+                logger.critical(f"Error: {input_path} is not a valid directory.")
+                sys.exit(1)
+            source_directories.append(input_path)
+            logger.info(f'Input directory found: {input_path}')
 
     selected_profile = None
     if args.profile:
