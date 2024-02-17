@@ -6,33 +6,60 @@ import sys
 import logging
 from log_setup import logger
 
+def get_total_frames(video_path):
+    command = [
+        'ffprobe',
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-count_packets',
+        '-show_entries', 'stream=nb_read_packets',
+        '-of', 'csv=p=0',
+        video_path
+    ]
+    result = subprocess.run(command, stdout=subprocess.PIPE)
+    total_frames = int(result.stdout.decode().strip())
+    return total_frames
+
 def make_stream_hash(video_path):
     """Calculate MD5 checksum of video and audio streams using ffmpeg."""
-    command = [
+    
+    total_frames = get_total_frames(video_path)
+    video_hash = None
+    audio_hash = None
+    
+    ffmpeg_command = [
         'ffmpeg',
-        '-hide_banner', '-loglevel', 'error',
+        '-hide_banner', '-progress', '-', '-nostats', '-loglevel', 'error',
         '-i', video_path,
         '-map', '0',
         '-f', 'streamhash',
         '-hash', 'md5',
         '-'
     ]
-    result = subprocess.run(command, stdout=subprocess.PIPE, text=True)
-    logger.info(f'FFmpeg streamhashing process complete\n')
-    # Parse the output to get the MD5 checksum
-    stream_hashes = result.stdout.strip().split('\n')
-    video_hash = None
-    audio_hash = None
-    for line in stream_hashes:
-        # Split each line by comma
-        parts = line.split(',')
-        # Extract type and hash
-        type_, hash_ = parts[1], parts[2].split('=')[1]
-        # Check type and assign hash to appropriate variable
-        if type_ == 'v':
-            video_hash = hash_
-        elif type_ == 'a':
-            audio_hash = hash_
+    
+    ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    while True:
+        ff_output = ffmpeg_process.stdout.readline()
+        if not ff_output:
+            break
+        frame_prefix = 'frame='
+        video_hash_prefix = '0,v,MD5'
+        audio_hash_prefix = '1,a,MD5'
+        for line in ff_output.split('\n'):
+            if line.startswith(frame_prefix):
+                current_frame = int(line[len(frame_prefix):])
+                percent_complete = (current_frame / total_frames) * 100
+                print(f"\rFFmpeg 'streamhash' Progress: {percent_complete:.2f}%", end='', flush=True)
+            if line.startswith(video_hash_prefix) or line.startswith(audio_hash_prefix):
+                # Split each line by comma
+                parts = line.split(',')
+                # Extract type and hash
+                type_, hash_ = parts[1], parts[2].split('=')[1]
+                # Check type and assign hash to appropriate variable
+                if type_ == 'v':
+                    video_hash = hash_
+                elif type_ == 'a':
+                    audio_hash = hash_
 
     return video_hash, audio_hash
 
@@ -147,6 +174,7 @@ def embed_fixity(video_path):
     # Make md5 of video/audio stream
     logger.debug(f'\nGenerating video and audio stream hashes. This may take a moment...')
     video_hash, audio_hash = make_stream_hash(video_path)
+    logger.info(f'\nVideo hash = {video_hash}\nAudio hash = {audio_hash}\n')
 
     # Extract existing tags
     existing_tags = extract_tags(video_path)
@@ -183,7 +211,7 @@ def validate_embedded_md5(video_path):
     logger.debug(f'\nGenerating video and audio stream hashes. This may take a moment...')
     video_hash, audio_hash = make_stream_hash(video_path)
 
-    logger.debug(f'Validating stream fixity')
+    logger.debug(f'\n\nValidating stream fixity')
     compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
 
 if __name__ == "__main__":

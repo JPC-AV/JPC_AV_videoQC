@@ -73,7 +73,7 @@ def hashlib_md5(filename):
     last_percent_done = 0
     md5_object = hashlib.md5()
     total_size = os.path.getsize(filename)
-    logger.debug(f'Generating md5 checksum for {os.path.basename(filename)} via {os.path.basename(__file__)}:')
+    logger.debug(f'\nGenerating md5 checksum for {os.path.basename(filename)} via {os.path.basename(__file__)}:')
     with open(str(filename), 'rb') as file_object:
         while True:
             buf = file_object.read(2**20)

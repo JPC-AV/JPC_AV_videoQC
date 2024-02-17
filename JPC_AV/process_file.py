@@ -205,7 +205,7 @@ def parse_arguments():
 def main():
     '''
     process_file.py takes 1 input file or directory as an argument, like this:
-    python process_file.py <input_file.mkv> or <input_directory>
+    python process_file.py <input_directory> (or -f <input_file.mkv>)
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
@@ -309,7 +309,7 @@ def main():
         
         logger.info(f'\nProcessing of {video_id} complete. Output files saved in the directory: {destination_directory}')
 
-    logger.info(f'\n\nAll files processed!')
+    logger.warning(f'\n\nAll files processed!')
 
 if __name__ == "__main__":
     main()
