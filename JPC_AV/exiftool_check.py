@@ -57,7 +57,7 @@ def parse_exiftool(file_path):
         logger.info(f"All specified fields and values found in the Exiftool output.")
     else:
     # if the list "exiftool_differences" is not empty, then
-        logger.critical("Some specified Exiftool fields or values are missing or don't match:")
+        logger.critical("\nSome specified Exiftool fields or values are missing or don't match:")
         for diff in exiftool_differences:
             logger.critical(f'{diff}')
 

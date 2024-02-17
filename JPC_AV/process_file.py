@@ -268,9 +268,14 @@ def main():
             run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
 
             # open the mediaconch csv ouput and check for the word 'fail'
-            with open(mediaconch_output_path) as mc_file:
-                if 'fail' in mc_file.read():
-                    logger.critical('MediaConch policy failed') 
+            with open(mediaconch_output_path, 'r', newline='') as mc_file:
+                reader = csv.reader(mc_file)
+                mc_header = next(reader)  # Get the header row
+                mc_values = next(reader)  # Get the values row
+                
+                for mc_field, mc_value in zip(mc_header, mc_values):
+                    if mc_value == "fail":
+                        logger.critical(f"\nMediaConch policy failed:\n{mc_field}: {mc_value}")
 
         # Run exiftool, mediainfo and ffprobe using the 'run_command' function
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
