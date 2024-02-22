@@ -20,6 +20,7 @@ from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
 from embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
 from yaml_profiles import apply_profile, profile_step1, profile_step2
+from make_access import make_access_file
 
 # Read command_config.yaml and retrieve log level
 log_level_str = command_config.command_dict['log_level']
@@ -310,6 +311,10 @@ def main():
             qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
             run_command('qcli -i', video_path, '-o', qctools_output_path)
 
+        access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
+        if command_config.command_dict['outputs']['access_file'] == 'yes':
+            make_access_file(video_path, access_output_path)
+            
         logger.debug(f'\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
         logger.info(f'\nProcessing of {video_id} complete. Output files saved in the directory: {destination_directory}')
