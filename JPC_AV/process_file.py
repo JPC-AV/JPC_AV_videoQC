@@ -245,8 +245,20 @@ def main():
             if existing_video_hash is None or existing_audio_hash is None :
                 embed_fixity(video_path)
             else:
-                logger.critical(f"Existing stream hashes found! Overwriting stream hashes.")
-                embed_fixity(video_path)
+                logger.critical(f"Existing stream hashes found!")
+                # User input for handling existing stream hashes
+                # Directly lifted from this tutorial: https://stackabuse.com/bytes/handling-yes-no-user-input-in-python/
+                while True:
+                    user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
+                    if user_input.lower() in ["yes", "y"]:
+                        embed_fixity(video_path)
+                        break
+                    elif user_input.lower() in ["no", "n"]:
+                        logger.debug(f'Not writing stream hashes to MKV')
+                        break
+                    else:
+                        print("Invalid input. Please enter yes/no.")
+                
         
         # Validate stream hashes
         if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
@@ -273,10 +285,17 @@ def main():
                 reader = csv.reader(mc_file)
                 mc_header = next(reader)  # Get the header row
                 mc_values = next(reader)  # Get the values row
+
+                 # Initialize a flag to track if any failures are found
+                found_failures = False
+                
+                if not found_failures:
+                    logger.critical("\nMediaConch policy failed:")
+                    found_failures = True
                 
                 for mc_field, mc_value in zip(mc_header, mc_values):
                     if mc_value == "fail":
-                        logger.critical(f"\nMediaConch policy failed:\n{mc_field}: {mc_value}")
+                        logger.critical(f"\n{mc_field}: {mc_value}")
 
         # Run exiftool, mediainfo and ffprobe using the 'run_command' function
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
