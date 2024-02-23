@@ -21,6 +21,10 @@ def parse_ffprobe(file_path):
     expected_settings_values_2 = config_path.config_dict['ffmpeg_values']['format']['tags']['ENCODER_SETTINGS']['settings_2']
     expected_settings_values_3 = config_path.config_dict['ffmpeg_values']['format']['tags']['ENCODER_SETTINGS']['settings_3']
     
+    if not os.path.exists(file_path):
+        logger.critical(f"\nCannot perform ffprobe check!\nNo such file: {file_path}")
+        return
+
     with open(file_path, 'r') as file:
         ffmpeg_data = json.load(file)
     

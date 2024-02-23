@@ -28,6 +28,10 @@ def parse_mediainfo(file_path):
     ## Explination of for loop below:
     # the mediainfo field and value are then assigned to the current section's dictionary, which is stored within the section_data dictionary
     
+    if not os.path.exists(file_path):
+        logger.critical(f"\nCannot perform MediaInfo check!\nNo such file: {file_path}")
+        return
+    
     with open(file_path, 'r') as file:
     # open mediainfo text file as variable "file"
         for line in iter(lambda: file.readline().rstrip(), 'Video'):

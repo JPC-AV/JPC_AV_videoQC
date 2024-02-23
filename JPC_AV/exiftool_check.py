@@ -17,6 +17,10 @@ def parse_exiftool(file_path):
     # creates a dictionary of expected keys and values
     expected_exif_values = config_path.config_dict['exiftool_values']
 
+    if not os.path.exists(file_path):
+        logger.critical(f"\nCannot perform exiftool check!\nNo such file: {file_path}")
+        return
+
     with open(file_path, 'r') as file:
     # open exiftool text file as variable "file"
         lines = file.readlines()
