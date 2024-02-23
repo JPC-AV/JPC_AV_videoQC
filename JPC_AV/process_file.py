@@ -246,18 +246,23 @@ def main():
                 embed_fixity(video_path)
             else:
                 logger.critical(f"Existing stream hashes found!")
+                if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+                    embed_fixity(video_path)
+                elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
+                    logger.debug(f'Not writing stream hashes to MKV')
+                elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
                 # User input for handling existing stream hashes
                 # Directly lifted from this tutorial: https://stackabuse.com/bytes/handling-yes-no-user-input-in-python/
-                while True:
-                    user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
-                    if user_input.lower() in ["yes", "y"]:
-                        embed_fixity(video_path)
-                        break
-                    elif user_input.lower() in ["no", "n"]:
-                        logger.debug(f'Not writing stream hashes to MKV')
-                        break
-                    else:
-                        print("Invalid input. Please enter yes/no.")
+                    while True:
+                        user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
+                        if user_input.lower() in ["yes", "y"]:
+                            embed_fixity(video_path)
+                            break
+                        elif user_input.lower() in ["no", "n"]:
+                            logger.debug(f'Not writing stream hashes to MKV')
+                            break
+                        else:
+                            print("Invalid input. Please enter yes/no.")
                 
         
         # Validate stream hashes

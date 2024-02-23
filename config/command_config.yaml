@@ -8,6 +8,7 @@ outputs:
     check_stream_fixity: 'no'
     embed_stream_fixity: 'yes'
     output_fixity: 'yes'
+    overwrite_stream_fixity: 'ask me'
   qctools_ext: qctools.xml.gz
 tools:
   exiftool:
