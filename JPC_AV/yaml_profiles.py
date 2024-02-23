@@ -84,6 +84,7 @@ profile_step2 = {
     },
     "outputs": {
         "difference_csv": 'no',
+        "access_file": 'no',
         "fixity": {
             "output_fixity": 'no',
             "check_fixity": 'yes',
