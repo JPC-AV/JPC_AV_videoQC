@@ -9,7 +9,7 @@ def get_duration(video_path):
     command = [
         'ffprobe',
         '-v', 'error',
-        '-show_entries', 'format=duration', '-sexagesimal',
+        '-show_entries', 'format=duration',
         '-of', 'csv=p=0',
         video_path
     ]
@@ -39,19 +39,17 @@ def make_access_file(video_path, output_path):
         ff_output = ffmpeg_process.stdout.readline()
         if not ff_output:
             break
-        duration_prefix = 'out_time='
-        # Convert strings to datetime objects
-        duration = datetime.strptime(duration_str, '%H:%M:%S.%f')
-        # Calculate the total duration in seconds
-        total_duration_seconds = duration.hour * 3600 + duration.minute * 60 + duration.second + duration.microsecond / 1e6
+        duration_prefix = 'out_time_ms='
+        # define prefix of ffmpeg microsecond progress output
+        duration = float(duration_str)
+        # Convert string integer
+        duration_ms = (duration * 1000000)
+        # Calculate the total duration in microseconds
         for line in ff_output.split('\n'):
             if line.startswith(duration_prefix):
                 current_frame_str = line.split(duration_prefix)[1]
-                current_frame = datetime.strptime(current_frame_str, '%H:%M:%S.%f')
-                # Calculate the time difference between duration and current_frame
-                time_difference = current_frame - datetime.strptime('00:00:00.000000', '%H:%M:%S.%f')
-                time_difference_seconds = time_difference.total_seconds()
-                percent_complete = (time_difference_seconds / total_duration_seconds) * 100
+                current_frame_ms = float(current_frame_str)
+                percent_complete = (current_frame_ms / duration_ms) * 100
                 print(f"\rFFmpeg Access Copy Progress: {percent_complete:.2f}%", end='', flush=True)
 
 
