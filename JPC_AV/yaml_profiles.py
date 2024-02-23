@@ -10,6 +10,8 @@ def apply_profile(command_config, selected_profile):
     for output, output_settings in selected_profile["outputs"].items():
         if output == "difference_csv":
             command_config.command_dict["outputs"][output] = output_settings  # Assign the value directly
+        elif output == "access_file":
+            command_config.command_dict["outputs"][output] = output_settings  # Assign the value directly
         elif output in command_config.command_dict["outputs"]:
             if isinstance(output_settings, dict):
                 if output in command_config.command_dict["outputs"]:
@@ -48,6 +50,7 @@ profile_step1 = {
     },
     "outputs": {
         "difference_csv": 'yes',
+        "access_file": 'yes',
         "fixity": {
             "output_fixity": 'yes',
             "check_fixity": 'no',
