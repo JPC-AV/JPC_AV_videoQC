@@ -5,6 +5,12 @@ import argparse
 from find_config import config_path, command_config
 from log_setup import logger, console_handler
 
+def represent_string(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
+
+# Add represent function to add quotes around string values
+yaml.add_representer(str, represent_string)
+
 # Function to apply profile changes
 def apply_profile(command_config, selected_profile):
     for output, output_settings in selected_profile["outputs"].items():
