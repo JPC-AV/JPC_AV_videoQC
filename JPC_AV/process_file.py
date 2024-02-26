@@ -11,6 +11,7 @@ import csv
 import shutil
 import argparse
 import time
+from art import *
 from datetime import datetime
 from log_setup import logger, console_handler
 from deps_setup import required_commands, check_external_dependency, check_py_version
@@ -229,10 +230,15 @@ def main():
         dir_start_time = time.time()
         video_path = find_mkv(source_directory)
 
-        logger.warning(f'\nNow processing {video_path}')
+        tape_icon = art('cassette1')
+
+        print(f'\n{tape_icon} {tape_icon} {tape_icon}')
     
+        logger.warning(f'\nNow processing {video_path}')
+        
         # Confirms video filename matches convention, outputs video_id (i.e. 'JPC_AV_05000')
         video_id = is_valid_filename(video_path)
+
         # Check to confirm directory is the same name as the video file name
         check_directory(source_directory, video_id)
         # Create 'destination directory' for qc outputs
@@ -344,21 +350,29 @@ def main():
             make_access_file(video_path, access_output_path)
             
         logger.debug(f'\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
+        
+        ascii_video_id = text2art(video_id, font='small')
 
-        logger.info(f'\nProcessing of {video_id} complete. Output files saved in the directory: {destination_directory}')
+        logger.warning(f'\nProcessing complete:\n{ascii_video_id}')
+        logger.info(f'\nOutput files saved in the directory: {destination_directory}')
 
         dir_end_time = time.time()
         dir_total_time = dir_end_time - dir_start_time
         formatted_total_time = time.strftime("%H:%M:%S", time.gmtime(dir_total_time))
         #print(f"Process time for {video_id}: time start: {dir_start_time:%Y-%m-%d %H:%M:%S}")
 
-        logger.info(f'Process time for {video_id}: time start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; total time: {formatted_total_time}')
+        logger.info(f'\nProcess time for {video_id}: \ntime start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; \ntotal time: {formatted_total_time}')
 
+        print(f'\n{tape_icon} {tape_icon} {tape_icon}')
+
+    nmaahc_icon = text2art("nmaahc",font='alligator3')
+    print(f'\n{nmaahc_icon}')
+    
     logger.warning(f'\n\nAll files processed!')
     overall_end_time = time.time()
     overall_total_time = overall_end_time - overall_start_time
     formatted_overall_time = time.strftime("%H:%M:%S", time.gmtime(overall_total_time))
-    logger.info(f"\nOverall processing time for all directories: {formatted_overall_time}")
+    logger.info(f"\nOverall processing time for all directories: {formatted_overall_time}\n")
 
 if __name__ == "__main__":
     main()
