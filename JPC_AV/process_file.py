@@ -10,6 +10,7 @@ import yaml
 import csv
 import shutil
 import argparse
+import time
 from datetime import datetime
 from log_setup import logger, console_handler
 from deps_setup import required_commands, check_external_dependency, check_py_version
@@ -221,8 +222,11 @@ def main():
     
     if selected_profile:
         apply_profile(command_config, selected_profile)
+
+    overall_start_time = time.time()
     
     for source_directory in source_directories:
+        dir_start_time = time.time()
         video_path = find_mkv(source_directory)
 
         logger.warning(f'\nNow processing {video_path}')
@@ -340,10 +344,21 @@ def main():
             make_access_file(video_path, access_output_path)
             
         logger.debug(f'\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
-        
+
         logger.info(f'\nProcessing of {video_id} complete. Output files saved in the directory: {destination_directory}')
 
+        dir_end_time = time.time()
+        dir_total_time = dir_end_time - dir_start_time
+        formatted_total_time = time.strftime("%H:%M:%S", time.gmtime(dir_total_time))
+        #print(f"Process time for {video_id}: time start: {dir_start_time:%Y-%m-%d %H:%M:%S}")
+
+        logger.info(f'Process time for {video_id}: time start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; total time: {formatted_total_time}')
+
     logger.warning(f'\n\nAll files processed!')
+    overall_end_time = time.time()
+    overall_total_time = overall_end_time - overall_start_time
+    formatted_overall_time = time.strftime("%H:%M:%S", time.gmtime(overall_total_time))
+    logger.info(f"\nOverall processing time for all directories: {formatted_overall_time}")
 
 if __name__ == "__main__":
     main()
