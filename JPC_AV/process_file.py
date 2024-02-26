@@ -362,8 +362,10 @@ def main():
         #print(f"Process time for {video_id}: time start: {dir_start_time:%Y-%m-%d %H:%M:%S}")
 
         logger.info(f'\nProcess time for {video_id}: \ntime start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; \ntotal time: {formatted_total_time}')
-
+        
         print(f'\n{tape_icon} {tape_icon} {tape_icon}')
+
+        time.sleep(1)
 
     nmaahc_icon = text2art("nmaahc",font='alligator3')
     print(f'\n{nmaahc_icon}')
