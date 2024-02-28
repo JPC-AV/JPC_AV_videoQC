@@ -17,6 +17,7 @@ from log_setup import logger, console_handler
 from deps_setup import required_commands, check_external_dependency, check_py_version
 from find_config import config_path, command_config
 from fixity_check import check_fixity, output_fixity
+from filename_check import check_filenames
 from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
@@ -39,30 +40,6 @@ log_level_mapping = {
 if log_level_str in log_level_mapping:
     console_handler.setLevel(log_level_mapping[log_level_str])
 
-def is_valid_filename(video_path):
-    '''
-    Locates approved values for the file name, stored in key:value pairs under 'filename_values' in config/config.yaml
-    The file name pattern is in 3 sections: Collection, Media type, and file extension
-    Approved values for each of these sections is stored in config/config.yaml
-    '''
-    approved_values = config_path.config_dict['filename_values']
-    
-    pattern = r'^{Collection}_{MediaType}_\d{{5}}\.{FileExtension}$'.format(**approved_values)
-    
-    video_filename = os.path.basename(video_path)
-    video_id = None
-    
-    # Check if the filename matches the pattern
-    if re.match(pattern, video_filename, re.IGNORECASE):
-        logger.info(f"\nThe file name '{video_filename}' is valid.")
-    else:
-        logger.critical(f"The file name '{video_filename}' does not match the naming convention. Exiting script!")
-        sys.exit()
-    
-    video_id = os.path.splitext(os.path.basename(video_filename))[0]
-
-    return video_id
-
 def check_directory(source_directory, video_id):
     '''
     confirms source directory has the same name as the input video file
@@ -71,7 +48,7 @@ def check_directory(source_directory, video_id):
     directory_name = os.path.basename(source_directory)
     
     if video_id == directory_name:
-        logger.info(f'Video ID matches directory name\n')
+        logger.info(f'\nVideo ID matches directory name\n')
     else:
         logger.critical(f'Video ID, {video_id}, does not match directory name: {directory_name}')
     
@@ -224,6 +201,8 @@ def main():
     if selected_profile:
         apply_profile(command_config, selected_profile)
 
+    check_filenames(source_directories)
+
     overall_start_time = time.time()
     
     for source_directory in source_directories:
@@ -236,11 +215,12 @@ def main():
     
         logger.warning(f'\nNow processing {video_path}')
         
-        # Confirms video filename matches convention, outputs video_id (i.e. 'JPC_AV_05000')
-        video_id = is_valid_filename(video_path)
+        # outputs video_id (i.e. 'JPC_AV_05000')
+        video_id = os.path.splitext(os.path.basename(video_path))[0]
 
         # Check to confirm directory is the same name as the video file name
         check_directory(source_directory, video_id)
+
         # Create 'destination directory' for qc outputs
         destination_directory = make_qc_output_dir(source_directory, video_id)
 
@@ -304,13 +284,15 @@ def main():
                  # Initialize a flag to track if any failures are found
                 found_failures = False
                 
-                if not found_failures:
-                    logger.critical("\nMediaConch policy failed:")
-                    found_failures = True
-                
                 for mc_field, mc_value in zip(mc_header, mc_values):
                     if mc_value == "fail":
-                        logger.critical(f"\n{mc_field}: {mc_value}")
+                        # If this is the first failure, print the initial message
+                        if not found_failures:
+                            logger.critical("\nMediaConch policy failed:")
+                            found_failures = True
+                            
+                        # Print the field and value for the failed entry
+                        logger.critical(f"{mc_field}: {mc_value}")
 
         # Run exiftool, mediainfo and ffprobe using the 'run_command' function
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
