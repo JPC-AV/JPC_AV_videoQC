@@ -1,8 +1,10 @@
 ---
 mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
 filename_values:
-  Collection: JPC
-  MediaType: AV
+  Collection: 2012_79
+  MediaType: 2
+  ObjectID: ""  # Placeholder, the specific pattern is implemented in filename_check.py
+  DigitalGeneration: PM
   FileExtension: mkv 
 mediainfo_values:
   expected_general: 

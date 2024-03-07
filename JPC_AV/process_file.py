@@ -41,16 +41,17 @@ if log_level_str in log_level_mapping:
     console_handler.setLevel(log_level_mapping[log_level_str])
 
 def check_directory(source_directory, video_id):
-    '''
-    confirms source directory has the same name as the input video file
-    '''
+    
+    # Assuming DigitalGeneration is always prefixed with an underscore and is the last part before the file extension
+    base_video_id = video_id.rsplit('_', 1)[0]  # Splits off the DigitalGeneration part
 
     directory_name = os.path.basename(source_directory)
     
-    if video_id == directory_name:
-        logger.info(f'\nVideo ID matches directory name\n')
+ # Check if the directory name starts with the base_video_id string
+    if directory_name.startswith(base_video_id):
+        logger.info(f'\nDirectory name "{directory_name}" correctly starts with "{base_video_id}".\n')
     else:
-        logger.critical(f'Video ID, {video_id}, does not match directory name: {directory_name}')
+        logger.critical(f'Directory name "{directory_name}" does not correctly start with the expected "{base_video_id}" derived from the video ID "{video_id}".')
     
 def make_qc_output_dir(source_directory, video_id):
     '''

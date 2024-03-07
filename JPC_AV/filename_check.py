@@ -25,7 +25,13 @@ def is_valid_filename(video_filename, failed_mkvs):
     '''
     approved_values = config_path.config_dict['filename_values']
     
-    pattern = r'^{Collection}_{MediaType}_\d{{5}}\.{FileExtension}$'.format(**approved_values)
+pattern = r'^{Collection}_{MediaType}_{ObjectID}_{DigitalGeneration}\.{FileExtension}$'.format(
+        Collection=approved_values["Collection"],
+        MediaType=approved_values["MediaType"],
+        ObjectID=r'\d{1,2}_\d{1,2}[a-z]',
+        DigitalGeneration=approved_values["DigitalGeneration"],
+        FileExtension=approved_values["FileExtension"]
+    )
     
     # Check if the filename matches the pattern
     if re.match(pattern, video_filename, re.IGNORECASE):
