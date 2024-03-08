@@ -76,10 +76,14 @@ def parse_encoder_settings(encoder_settings):
         
     # The 4th item in the 3rd sublist, split in the conditional above, also stores the last field of encoder settings.
     # In the case of JPC_AV_05000 this is 'N=AJ Lawrence'. To separate 'N=AJ Lawrence' from 'MYUV422p10 N=AJ Lawrence', the command below is used:
-    key, value = (sublists[2][3].split(' ', 1)[1]).split("=")
-    # The command above takes the 2nd half of the 4th item in the 3rd sublist, and splits it on the character '=' assigning the string before '=' to key, and after '=' to value
-    settings_dict3[key] = value
-    # These variables are then added as a key:value pair to the dictionary settings_dict3
+    if len(sublists[2][3].split(' ', 1)) > 1:
+    # if the 4th item in the 3rd sublist split on a "," then split again on a space to get the "N=AJ Lawrence" bit should be greater than 1.
+        key, value = (sublists[2][3].split(' ', 1)[1]).split("=")
+        # The command above takes the 2nd half of the 4th item in the 3rd sublist, and splits it on the character '=' assigning the string before '=' to key, and after '=' to value
+        settings_dict3[key] = value
+        # These variables are then added as a key:value pair to the dictionary settings_dict3
+    else:
+        logger.warning("Issue reading final fields in encoder settings...\nSome values may not be checked!")
 
     return settings_dict1, settings_dict2, settings_dict3
 
