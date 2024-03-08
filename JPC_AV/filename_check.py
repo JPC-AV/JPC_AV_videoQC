@@ -25,13 +25,15 @@ def is_valid_filename(video_filename, failed_mkvs):
     '''
     approved_values = config_path.config_dict['filename_values']
     
-pattern = r'^{Collection}_{MediaType}_{ObjectID}_{DigitalGeneration}\.{FileExtension}$'.format(
-        Collection=approved_values["Collection"],
-        MediaType=approved_values["MediaType"],
-        ObjectID=r'\d{1,2}_\d{1,2}[a-z]',
-        DigitalGeneration=approved_values["DigitalGeneration"],
-        FileExtension=approved_values["FileExtension"]
-    )
+def is_valid_filename(video_filename, failed_mkvs):
+    '''
+    Locates approved values for the file name, stored in key:value pairs under 'filename_values' in config/config.yaml
+    The file name pattern is in 5 sections: Collection, ObjectID, Media type, Digital generation, and file extension
+    Approved values for each of these sections are stored in config/config.yaml
+    '''
+    approved_values = config_path.config_dict['filename_values']
+    
+    pattern = r'^{Collection}_{MediaType}_{ObjectID}_{DigitalGeneration}\.{FileExtension}$'.format(**approved_values)
     
     # Check if the filename matches the pattern
     if re.match(pattern, video_filename, re.IGNORECASE):
