@@ -109,7 +109,6 @@ def move_vrec_files(directory, video_id):
         # Check if the file matches the naming convention
         if (
             os.path.isfile(file_path)
-            and "JPC_AV_" in filename
             and filename.endswith(('_QC_output_graphs.jpeg', '_vrecord_input.log', '_capture_options.log', '.mkv.qctools.mkv', '.framemd5'))
         ):
             # Create the target directory if it doesn't exist

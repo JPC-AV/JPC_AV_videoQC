@@ -30,7 +30,7 @@ def parse_encoder_settings(encoder_settings):
         # if pair begins with "0="
             if current_sublist:
                 sublists.append(current_sublist)
-                # If current pair is "0=" and current_sublist is populated, append active list to the nested list 'subsists'
+                # If current pair is "0=" and current_sublist is populated, append active list to the nested list 'sublists'
             current_sublist = [pair]
             # If current pair is "0=" and current_sublist is not populated, start current_sublist with pair
         else:
@@ -61,25 +61,9 @@ def parse_encoder_settings(encoder_settings):
     # As with the identifier 'T' in the last list, 'W' can hold multiple values. Items from 3rd sublist not containing '=' are appended to the key 'W' in settings_dict3
     # For example: W=10-bit, R640x480, MYUV422p10
     settings_dict3 = {}
-    for pair in sublists[2][:3]:
-        if "=" in pair:
-            key, value = pair.split("=")
-            settings_dict3[key] = value
-        else:
-            settings_dict3['W'] = [settings_dict3['W'], pair]
-
-    # The lasts values in the encoder setting list are for whatever reason not separated by a ','
-    # For example: 'MYUV422p10 N=AJ Lawrence'
-    # This statement takes the 4th item in the 3rd sublist and splits it on a space to retrieve the last value for 'W'. In the example above, 'MYUV422p10'. 
-    if isinstance(settings_dict3['W'], list):
-        settings_dict3['W'].append(sublists[2][3].split(' ', 1)[0])
-        
-    # The 4th item in the 3rd sublist, split in the conditional above, also stores the last field of encoder settings.
-    # In the case of JPC_AV_05000 this is 'N=AJ Lawrence'. To separate 'N=AJ Lawrence' from 'MYUV422p10 N=AJ Lawrence', the command below is used:
-    key, value = (sublists[2][3].split(' ', 1)[1]).split("=")
-    # The command above takes the 2nd half of the 4th item in the 3rd sublist, and splits it on the character '=' assigning the string before '=' to key, and after '=' to value
-    settings_dict3[key] = value
-    # These variables are then added as a key:value pair to the dictionary settings_dict3
+    for pair in sublists[2]:
+        key, value = pair.split("=")
+        settings_dict1[key] = value
 
     return settings_dict1, settings_dict2, settings_dict3
 
