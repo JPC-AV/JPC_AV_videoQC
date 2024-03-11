@@ -17,14 +17,12 @@ You can install conda with homebrew: `brew install --cask anaconda`
 You need to add conda to your path. The install location for homebrew changed when Apple moved from x86 to ARM architecture. 
 
 Confirm the location of anaconda3 after install. If you installed it with homebrew it will be here:
-    `/opt/homebrew/anaconda3/`
-or here:
-    `/usr/local/anaconda3/`
+`/opt/homebrew/anaconda3/` or here: `/usr/local/anaconda3/`
 
-Once you've located anaconda3, run one the corresponding command:    
-    `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`    
+Once you've located anaconda3, run one the corresponding commands:    
+`export PATH="/opt/homebrew/anaconda3/bin:$PATH"`    
 or:     
-    `export PATH="/usr/local/anaconda3/bin:$PATH"`     
+`export PATH="/usr/local/anaconda3/bin:$PATH"`     
 
 or install directly from anaconda's website using this guide: https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
@@ -44,7 +42,7 @@ Lastly, these scripts make use of the following command line tools:
 ## Running the scripts:
 
 Usage:
-`python JPC_AV/process_file.py [path/to/video_file.mkv]`
+`python JPC_AV/process_file.py [path/to/directory]`
 
 All actions performed by process_file.py are recorded in a log file located here:`logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log`
 
@@ -52,7 +50,7 @@ The process_file.py will first check to ensure that the video file matches the J
 If the file does not match the file naming convention, the script will exit. 
 
 process_file.py will run metadata tools on the input video file. The available tools are:
-- MediaConch (checks files against the MediaConch poilcy listed in 'config/command_config.yaml')
+- MediaConch (checks files against the MediaConch policy listed in 'config/command_config.yaml')
 - MediaInfo ("full" or `-f` output)
 - Exiftool
 - ffprobe (output in JSON format)
@@ -66,4 +64,4 @@ The outputs of these metadata tools are then checked against expected values.
 
 Expected values are stored in config/config.yaml. These checks can be turned on or off from config/command_config.yaml
 
-Successful checks are recorded to the log file, unsuccessful checks are recorded to the log, saved to a CSV called {filename}_metadata_difference_YYYYMMDD_HH-MM-SS.csv, and printed to the terminal (STOUT).
+Successful checks are recorded to the log file, unsuccessful checks are recorded to the log, and printed to the terminal (STDOUT).
