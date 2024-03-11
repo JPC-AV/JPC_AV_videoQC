@@ -7,14 +7,29 @@ This repository stores python scripts designed to help process digital audio and
 ## Requirements:
 An installation script is on our Roadmap and will be implemented in the future. In the meantime please find dependencies below:
 
-The scripts are written and tested in the follow environemnt:
+These scripts require Python 3.10+. Any Python 3.10+ environment should be compatible, but we have included conda instructions below for those who wish to create an isolated python environment. conda is not a requirement.
+
+The scripts are written and tested in the follow environment:
 `conda create -n JPC_AV python=3.10.13`
 
-(conda is not a requirement for running these scripts, any python 3.10 + environement is compatible.)
+You can install conda with homebrew: `brew install --cask anaconda` 
 
-You can install conda with homebrew: `brew install --cask anaconda` && `export PATH="/usr/local/anaconda3/bin:$PATH"` (or `export PATH="/opt/homebrew/anaconda3/bin:$PATH"` depending on Apple Silicon)
+You need to add conda to your path. The install location for homebrew changed when Apple moved from x86 to ARM architecture. 
 
-or https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
+Confirm the location of anaconda3 after install. If you installed it with homebrew it will be here:
+/opt/homebrew/anaconda3/
+or here:
+/usr/local/anaconda3/
+
+Once you've located anaconda3, run one the corresponding command:
+`export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
+or:
+ `export PATH="/usr/local/anaconda3/bin:$PATH"`
+
+or install directly from anaconda's website using this guide: https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
+
+Finally, run `conda init` or `conda init zsh` depending which shell you are using. (To check which shell you are using simply run `echo $SHELL`)
+
 
 Install necessary python modules which are not built-in using pip and requirements.txt:
 `pip install -r requirements.txt`
