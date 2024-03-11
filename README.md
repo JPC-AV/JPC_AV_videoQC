@@ -17,14 +17,14 @@ You can install conda with homebrew: `brew install --cask anaconda`
 You need to add conda to your path. The install location for homebrew changed when Apple moved from x86 to ARM architecture. 
 
 Confirm the location of anaconda3 after install. If you installed it with homebrew it will be here:
-/opt/homebrew/anaconda3/
+    `/opt/homebrew/anaconda3/`
 or here:
-/usr/local/anaconda3/
+    `/usr/local/anaconda3/`
 
-Once you've located anaconda3, run one the corresponding command:
-`export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
-or:
- `export PATH="/usr/local/anaconda3/bin:$PATH"`
+Once you've located anaconda3, run one the corresponding command:    
+    `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`    
+or:     
+    `export PATH="/usr/local/anaconda3/bin:$PATH"`     
 
 or install directly from anaconda's website using this guide: https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
