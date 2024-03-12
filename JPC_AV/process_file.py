@@ -13,32 +13,24 @@ import argparse
 import time
 from art import *
 from datetime import datetime
-from log_setup import logger, console_handler
-from deps_setup import required_commands, check_external_dependency, check_py_version
-from find_config import config_path, command_config
-from fixity_check import check_fixity, output_fixity
-from filename_check import check_filenames
-from mediainfo_check import parse_mediainfo
-from exiftool_check import parse_exiftool
-from ffprobe_check import parse_ffprobe
-from embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
-from yaml_profiles import apply_profile, profile_step1, profile_step2
-from make_access import make_access_file
 
-# Read command_config.yaml and retrieve log level
-log_level_str = command_config.command_dict['log_level']
-# Match log level from command_config.yaml to logging command
-log_level_mapping = {
-    'DEBUG': logging.DEBUG,
-    'INFO': logging.INFO,
-    'WARNING': logging.WARNING,
-    'ERROR': logging.ERROR,
-    'CRITICAL': logging.CRITICAL,
-}
+#path = os.path.abspath()
+sys.path.append("utils")
+sys.path.append("checks")
 
-# Set the console_handler log level, the color output to terminal, based on the mapping
-if log_level_str in log_level_mapping:
-    console_handler.setLevel(log_level_mapping[log_level_str])
+from utils.log_setup import logger
+from utils.deps_setup import required_commands, check_external_dependency, check_py_version
+from utils.find_config import config_path, command_config
+from checks.fixity_check import check_fixity, output_fixity
+from checks.filename_check import check_filenames
+from checks.mediainfo_check import parse_mediainfo
+from checks.exiftool_check import parse_exiftool
+from checks.ffprobe_check import parse_ffprobe
+from checks.embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
+from utils.yaml_profiles import apply_profile, profile_step1, profile_step2
+from checks.make_access import make_access_file
+
+
 
 def check_directory(source_directory, video_id):
     '''
