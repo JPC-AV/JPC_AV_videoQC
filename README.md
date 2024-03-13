@@ -29,7 +29,7 @@ or install directly from anaconda's website using this guide: https://conda.io/p
 Finally, run `conda init` (for bash) or `conda init zsh` (for zsh) depending which shell you are using. (To check which shell you are using simply run `echo $SHELL`)
 
 
-Install necessary python modules which are not built-in using pip and requirements.txt:
+Install necessary python modules which are not built-in using pip and requirements.txt:     
 `pip install -r requirements.txt`
 
 Lastly, these scripts make use of the following command line tools:
