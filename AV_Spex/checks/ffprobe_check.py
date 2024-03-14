@@ -8,7 +8,7 @@ import json
 import csv
 from utils.log_setup import logger
 from utils.find_config import config_path
-from encoder_settings_check import parse_encoder_settings
+from checks.encoder_settings_check import parse_encoder_settings
 
 ## creates the function 'parse_exiftool' which takes the argument 'file_path' 
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
