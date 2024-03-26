@@ -61,10 +61,14 @@ def run_command(command, input_path, output_type, output_path):
     Run a shell command with 4 variables: command name, path to the input file, output type (often '>'), path to the output file
     '''
 
+    # Get the current PATH environment variable
+    env = os.environ.copy()
+    env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
+
     full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
 
     logger.debug(f'\nrunning command: {full_command}')
-    subprocess.run(full_command, shell=True)
+    subprocess.run(full_command, shell=True, env=env)
 
 # Mediaconch needs its own function, because the command's flags and multiple inputs don't conform to the simple 3 part structure of the other commands
 def run_mediaconch_command(command, input_path, output_type, output_path):
