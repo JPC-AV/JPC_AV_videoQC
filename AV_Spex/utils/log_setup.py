@@ -8,7 +8,7 @@ import colorlog
 from datetime import datetime
 from colorlog import ColoredFormatter 
 
-# Much of this script is taken from the AMIA open source prokect loglog. More information here: https://github.com/amiaopensource/loglog
+# Much of this script is taken from the AMIA open source project loglog. More information here: https://github.com/amiaopensource/loglog
 
 def setup_logger(): 
     # Assigns getLogger function from imported module, creates logger 
@@ -18,7 +18,7 @@ def setup_logger():
 
     # Establishes path to 'logs' directory
     script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-    root_dir = os.path.dirname(script_dir)
+    root_dir = os.path.dirname(os.path.dirname(script_dir))
     logs_parent_dir = os.path.join(root_dir, 'logs')
     log_dir_path = os.path.join(logs_parent_dir, datetime.now().strftime('%Y-%m-%d'))
     if not os.path.exists(log_dir_path):
