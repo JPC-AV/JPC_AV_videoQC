@@ -16,7 +16,7 @@ class ConfigPath:
         self.config_dir = os.path.join(self.root_dir, 'config')
         self.config_yml = os.path.join(self.config_dir, 'config.yaml')
 
-        logger.debug(f'config.yaml sourced from {self.config_yml}')
+        #logger.debug(f'config.yaml sourced from {self.config_yml}')
         
         with open(self.config_yml) as f:
             self.config_dict = yaml.safe_load(f)
@@ -31,7 +31,7 @@ class CommandConfig:
         self.config_dir = os.path.join(self.root_dir, 'config')
         self.command_yml = os.path.join(self.config_dir, 'command_config.yaml')
 
-        logger.debug(f'command_config.yaml sourced from {self.command_yml}')
+        #logger.debug(f'command_config.yaml sourced from {self.command_yml}')
         
         with open(self.command_yml) as f:
             self.command_dict = yaml.safe_load(f)

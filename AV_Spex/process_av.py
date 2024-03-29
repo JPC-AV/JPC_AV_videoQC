@@ -67,7 +67,7 @@ def run_command(command, input_path, output_type, output_path):
 
     full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
 
-    logger.debug(f'\nrunning command: {full_command}')
+    logger.debug(f'\nRunning command: {full_command}')
     subprocess.run(full_command, shell=True, env=env)
 
 # Mediaconch needs its own function, because the command's flags and multiple inputs don't conform to the simple 3 part structure of the other commands
@@ -89,7 +89,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     
     full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
-    logger.debug(f'running command: {full_command}')
+    logger.debug(f'\nRunning command: {full_command}')
     subprocess.run(full_command, shell=True)
 
 def move_vrec_files(directory, video_id):
@@ -159,13 +159,13 @@ def parse_arguments():
                 logger.critical(f"Error: {input_path} is not a valid file.")
                 sys.exit(1)
             source_directories.append(os.path.dirname(input_path))
-            logger.info(f'Input directory found: {(os.path.dirname(input_path))}')
+            logger.info(f'\nInput directory found: {(os.path.dirname(input_path))}\n')
         else:
             if not os.path.isdir(input_path):
                 logger.critical(f"Error: {input_path} is not a valid directory.")
                 sys.exit(1)
             source_directories.append(input_path)
-            logger.info(f'Input directory found: {input_path}')
+            logger.info(f'\nInput directory found: {input_path}\n')
 
     selected_profile = None
     if args.profile:
@@ -183,6 +183,10 @@ def main():
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
+    avspex_icon = text2art("AV-Spex",font='5lineoblique')
+    print(f'\n{avspex_icon}\n\n')
+    time.sleep(1)
+    
     source_directories, selected_profile = parse_arguments()
 
     check_py_version()
@@ -191,7 +195,7 @@ def main():
         if not check_external_dependency(command):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
-    
+
     if selected_profile:
         apply_profile(command_config, selected_profile)
 
@@ -231,6 +235,7 @@ def main():
             else:
                 logger.critical(f"Existing stream hashes found!")
                 if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+                    logger.critical(f'New stream hashes will be generated and old hashes will be overwritten!')
                     embed_fixity(video_path)
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
                     logger.debug(f'Not writing stream hashes to MKV')
@@ -325,7 +330,7 @@ def main():
         if command_config.command_dict['outputs']['access_file'] == 'yes':
             make_access_file(video_path, access_output_path)
             
-        logger.debug(f'\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
+        logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
         ascii_video_id = text2art(video_id, font='small')
 
