@@ -4,6 +4,20 @@ filename_values:
   Collection: JPC
   MediaType: AV
   FileExtension: mkv 
+qct-parse:
+  tagname: SATMAX
+  over: 1.0
+  under: 0.1
+  profile: default
+  buffSize: 11
+  thumbExport: false
+  thumbExportDelay: 9000
+  thumbExportPath: ''
+  durationStart: 0
+  durationEnd: 99999999
+  barsDetection: false
+  print: false
+  quiet: false
 mediainfo_values:
   expected_general: 
     File extension: mkv  
