@@ -3,28 +3,28 @@ outputs:
   access_file: 'no'
   difference_csv: 'no'
   fixity:
-    check_fixity: 'yes'
-    check_stream_fixity: 'yes'
+    check_fixity: 'no'
+    check_stream_fixity: 'no'
     embed_stream_fixity: 'no'
     output_fixity: 'no'
     overwrite_stream_fixity: 'no'
   qctools_ext: qctools.xml.gz
 tools:
   exiftool:
-    check_exiftool: 'yes'
+    check_exiftool: 'no'
     run_exiftool: 'no'
   ffprobe:
-    check_ffprobe: 'yes'
+    check_ffprobe: 'no'
     run_ffprobe: 'no'
   mediaconch:
     mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
-    run_mediaconch: 'yes'
+    run_mediaconch: 'no'
   mediainfo:
-    check_mediainfo: 'yes'
+    check_mediainfo: 'no'
     run_mediainfo: 'no'
   qctools:
-    check_qctools: 'no'
-    run_qctools: 'yes'
+    check_qctools: 'yes'
+    run_qctools: 'no'
   qct-parse:
     tagname: SATMAX
     over: 1.0

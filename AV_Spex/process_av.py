@@ -29,6 +29,7 @@ from checks.exiftool_check import parse_exiftool
 from checks.ffprobe_check import parse_ffprobe
 from checks.embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
 from checks.make_access import make_access_file
+from checks.qct_parse import run_qctparse
 
 def check_directory(source_directory, video_id):
     '''
@@ -321,11 +322,14 @@ def main():
             parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
+        qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+        qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
         if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
-            qctools_ext = command_config.command_dict['outputs']['qctools_ext']
-            qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
             run_command('qcli -i', video_path, '-o', qctools_output_path)
 
+        if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
+            run_qctparse(video_path, qctools_output_path)
+        
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':
             make_access_file(video_path, access_output_path)
