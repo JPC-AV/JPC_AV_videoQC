@@ -57,7 +57,7 @@ def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay):
 		if tagValue < float(under): # if the attribute is under usr set threshold
 			timeStampString = dts2ts(frame_pkt_dts_time)
 			#logging.warning(tag + " is under " + str(under) + " with a value of " + str(tagValue) + " at duration " + timeStampString)
-			if config_path.config_dict['qct-parse']['thumbExport'] and (thumbDelay > int(config_path.config_dict['qct-parse']['thumbExportDelay'])): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
+			if config_path.config_dict['qct-parse']['checks']['thumbExport'] and (thumbDelay > int(config_path.config_dict['qct-parse']['checks']['thumbExportDelay'])): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
 				printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
 				thumbDelay = 0
 			return True, thumbDelay # return true because it was over and thumbDelay
@@ -67,7 +67,7 @@ def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay):
 		if tagValue > float(over): # if the attribute is over usr set threshold
 			timeStampString = dts2ts(frame_pkt_dts_time)
 			#logging.warning(tag + " is over " + str(over) + " with a value of " + str(tagValue) + " at duration " + timeStampString)
-			if config_path.config_dict['qct-parse']['thumbExport'] and (thumbDelay > int(config_path.config_dict['qct-parse']['thumbExportDelay'])): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
+			if config_path.config_dict['qct-parse']['checks']['thumbExport'] and (thumbDelay > int(config_path.config_dict['qct-parse']['checks']['thumbExportDelay'])): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
 				printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
 				thumbDelay = 0
 			return True, thumbDelay # return true because it was over and thumbDelay
@@ -91,7 +91,7 @@ def printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString):
 		ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
 		output = subprocess.Popen(ffmpegString,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 		out,err = output.communicate()
-		if config_path.config_dict['qct-parse']['quiet'] is False:
+		if config_path.config_dict['qct-parse']['checks']['quiet'] is False:
 			print(out)
 			print(err)
 	else:
@@ -133,8 +133,8 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
 def analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,framesList,frameCount=0,overallFrameFail=0):
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
 	fots = ""
-	if config_path.config_dict['qct-parse']['tagname']:
-		kbeyond[config_path.config_dict['qct-parse']['tagname']] = 0 
+	if config_path.config_dict['qct-parse']['checks']['tagname']:
+		kbeyond[config_path.config_dict['qct-parse']['checks']['tagname']] = 0 
 	else:
 		for k,v in profile.items(): 
 			kbeyond[k] = 0
@@ -157,20 +157,20 @@ def analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPat
 							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
-					if config_path.config_dict['qct-parse']['profile'] is True:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
-						print(framesList[-1][pkt] + ": " + config_path.config_dict['qct-parse']['tagname'] + " " + framesList[-1][config_path.config_dict['qct-parse']['tagname']])
+					if config_path.config_dict['qct-parse']['checks']['profile'] is True:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
+						print(framesList[-1][pkt] + ": " + config_path.config_dict['qct-parse']['checks']['tagname'] + " " + framesList[-1][config_path.config_dict['qct-parse']['checks']['tagname']])
 					# Now we can parse the frame data from the buffer!	
-					if config_path.config_dict['qct-parse']['over'] or config_path.config_dict['qct-parse']['under'] and config_path.config_dict['qct-parse']['profile'] is None: # if we're just doing a single tag
-						tag = config_path.config_dict['qct-parse']['tagname']
-						if config_path.config_dict['qct-parse']['over']:
-							over = float(config_path.config_dict['qct-parse']['over'])
-						if config_path.config_dict['qct-parse']['under']:
-							over = float(config_path.config_dict['qct-parse']['under'])
+					if config_path.config_dict['qct-parse']['checks']['over'] or config_path.config_dict['qct-parse']['checks']['under'] and config_path.config_dict['qct-parse']['checks']['profile'] is None: # if we're just doing a single tag
+						tag = config_path.config_dict['qct-parse']['checks']['tagname']
+						if config_path.config_dict['qct-parse']['checks']['over']:
+							over = float(config_path.config_dict['qct-parse']['checks']['over'])
+						if config_path.config_dict['qct-parse']['checks']['under']:
+							over = float(config_path.config_dict['qct-parse']['checks']['under'])
 						# ACTAULLY DO THE THING ONCE FOR EACH TAG
 						frameOver, thumbDelay = threshFinder(video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay)
 						if frameOver is True:
 							kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
-					elif config_path.config_dict['qct-parse']['profile'] is not None: # if we're using a profile
+					elif config_path.config_dict['qct-parse']['checks']['profile'] is not None: # if we're using a profile
 						for k,v in profile.items():
 							tag = k
 							over = float(v)
@@ -242,20 +242,22 @@ def run_qctparse(video_path, file_path):
 	profile = {} # init a dictionary where we'll store reference values from our config file
 	# init a list of every tag available in a QCTools Report
 	tagList = ["YMIN","YLOW","YAVG","YHIGH","YMAX","UMIN","ULOW","UAVG","UHIGH","UMAX","VMIN","VLOW","VAVG","VHIGH","VMAX","SATMIN","SATLOW","SATAVG","SATHIGH","SATMAX","HUEMED","HUEAVG","YDIF","UDIF","VDIF","TOUT","VREP","BRNG","mse_y","mse_u","mse_v","mse_avg","psnr_y","psnr_u","psnr_v","psnr_avg"]
-	if config_path.config_dict['qct-parse']['profile'] is not None:
-		config = configparser.RawConfigParser(allow_no_value=True)
-		dn, fn = os.path.split(os.path.abspath(__file__)) # grip the dir where ~this script~ is located, also where config.txt should be located
-		config.read(os.path.join(dn,"qct-parse_config.txt")) # read in the config file
-		template = config_path.config_dict['qct-parse']['profile'] # get the profile/ section name from CLI
-		for t in tagList: 			# loop thru every tag available and 
-			try: 					# see if it's in the config section
-				profile[t.replace("_",".")] = config.get(template,t) # if it is, replace _ necessary for config file with . which xml attributes use, assign the value in config
-			except: # if no config tag exists, do nothing so we can move faster
-				pass
+	if config_path.config_dict['qct-parse']['checks']['profile'] is not None:
+		template = config_path.config_dict['qct-parse']['checks']['profile'] # get the profile/ section name from CLI
+		if template in config_path.config_dict['qct-parse']['profiles']:
+		# If the template matches one of the profiles
+			for t in tagList:
+				formatted_tag = t.replace("_", ".")  # replace _ necessary for config file with . which xml attributes use, assign the value in config
+				try:
+					# Attempt to assign the value from the YAML profile to the profile dict
+					profile[formatted_tag] = config_path.config_dict['qct-parse']['profiles'][template].get(t)
+				except Exception as e:
+					# If no config tag exists or any other error, do nothing
+					pass
 	
 	###### Initialize some other stuff ######
 	startObj = file_path
-	buffSize = int(config_path.config_dict['qct-parse']['buffSize'])   # cast the input buffer as an integer
+	buffSize = int(config_path.config_dict['qct-parse']['checks']['buffSize'])   # cast the input buffer as an integer
 	if buffSize%2 == 0:
 		buffSize = buffSize + 1
 	logger.info("Starting qct-parse")	# initialize the log
@@ -264,12 +266,12 @@ def run_qctparse(video_path, file_path):
 	count = 0		# init total frames counter
 	framesList = collections.deque(maxlen=buffSize)		# init holding object for holding all frame data in a circular buffer. 
 	bdFramesList = collections.deque(maxlen=buffSize) 	# init holding object for holding all frame data in a circular buffer. 
-	thumbDelay = int(config_path.config_dict['qct-parse']['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
+	thumbDelay = int(config_path.config_dict['qct-parse']['checks']['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
 	parentDir = os.path.dirname(startObj)
 	baseName = os.path.basename(startObj)
 	baseName = baseName.replace(".qctools.xml.gz", "")
-	durationStart = config_path.config_dict['qct-parse']['durationStart']
-	durationEnd = config_path.config_dict['qct-parse']['durationEnd']
+	durationStart = config_path.config_dict['qct-parse']['checks']['durationStart']
+	durationEnd = config_path.config_dict['qct-parse']['checks']['durationEnd']
 
 	# we gotta find out if the qctools report has pkt_dts_time or pkt_pts_time ugh
 	with gzip.open(startObj) as xml:    
@@ -282,37 +284,37 @@ def run_qctparse(video_path, file_path):
 					break
 
 	# set the start and end duration times
-	if config_path.config_dict['qct-parse']['barsDetection']:
+	if config_path.config_dict['qct-parse']['checks']['barsDetection']:
 		durationStart = ""				# if bar detection is turned on then we have to calculate this
 		durationEnd = ""				# if bar detection is turned on then we have to calculate this
-	elif config_path.config_dict['qct-parse']['durationStart']:
-		durationStart = float(config_path.config_dict['qct-parse']['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
-	elif not config_path.config_dict['qct-parse']['durationEnd'] == 99999999:
-		durationEnd = float(config_path.config_dict['qct-parse']['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
+	elif config_path.config_dict['qct-parse']['checks']['durationStart']:
+		durationStart = float(config_path.config_dict['qct-parse']['checks']['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
+	elif not config_path.config_dict['qct-parse']['checks']['durationEnd'] == 99999999:
+		durationEnd = float(config_path.config_dict['qct-parse']['checks']['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
 	
 	
 	# set the path for the thumbnail export	
-	if config_path.config_dict['qct-parse']['thumbExportPath'] and not config_path.config_dict['qct-parse']['thumbExport']:
+	if config_path.config_dict['qct-parse']['checks']['thumbExportPath'] and not config_path.config_dict['qct-parse']['checks']['thumbExport']:
 		logger.critical("You specified a thumbnail export path without setting thumbExport to 'true'. Please either set thumbExport to true or set thumbExportPath to '' ")
 	
-	if config_path.config_dict['qct-parse']['thumbExportPath'] : # if user supplied thumbExportPath, use that
-	    thumbPath = str(config_path.config_dict['qct-parse']['thumbExportPath'])
+	if config_path.config_dict['qct-parse']['checks']['thumbExportPath'] : # if user supplied thumbExportPath, use that
+	    thumbPath = str(config_path.config_dict['qct-parse']['checks']['thumbExportPath'])
 	else :
-		if config_path.config_dict['qct-parse']['tagname']: # if they supplied a single tag
-			if config_path.config_dict['qct-parse']['over']: # if the supplied tag is looking for a threshold Over
-				thumbPath = os.path.join(parentDir, str(config_path.config_dict['qct-parse']['tagname']) + "." + str(config_path.config_dict['qct-parse']['over']))
-			elif config_path.config_dict['qct-parse']['under']: # if the supplied tag was looking for a threshold Under
-				thumbPath = os.path.join(parentDir, str(config_path.config_dict['qct-parse']['tagname']) + "." + str(config_path.config_dict['qct-parse']['under']))
+		if config_path.config_dict['qct-parse']['checks']['tagname']: # if they supplied a single tag
+			if config_path.config_dict['qct-parse']['checks']['over']: # if the supplied tag is looking for a threshold Over
+				thumbPath = os.path.join(parentDir, str(config_path.config_dict['qct-parse']['checks']['tagname']) + "." + str(config_path.config_dict['qct-parse']['checks']['over']))
+			elif config_path.config_dict['qct-parse']['checks']['under']: # if the supplied tag was looking for a threshold Under
+				thumbPath = os.path.join(parentDir, str(config_path.config_dict['qct-parse']['checks']['tagname']) + "." + str(config_path.config_dict['qct-parse']['checks']['under']))
 		else: # if they're using a profile, put all thumbs in 1 dir
 			thumbPath = os.path.join(parentDir, "ThumbExports")
 	
-	if config_path.config_dict['qct-parse']['thumbExportPath']: # make the thumb export path if it doesn't already exist
+	if config_path.config_dict['qct-parse']['checks']['thumbExportPath']: # make the thumb export path if it doesn't already exist
 		if not os.path.exists(thumbPath):
 			os.makedirs(thumbPath)
 	
 	
 	######## Iterate Through the XML for Bars detection ########
-	if config_path.config_dict['qct-parse']['barsDetection']:
+	if config_path.config_dict['qct-parse']['checks']['barsDetection']:
 		print("")
 		print("Starting Bars Detection on " + baseName)
 		print("")
@@ -331,7 +333,7 @@ def run_qctparse(video_path, file_path):
 	
 	
 	# do some maths for the printout
-	if config_path.config_dict['qct-parse']['over'] or config_path.config_dict['qct-parse']['under'] or config_path.config_dict['qct-parse']['profile'] is not None:
+	if config_path.config_dict['qct-parse']['checks']['over'] or config_path.config_dict['qct-parse']['checks']['under'] or config_path.config_dict['qct-parse']['checks']['profile'] is not None:
 		printresults(kbeyond,frameCount,overallFrameFail)
 	
 	return
