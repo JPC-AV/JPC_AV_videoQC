@@ -122,20 +122,6 @@ ffmpeg_values:
       ORIGINAL MEDIA TYPE: 
       ENCODED_BY:
 qct-parse:
-  checks:
-    tagname: SATMAX
-    over: 1.0
-    under: 0.1
-    profile: default
-    buffSize: 11
-    thumbExport: false
-    thumbExportDelay: 9000
-    thumbExportPath: ''
-    durationStart: 0
-    durationEnd: 99999999
-    barsDetection: false
-    print: false
-    quiet: false
   profiles:
     default:
       YLOW: 64

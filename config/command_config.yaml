@@ -25,3 +25,17 @@ tools:
   qctools:
     check_qctools: 'no'
     run_qctools: 'yes'
+  qct-parse:
+    tagname: SATMAX
+    over: 1.0
+    under: 0.1
+    profile: default
+    buffSize: 11
+    thumbExport: false
+    thumbExportDelay: 9000
+    thumbExportPath: ''
+    durationStart: 0
+    durationEnd: 99999999
+    barsDetection: true
+    print: false
+    quiet: false
