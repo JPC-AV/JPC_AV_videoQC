@@ -32,7 +32,7 @@ tools:
     profile: default
     buffSize:
     thumbExport: true
-    thumbExportDelay: 9000
-    durationStart: 0
-    durationEnd: 99999999
+    thumbExportDelay: 
+    durationStart: 
+    durationEnd: 
     barsDetection: false

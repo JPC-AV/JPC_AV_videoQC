@@ -46,7 +46,7 @@ def dts2ts(frame_pkt_dts_time):
     return timeStampString
 	
 # finds stuff over/under threshold
-def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay):
+def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay):
 	tagValue = float(inFrame[tag])
 	frame_pkt_dts_time = inFrame[pkt]
 	if "MIN" in tag or "LOW" in tag:
@@ -54,7 +54,7 @@ def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay):
 		if tagValue < float(under): # if the attribute is under usr set threshold
 			timeStampString = dts2ts(frame_pkt_dts_time)
 			#logging.warning(tag + " is under " + str(under) + " with a value of " + str(tagValue) + " at duration " + timeStampString)
-			if command_config.command_dict['tools']['qct-parse']['thumbExport'] and (thumbDelay > int(command_config.command_dict['tools']['qct-parse']['thumbExportDelay'])): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
+			if command_config.command_dict['tools']['qct-parse']['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
 				printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
 				thumbDelay = 0
 			return True, thumbDelay # return true because it was over and thumbDelay
@@ -64,7 +64,7 @@ def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay):
 		if tagValue > float(over): # if the attribute is over usr set threshold
 			timeStampString = dts2ts(frame_pkt_dts_time)
 			#logging.warning(tag + " is over " + str(over) + " with a value of " + str(tagValue) + " at duration " + timeStampString)
-			if command_config.command_dict['tools']['qct-parse']['thumbExport'] and (thumbDelay > int(command_config.command_dict['tools']['qct-parse']['thumbExportDelay'])): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
+			if command_config.command_dict['tools']['qct-parse']['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
 				printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
 				thumbDelay = 0
 			return True, thumbDelay # return true because it was over and thumbDelay
@@ -121,7 +121,7 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
 			elem.clear() # we're done with that element so let's get it outta memory
 	return durationStart, durationEnd
 
-def analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,framesList,frameCount=0,overallFrameFail=0):
+def analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
 	fots = ""
 	if command_config.command_dict['tools']['qct-parse']['tagname']:
@@ -158,7 +158,7 @@ def analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPat
 						if command_config.command_dict['tools']['qct-parse']['under']:
 							over = float(command_config.command_dict['tools']['qct-parse']['under'])
 						# ACTAULLY DO THE THING ONCE FOR EACH TAG
-						frameOver, thumbDelay = threshFinder(video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay)
+						frameOver, thumbDelay = threshFinder(video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay)
 						if frameOver is True:
 							kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
 					elif command_config.command_dict['tools']['qct-parse']['profile'] is not None: # if we're using a profile
@@ -168,7 +168,7 @@ def analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPat
 								tag = k
 								over = float(v)
 								# ACTUALLY DO THE THING ONCE FOR EACH TAG
-								frameOver, thumbDelay = threshFinder(video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay)
+								frameOver, thumbDelay = threshFinder(video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay)
 								if frameOver is True:
 									kbeyond[k] = kbeyond[k] + 1 # note the over in the key over dict
 									if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
@@ -254,7 +254,12 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	count = 0		# init total frames counter
 	framesList = collections.deque(maxlen=buffSize)		# init holding object for holding all frame data in a circular buffer. 
 	bdFramesList = collections.deque(maxlen=buffSize) 	# init holding object for holding all frame data in a circular buffer. 
-	thumbDelay = int(command_config.command_dict['tools']['qct-parse']['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
+	
+	if command_config.command_dict['tools']['qct-parse']['thumbExportDelay'] is not None:
+		thumbDelay = int(command_config.command_dict['tools']['qct-parse']['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
+	else:
+		thumbDelay = 9000
+	thumbExportDelay = thumbDelay
 	parentDir = os.path.dirname(startObj)
 	baseName = os.path.basename(startObj)
 	baseName = baseName.replace(".qctools.xml.gz", "")
@@ -304,7 +309,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 
 	######## Iterate Through the XML for General Analysis ########
 	logger.debug(f"\nStarting qct-parse analysis on {baseName}")
-	kbeyond, frameCount, overallFrameFail = analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,framesList)
+	kbeyond, frameCount, overallFrameFail = analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 	
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
 
