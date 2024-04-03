@@ -26,14 +26,14 @@ tools:
     check_qctools: 'yes'
     run_qctools: 'no'
   qct-parse:
-    tagname: SATMAX
-    over: 943
+    tagname: 
+    over: 
     under: 
-    profile: 
+    profile: default
     buffSize:
-    thumbExport: false
+    thumbExport: true
     thumbExportDelay: 9000
-    thumbExportPath: ''
+    thumbExportPath: '/Users/eddycolloton/git/JPC_AV/JPC_AV_videoQC/sample_files/JPC_AV_01663/JPC_AV_01663_qc_metadata/thumbs/'
     durationStart: 0
     durationEnd: 99999999
     barsDetection: false

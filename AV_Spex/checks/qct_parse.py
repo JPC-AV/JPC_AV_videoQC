@@ -230,7 +230,7 @@ def printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output):
 			f.write("\n**************************")
 	return
 	
-def run_qctparse(video_path, file_path, qctools_check_output):
+def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	###### Initialize values from the Config Parser
 	profile = {} # init a dictionary where we'll store reference values from our config file
 	# init a list of every tag available in a QCTools Report
@@ -244,7 +244,7 @@ def run_qctparse(video_path, file_path, qctools_check_output):
 					profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
 	
 	###### Initialize some other stuff ######
-	startObj = file_path
+	startObj = qctools_output_path
 	if command_config.command_dict['tools']['qct-parse']['buffSize'] is not None:
 		buffSize = int(command_config.command_dict['tools']['qct-parse']['buffSize'])   # cast the input buffer as an integer
 		if buffSize%2 == 0:
@@ -283,31 +283,24 @@ def run_qctparse(video_path, file_path, qctools_check_output):
 	elif not command_config.command_dict['tools']['qct-parse']['durationEnd'] == 99999999:
 		durationEnd = float(command_config.command_dict['tools']['qct-parse']['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
 	
+	# set the path for the thumbnail export
+	metadata_dir = os.path.dirname(qctools_output_path)
+	thumbPath = metadata_dir
+	if command_config.command_dict['tools']['qct-parse']['tagname']: # if they supplied a single tag
+		if command_config.command_dict['tools']['qct-parse']['over']: # if the supplied tag is looking for a threshold Over
+			thumbPath = os.path.join(metadata_dir, str(command_config.command_dict['tools']['qct-parse']['tagname']) + "." + str(command_config.command_dict['tools']['qct-parse']['over']))
+		elif command_config.command_dict['tools']['qct-parse']['under']: # if the supplied tag was looking for a threshold Under
+			thumbPath = os.path.join(metadata_dir, str(command_config.command_dict['tools']['qct-parse']['tagname']) + "." + str(command_config.command_dict['tools']['qct-parse']['under']))
+	else: # if they're using a profile, put all thumbs in 1 dir
+		thumbPath = os.path.join(metadata_dir, "ThumbExports")
 	
-	# set the path for the thumbnail export	
-	if command_config.command_dict['tools']['qct-parse']['thumbExportPath'] and not command_config.command_dict['tools']['qct-parse']['thumbExport']:
-		logger.critical("You specified a thumbnail export path without setting thumbExport to 'true'. Please either set thumbExport to true or set thumbExportPath to '' ")
-	
-	if command_config.command_dict['tools']['qct-parse']['thumbExportPath'] : # if user supplied thumbExportPath, use that
-		thumbPath = str(command_config.command_dict['tools']['qct-parse']['thumbExportPath'])
-	else:
-		if command_config.command_dict['tools']['qct-parse']['tagname']: # if they supplied a single tag
-			if command_config.command_dict['tools']['qct-parse']['over']: # if the supplied tag is looking for a threshold Over
-				thumbPath = os.path.join(parentDir, str(command_config.command_dict['tools']['qct-parse']['tagname']) + "." + str(command_config.command_dict['tools']['qct-parse']['over']))
-			elif command_config.command_dict['tools']['qct-parse']['under']: # if the supplied tag was looking for a threshold Under
-				thumbPath = os.path.join(parentDir, str(command_config.command_dict['tools']['qct-parse']['tagname']) + "." + str(command_config.command_dict['tools']['qct-parse']['under']))
-		else: # if they're using a profile, put all thumbs in 1 dir
-			thumbPath = os.path.join(parentDir, "ThumbExports")
-	
-	if command_config.command_dict['tools']['qct-parse']['thumbExportPath']: # make the thumb export path if it doesn't already exist
-		if not os.path.exists(thumbPath):
-			os.makedirs(thumbPath)
+	if not os.path.exists(thumbPath):
+		os.makedirs(thumbPath)
 	
 	######## Iterate Through the XML for Bars detection ########
 	if command_config.command_dict['tools']['qct-parse']['barsDetection']:
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
 		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize,)
-	
 
 	######## Iterate Through the XML for General Analysis ########
 	logger.debug(f"\nStarting qct-parse analysis on {baseName}")
