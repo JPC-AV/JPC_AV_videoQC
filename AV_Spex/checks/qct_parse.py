@@ -278,10 +278,13 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	if command_config.command_dict['tools']['qct-parse']['barsDetection']:
 		durationStart = ""				# if bar detection is turned on then we have to calculate this
 		durationEnd = ""				# if bar detection is turned on then we have to calculate this
-	elif command_config.command_dict['tools']['qct-parse']['durationStart']:
+	elif command_config.command_dict['tools']['qct-parse']['durationStart'] is not None:
 		durationStart = float(command_config.command_dict['tools']['qct-parse']['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
-	elif not command_config.command_dict['tools']['qct-parse']['durationEnd'] == 99999999:
+	elif command_config.command_dict['tools']['qct-parse']['durationEnd'] != 99999999 and command_config.command_dict['tools']['qct-parse']['durationEnd'] is not None:
 		durationEnd = float(command_config.command_dict['tools']['qct-parse']['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
+	else:
+		durationStart = 0
+		durationEnd = 99999999
 	
 	# set the path for the thumbnail export
 	metadata_dir = os.path.dirname(qctools_output_path)
