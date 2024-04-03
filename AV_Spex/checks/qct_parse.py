@@ -86,11 +86,8 @@ def printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString):
 		if match:
 			ffoutputFramePath = ffoutputFramePath.replace(".",":",1) # replace first instance of "." in string ffoutputFramePath
 		ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+		logger.warning(f"Exporting thumbnail image of {baseName} to {os.path.basename(ffoutputFramePath)}")
 		output = subprocess.Popen(ffmpegString,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
-		out,err = output.communicate()
-		if command_config.command_dict['tools']['qct-parse']['quiet'] is False:
-			print(out)
-			print(err)
 	else:
 		print("Input video file not found. Ensure video file is in the same directory as the QCTools report and report file name contains video file extension.")
 		exit()
