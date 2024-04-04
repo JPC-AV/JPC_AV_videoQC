@@ -329,7 +329,10 @@ def main():
 
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
             qctools_check_output = os.path.join(destination_directory, f'{video_id}_qct-parse_summary.txt')
-            run_qctparse(video_path, qctools_output_path, qctools_check_output)
+            if not os.path.isfile(qctools_output_path):
+                logger.critical(f"Error: {qctools_output_path} is not a valid file.")
+            else:
+                run_qctparse(video_path, qctools_output_path, qctools_check_output)
         
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':

@@ -35,4 +35,4 @@ tools:
     thumbExportDelay: 
     durationStart: 
     durationEnd: 
-    barsDetection: false
+    barsDetection: true

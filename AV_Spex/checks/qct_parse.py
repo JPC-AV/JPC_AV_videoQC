@@ -46,7 +46,7 @@ def dts2ts(frame_pkt_dts_time):
     return timeStampString
 	
 # finds stuff over/under threshold
-def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay):
+def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay):
 	tagValue = float(inFrame[tag])
 	frame_pkt_dts_time = inFrame[pkt]
 	if "MIN" in tag or "LOW" in tag:
@@ -54,7 +54,7 @@ def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay,t
 		if tagValue < float(under): # if the attribute is under usr set threshold
 			timeStampString = dts2ts(frame_pkt_dts_time)
 			#logging.warning(tag + " is under " + str(under) + " with a value of " + str(tagValue) + " at duration " + timeStampString)
-			if command_config.command_dict['tools']['qct-parse']['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
+			if qct_parse['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
 				printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
 				thumbDelay = 0
 			return True, thumbDelay # return true because it was over and thumbDelay
@@ -64,7 +64,7 @@ def threshFinder(video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay,t
 		if tagValue > float(over): # if the attribute is over usr set threshold
 			timeStampString = dts2ts(frame_pkt_dts_time)
 			#logging.warning(tag + " is over " + str(over) + " with a value of " + str(tagValue) + " at duration " + timeStampString)
-			if command_config.command_dict['tools']['qct-parse']['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
+			if qct_parse['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
 				printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
 				thumbDelay = 0
 			return True, thumbDelay # return true because it was over and thumbDelay
@@ -121,11 +121,11 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
 			elem.clear() # we're done with that element so let's get it outta memory
 	return durationStart, durationEnd
 
-def analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
+def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
 	fots = ""
-	if command_config.command_dict['tools']['qct-parse']['tagname']:
-		kbeyond[command_config.command_dict['tools']['qct-parse']['tagname']] = 0 
+	if qct_parse['tagname']:
+		kbeyond[qct_parse['tagname']] = 0 
 	else:
 		for k,v in profile.items(): 
 			kbeyond[k] = 0
@@ -148,27 +148,27 @@ def analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPat
 							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
-					if command_config.command_dict['tools']['qct-parse']['profile'] is True:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
-						logger.debug(framesList[-1][pkt] + ": " + command_config.command_dict['tools']['qct-parse']['tagname'] + " " + framesList[-1][command_config.command_dict['tools']['qct-parse']['tagname']])
+					if qct_parse['profile'] is True:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
+						logger.debug(framesList[-1][pkt] + ": " + qct_parse['tagname'] + " " + framesList[-1][qct_parse['tagname']])
 					# Now we can parse the frame data from the buffer!	
-					if command_config.command_dict['tools']['qct-parse']['over'] or command_config.command_dict['tools']['qct-parse']['under'] and command_config.command_dict['tools']['qct-parse']['profile'] is None: # if we're just doing a single tag
-						tag = command_config.command_dict['tools']['qct-parse']['tagname']
-						if command_config.command_dict['tools']['qct-parse']['over']:
-							over = float(command_config.command_dict['tools']['qct-parse']['over'])
-						if command_config.command_dict['tools']['qct-parse']['under']:
-							over = float(command_config.command_dict['tools']['qct-parse']['under'])
+					if qct_parse['over'] or qct_parse['under'] and qct_parse['profile'] is None: # if we're just doing a single tag
+						tag = qct_parse['tagname']
+						if qct_parse['over']:
+							over = float(qct_parse['over'])
+						if qct_parse['under']:
+							over = float(qct_parse['under'])
 						# ACTAULLY DO THE THING ONCE FOR EACH TAG
-						frameOver, thumbDelay = threshFinder(video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay)
+						frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay)
 						if frameOver is True:
 							kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
-					elif command_config.command_dict['tools']['qct-parse']['profile'] is not None: # if we're using a profile
+					elif qct_parse['profile'] is not None: # if we're using a profile
 						for k,v in profile.items():
 							# confirm k (tag) is in config.yaml profile
 							if v is not None:
 								tag = k
 								over = float(v)
 								# ACTUALLY DO THE THING ONCE FOR EACH TAG
-								frameOver, thumbDelay = threshFinder(video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay)
+								frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay)
 								if frameOver is True:
 									kbeyond[k] = kbeyond[k] + 1 # note the over in the key over dict
 									if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
@@ -228,45 +228,88 @@ def printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output):
 	return
 	
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
-	###### Initialize values from the Config Parser
-	profile = {} # init a dictionary where we'll store reference values from our config file
+	logger.info("Starting qct-parse")
+	
+	###### Initialize variables ######
+	qct_parse = command_config.command_dict['tools']['qct-parse']
+	
+	startObj = qctools_output_path
+	
+	# Set buffer size
+	if qct_parse['buffSize'] is not None:
+		buffSize = int(qct_parse['buffSize'])   # cast the input buffer as an integer
+		if buffSize%2 == 0:
+			buffSize = buffSize + 1
+	else:
+		buffSize = 11
+	
+	# Set thumbExport delay
+	if qct_parse['thumbExportDelay'] is not None:
+		thumbDelay = int(qct_parse['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
+	else:
+		thumbDelay = 9000
+	thumbExportDelay = thumbDelay
+	
+	# Set parentDir and baseName
+	parentDir = os.path.dirname(startObj)
+	baseName = os.path.basename(startObj)
+	baseName = baseName.replace(".qctools.xml.gz", "")
+
+	# Initialize duration variables, may be over written...
+	durationStart = qct_parse['durationStart']
+	durationEnd = qct_parse['durationEnd']
+
+	# set the start and end duration times
+	if qct_parse['barsDetection']:
+		durationStart = ""				# if bar detection is turned on then we have to calculate this
+		durationEnd = ""				# if bar detection is turned on then we have to calculate this
+	elif qct_parse['durationStart'] is not None:
+		durationStart = float(qct_parse['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
+	elif qct_parse['durationEnd'] != 99999999 and qct_parse['durationEnd'] is not None:
+		durationEnd = float(qct_parse['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
+	else:
+		durationStart = 0
+		durationEnd = 99999999
+
+	# Initialize counts
+	overcount = 0	# init count of overs
+	undercount = 0	# init count of unders
+	count = 0		# init total frames counter
+	framesList = collections.deque(maxlen=buffSize)		# init holding object for holding all frame data in a circular buffer. 
+	bdFramesList = collections.deque(maxlen=buffSize) 	# init holding object for holding all frame data in a circular buffer. 
+
+	# set the path for the thumbnail export
+	metadata_dir = os.path.dirname(qctools_output_path)
+	thumbPath = metadata_dir
+	if qct_parse['tagname']: # if tag is in command_config.yaml
+		if qct_parse['profile']: # if profile has been specified 
+			logger.error(f"Values will be assessed against profile in command_config.yaml: {qct_parse['profile']}\nTagname cannot be used in combination with profile. Listed tagname in command_config.yaml will be ignored: {qct_parse['tagname']}")
+			thumbPath = os.path.join(metadata_dir, "ThumbExports")
+		elif qct_parse['over']: # if the tag is looking for a threshold Over
+			thumbPath = os.path.join(metadata_dir, str(qct_parse['tagname']) + "." + str(qct_parse['over']))
+		elif qct_parse['under']: # if the tag was looking for a threshold Under
+			thumbPath = os.path.join(metadata_dir, str(qct_parse['tagname']) + "." + str(qct_parse['under']))
+	else:
+		thumbPath = os.path.join(metadata_dir, "ThumbExports")
+	
+	if not os.path.exists(thumbPath):
+		os.makedirs(thumbPath)
+	
+	profile = {} # init a dictionary where we'll store reference values from config.yaml file
+	
 	# init a list of every tag available in a QCTools Report
 	tagList = ["YMIN","YLOW","YAVG","YHIGH","YMAX","UMIN","ULOW","UAVG","UHIGH","UMAX","VMIN","VLOW","VAVG","VHIGH","VMAX","SATMIN","SATLOW","SATAVG","SATHIGH","SATMAX","HUEMED","HUEAVG","YDIF","UDIF","VDIF","TOUT","VREP","BRNG","mse_y","mse_u","mse_v","mse_avg","psnr_y","psnr_u","psnr_v","psnr_avg"]
-	if command_config.command_dict['tools']['qct-parse']['profile'] is not None:
-		template = command_config.command_dict['tools']['qct-parse']['profile'] # get the profile/ section name from the command config
+	
+	if qct_parse['profile'] is not None:
+		template = qct_parse['profile'] # get the profile/ section name from the command config
 		if template in config_path.config_dict['qct-parse']['profiles']:
 		# If the template matches one of the profiles
 			for t in tagList:
 				if t in config_path.config_dict['qct-parse']['profiles'][template]:
 					profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
 	
-	###### Initialize some other stuff ######
-	startObj = qctools_output_path
-	if command_config.command_dict['tools']['qct-parse']['buffSize'] is not None:
-		buffSize = int(command_config.command_dict['tools']['qct-parse']['buffSize'])   # cast the input buffer as an integer
-		if buffSize%2 == 0:
-			buffSize = buffSize + 1
-	else:
-		buffSize = 11
-	logger.info("Starting qct-parse")	# initialize the log
-	overcount = 0	# init count of overs
-	undercount = 0	# init count of unders
-	count = 0		# init total frames counter
-	framesList = collections.deque(maxlen=buffSize)		# init holding object for holding all frame data in a circular buffer. 
-	bdFramesList = collections.deque(maxlen=buffSize) 	# init holding object for holding all frame data in a circular buffer. 
-	
-	if command_config.command_dict['tools']['qct-parse']['thumbExportDelay'] is not None:
-		thumbDelay = int(command_config.command_dict['tools']['qct-parse']['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
-	else:
-		thumbDelay = 9000
-	thumbExportDelay = thumbDelay
-	parentDir = os.path.dirname(startObj)
-	baseName = os.path.basename(startObj)
-	baseName = baseName.replace(".qctools.xml.gz", "")
-	durationStart = command_config.command_dict['tools']['qct-parse']['durationStart']
-	durationEnd = command_config.command_dict['tools']['qct-parse']['durationEnd']
-
-	# we gotta find out if the qctools report has pkt_dts_time or pkt_pts_time ugh
+	# open qctools report 
+	# determine if report stores pkt_dts_time or pkt_pts_time
 	with gzip.open(startObj) as xml:    
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):  # iterparse the xml doc
 			if elem.attrib['media_type'] == "video":  # get just the video frames
@@ -275,48 +318,22 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				if match:
 					pkt = match.group()
 					break
-
-	# set the start and end duration times
-	if command_config.command_dict['tools']['qct-parse']['barsDetection']:
-		durationStart = ""				# if bar detection is turned on then we have to calculate this
-		durationEnd = ""				# if bar detection is turned on then we have to calculate this
-	elif command_config.command_dict['tools']['qct-parse']['durationStart'] is not None:
-		durationStart = float(command_config.command_dict['tools']['qct-parse']['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
-	elif command_config.command_dict['tools']['qct-parse']['durationEnd'] != 99999999 and command_config.command_dict['tools']['qct-parse']['durationEnd'] is not None:
-		durationEnd = float(command_config.command_dict['tools']['qct-parse']['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
-	else:
-		durationStart = 0
-		durationEnd = 99999999
-	
-	# set the path for the thumbnail export
-	metadata_dir = os.path.dirname(qctools_output_path)
-	thumbPath = metadata_dir
-	if command_config.command_dict['tools']['qct-parse']['tagname']: # if they supplied a single tag
-		if command_config.command_dict['tools']['qct-parse']['over']: # if the supplied tag is looking for a threshold Over
-			thumbPath = os.path.join(metadata_dir, str(command_config.command_dict['tools']['qct-parse']['tagname']) + "." + str(command_config.command_dict['tools']['qct-parse']['over']))
-		elif command_config.command_dict['tools']['qct-parse']['under']: # if the supplied tag was looking for a threshold Under
-			thumbPath = os.path.join(metadata_dir, str(command_config.command_dict['tools']['qct-parse']['tagname']) + "." + str(command_config.command_dict['tools']['qct-parse']['under']))
-	else: # if they're using a profile, put all thumbs in 1 dir
-		thumbPath = os.path.join(metadata_dir, "ThumbExports")
-	
-	if not os.path.exists(thumbPath):
-		os.makedirs(thumbPath)
 	
 	######## Iterate Through the XML for Bars detection ########
-	if command_config.command_dict['tools']['qct-parse']['barsDetection']:
+	if qct_parse['barsDetection']:
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
-		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize,)
+		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize)
 
 	######## Iterate Through the XML for General Analysis ########
 	logger.debug(f"\nStarting qct-parse analysis on {baseName}")
-	kbeyond, frameCount, overallFrameFail = analyzeIt(video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+	kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 	
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
 
 	logger.debug(f"qct-parse summary written to {qctools_check_output}")
 	
 	# do some maths for the printout
-	if command_config.command_dict['tools']['qct-parse']['over'] or command_config.command_dict['tools']['qct-parse']['under'] or command_config.command_dict['tools']['qct-parse']['profile'] is not None:
+	if qct_parse['over'] or qct_parse['under'] or qct_parse['profile'] is not None:
 		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
 	
 	return
@@ -327,7 +344,8 @@ if __name__ == "__main__":
 	#	sys.exit(1)
 	video_path = sys.argv[1]
 	report_path = sys.argv[2]
+	qctools_check_output = os.path.dirname(video_path)
 	if not os.path.isfile(report_path):
 		print(f"Error: {report_path} is not a valid file.")
 		sys.exit(1)
-	run_qctparse(video_path, report_path)
+	run_qctparse(video_path, report_path, qctools_check_output)
