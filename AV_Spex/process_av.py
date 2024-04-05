@@ -184,7 +184,7 @@ def main():
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
-    avspex_icon = text2art("AV-Spex",font='5lineoblique')
+    avspex_icon = text2art("A-V Spex",font='5lineoblique')
     print(f'\n{avspex_icon}\n\n')
     time.sleep(1)
     

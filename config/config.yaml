@@ -163,8 +163,11 @@ qct-parse:
       SATMAX: 181.02
       TOUT: 0.009
       VREP: 0.03
-    broadcastRange:
-      BRNG: 0.25
+    allBlack:
+      YAVG: 100
+      YHIGH: 90
+      YMAX: 175
+      YDIF: 7
   fullTagList:
       YMIN:
       YLOW:

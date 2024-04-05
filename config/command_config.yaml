@@ -29,10 +29,11 @@ tools:
     tagname: 
     over: 
     under: 
-    profile: default
+    profile: allBlack
     buffSize:
-    thumbExport: true
+    thumbExport: false
     thumbExportDelay: 
     durationStart: 
     durationEnd: 
-    barsDetection: true
+    barsDetection: false
+    detectProfile: true

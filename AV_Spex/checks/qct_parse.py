@@ -18,9 +18,54 @@ import math
 import sys			
 import re
 import yaml
+import operator
 from utils.log_setup import logger
 from utils.find_config import config_path, command_config			
 
+
+def get_duration(video_path):
+    command = [
+        'ffprobe',
+        '-v', 'error',
+        '-show_entries', 'format=duration',
+        '-of', 'csv=p=0',
+        video_path
+    ]
+    result = subprocess.run(command, stdout=subprocess.PIPE)
+    duration = result.stdout.decode().strip()
+    return duration
+
+# Dictionary mapping keys to comparison operators
+comparison_operators = {
+    'YMIN': operator.lt,
+    'YLOW': operator.lt,
+    'YAVG': operator.gt,
+    'YHIGH': operator.gt,
+    'YMAX': operator.gt,
+    'UMIN': operator.lt,
+    'ULOW': operator.lt,
+    'UAVG': operator.gt,
+    'UHIGH': operator.gt,
+    'UMAX': operator.gt,
+    'VMIN': operator.lt,
+    'VLOW': operator.lt,
+    'VAVG': operator.gt,
+    'VHIGH': operator.gt,
+    'VMAX': operator.gt,
+    'SATMIN': operator.lt,
+    'SATLOW': operator.lt,
+    'SATAVG': operator.gt,
+    'SATHIGH': operator.gt,
+    'SATMAX': operator.gt,
+    'HUEMED': operator.gt,
+    'HUEAVG': operator.gt,
+    'YDIF': operator.gt,
+    'UDIF': operator.gt,
+    'VDIF': operator.gt,
+    'TOUT': operator.lt,
+    'VREP': operator.lt,
+    'BRNG': operator.lt
+}
 
 # Creates timestamp for pkt_dts_time
 def dts2ts(frame_pkt_dts_time):
@@ -49,7 +94,7 @@ def dts2ts(frame_pkt_dts_time):
 def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay):
 	tagValue = float(inFrame[tag])
 	frame_pkt_dts_time = inFrame[pkt]
-	if "MIN" in tag or "LOW" in tag:
+	if "MIN" in tag or "LOW" in tag or "YAVG" in tag:
 		under = over
 		if tagValue < float(under): # if the attribute is under usr set threshold
 			timeStampString = dts2ts(frame_pkt_dts_time)
@@ -120,6 +165,65 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
 							break
 			elem.clear() # we're done with that element so let's get it outta memory
 	return durationStart, durationEnd
+
+# Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
+def detectProfile(startObj,pkt,lastEnd,profileType,framesList,buffSize):
+	"""
+    Checks values against thresholds of multiple values
+
+    Parameters:
+    - startObj: Object to start parsing from.
+    - pkt: Packet attribute to check.
+    - lastEnd: Last end time to compare with.
+    - framesList: List to append frames information.
+    - buffSize: Buffer size (currently not used in this function - consider removing).
+    - profileType: Type of profile to check frames against (e.g., 'allBlack', 'allWhite').
+    """
+	
+	frame_count = 0
+	durationStart, durationEnd = "", ""
+	segments = []
+	with gzip.open(startObj) as xml:
+		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
+			if elem.attrib['media_type'] == "video":
+				frame_pkt_dts_time = elem.attrib[pkt]
+				if float(frame_pkt_dts_time) <= float(lastEnd):
+					continue	
+				frameDict = {}  # start an empty dict for the new frame
+				frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
+				for t in list(elem):    # iterating through each attribute for each element
+					keySplit = t.attrib['key'].split(".")   # split the names by dots 
+					keyName = str(keySplit[-1])             # get just the last word for the key name
+					frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
+				framesList.append(frameDict)
+				frame_count += 1
+				if frame_count % 25 == 0:
+					all_conditions_met = True
+					for key, config_value in config_path.config_dict['qct-parse']['profiles'][profileType].items():
+						# Retrieve the appropriate comparison operator based on the key
+						comp_op = comparison_operators.get(key, operator.eq)
+						# Perform the comparison using the retrieved operator
+						if key in frameDict and not comp_op(float(frameDict[key]), float(config_value)):
+							all_conditions_met = False
+							break
+						
+					if all_conditions_met:
+						if not durationStart:
+							durationStart = frame_pkt_dts_time
+							startTimeStampString = dts2ts(frame_pkt_dts_time)
+							logger.info(f"qct-parse profile {profileType} starts at {startTimeStampString}")
+						durationEnd = frame_pkt_dts_time
+					else:
+						if durationStart and durationEnd and float(durationEnd) - float(durationStart) > 2:
+							segments.append((durationStart, durationEnd))
+							stopTimeStampString = dts2ts(durationEnd)
+							logger.info(f"{profileType} segment ends at {stopTimeStampString}")
+							durationStart, durationEnd = "", ""  # Reset for next segment
+							# Don't break here to allow for finding multiple segments
+			elem.clear()
+	if durationStart and durationEnd:  # Check if the last segment needs to be added
+		segments.append((durationStart, durationEnd))
+	return segments
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
@@ -228,7 +332,7 @@ def printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output):
 	return
 	
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
-	logger.info("Starting qct-parse")
+	logger.info("Starting qct-parse\n")
 	
 	###### Initialize variables ######
 	qct_parse = command_config.command_dict['tools']['qct-parse']
@@ -260,9 +364,11 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	durationEnd = qct_parse['durationEnd']
 
 	# set the start and end duration times
-	if qct_parse['barsDetection']:
+	if qct_parse['barsDetection'] or qct_parse['detectProfile']:
 		durationStart = ""				# if bar detection is turned on then we have to calculate this
 		durationEnd = ""				# if bar detection is turned on then we have to calculate this
+		duration_str = get_duration(video_path)
+		ffprobe_duration = float(duration_str)
 	elif qct_parse['durationStart'] is not None:
 		durationStart = float(qct_parse['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
 	elif qct_parse['durationEnd'] != 99999999 and qct_parse['durationEnd'] is not None:
@@ -324,17 +430,30 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
 		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize)
 
-	######## Iterate Through the XML for General Analysis ########
-	logger.debug(f"\nStarting qct-parse analysis on {baseName}")
-	kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-	
-	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
+	######## Iterate Through the XML for Bars detection ########
+	if qct_parse['detectProfile']:
+		lastEnd = "0"  # Initialize with the start of the file
+		all_segments = []
+		# Keep calling detectProfile until no new segments are found
+		while True:
+			segments = detectProfile(startObj,pkt,lastEnd,'allBlack',framesList, buffSize)
+			if not segments:
+				break  # Exit loop if no more segments are found
+			all_segments.extend(segments)
+			lastEnd = segments[-1][1]  # Update lastEnd to the end of the last segment found
 
-	logger.debug(f"qct-parse summary written to {qctools_check_output}")
+	
+	######## Iterate Through the XML for General Analysis ########
+	if qct_parse['detectProfile'] == 'false' and qct_parse['barsDetection'] == 'false':
+		logger.debug(f"\nStarting qct-parse analysis on {baseName}")
+		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		
+	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
 	
 	# do some maths for the printout
-	if qct_parse['over'] or qct_parse['under'] or qct_parse['profile'] is not None:
+	if qct_parse['over'] or qct_parse['under'] or (qct_parse['profile'] is not None and qct_parse['detectProfile'] == 'false'):
 		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		logger.debug(f"qct-parse summary written to {qctools_check_output}")
 	
 	return
 
