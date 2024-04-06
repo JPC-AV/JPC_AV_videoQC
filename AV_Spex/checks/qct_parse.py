@@ -183,6 +183,7 @@ def detectContentFilter(startObj,pkt,lastEnd,profileType,framesList):
 	frame_count = 0
 	durationStart, durationEnd = "", ""
 	segments = []
+	seg_timestamp = []
 	with gzip.open(startObj) as xml:
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
 			if elem.attrib['media_type'] == "video":
@@ -206,18 +207,18 @@ def detectContentFilter(startObj,pkt,lastEnd,profileType,framesList):
 						if key in frameDict and not comp_op(float(config_value), float(frameDict[key])) :
 							all_conditions_met = False
 							break
-					seg_timestamp = []
 					if all_conditions_met:
 						if not durationStart:
 							durationStart = frame_pkt_dts_time
 							startTimeStampString = dts2ts(frame_pkt_dts_time)
-							logger.info(f"qct-parse profile {profileType} segment found at:\n{startTimeStampString}")
+							seg_timestamp.append(f" \nqct-parse profile {profileType} segment found at:\n{startTimeStampString}")
 						durationEnd = frame_pkt_dts_time
 					else:
 						if durationStart and durationEnd and float(durationEnd) - float(durationStart) > 2:
 							segments.append((durationStart, durationEnd))
 							stopTimeStampString = dts2ts(durationEnd)
-							logger.info(f"- {stopTimeStampString}")
+							seg_timestamp.append(f"- {stopTimeStampString}")
+							logger.info(' '.join(seg_timestamp))
 							durationStart, durationEnd = "", ""  # Reset for next segment
 							# Don't break here to allow for finding multiple segments
 			elem.clear()
