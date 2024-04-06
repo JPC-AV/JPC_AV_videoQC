@@ -122,6 +122,12 @@ ffmpeg_values:
       ORIGINAL MEDIA TYPE: 
       ENCODED_BY:
 qct-parse:
+  content:
+    allBlack:
+      YAVG: 105
+      YHIGH: 115
+      YMAX: 175
+      YDIF: 11
   profiles:
     default:
       YLOW: 64
@@ -163,11 +169,6 @@ qct-parse:
       SATMAX: 181.02
       TOUT: 0.009
       VREP: 0.03
-    allBlack:
-      YAVG: 100
-      YHIGH: 90
-      YMAX: 175
-      YDIF: 7
   fullTagList:
       YMIN:
       YLOW:

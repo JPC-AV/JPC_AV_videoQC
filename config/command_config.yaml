@@ -29,11 +29,12 @@ tools:
     tagname: 
     over: 
     under: 
-    profile: allBlack
+    contentFilter: allBlack
+    profile:
     buffSize:
     thumbExport: false
     thumbExportDelay: 
     durationStart: 
     durationEnd: 
     barsDetection: false
-    detectProfile: true
+    detectContent: true

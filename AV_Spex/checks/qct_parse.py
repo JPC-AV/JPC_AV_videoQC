@@ -167,7 +167,7 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
 	return durationStart, durationEnd
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def detectProfile(startObj,pkt,lastEnd,profileType,framesList,buffSize):
+def detectContentFilter(startObj,pkt,lastEnd,profileType,framesList):
 	"""
     Checks values against thresholds of multiple values
 
@@ -199,30 +199,32 @@ def detectProfile(startObj,pkt,lastEnd,profileType,framesList,buffSize):
 				frame_count += 1
 				if frame_count % 25 == 0:
 					all_conditions_met = True
-					for key, config_value in config_path.config_dict['qct-parse']['profiles'][profileType].items():
+					for key, config_value in config_path.config_dict['qct-parse']['content'][profileType].items():
 						# Retrieve the appropriate comparison operator based on the key
 						comp_op = comparison_operators.get(key, operator.eq)
 						# Perform the comparison using the retrieved operator
-						if key in frameDict and not comp_op(float(frameDict[key]), float(config_value)):
+						if key in frameDict and not comp_op(float(config_value), float(frameDict[key])) :
 							all_conditions_met = False
 							break
-						
+					seg_timestamp = []
 					if all_conditions_met:
 						if not durationStart:
 							durationStart = frame_pkt_dts_time
 							startTimeStampString = dts2ts(frame_pkt_dts_time)
-							logger.info(f"qct-parse profile {profileType} starts at {startTimeStampString}")
+							logger.info(f"qct-parse profile {profileType} segment found at:\n{startTimeStampString}")
 						durationEnd = frame_pkt_dts_time
 					else:
 						if durationStart and durationEnd and float(durationEnd) - float(durationStart) > 2:
 							segments.append((durationStart, durationEnd))
 							stopTimeStampString = dts2ts(durationEnd)
-							logger.info(f"{profileType} segment ends at {stopTimeStampString}")
+							logger.info(f"- {stopTimeStampString}")
 							durationStart, durationEnd = "", ""  # Reset for next segment
 							# Don't break here to allow for finding multiple segments
 			elem.clear()
 	if durationStart and durationEnd:  # Check if the last segment needs to be added
 		segments.append((durationStart, durationEnd))
+		stopTimeStampString = dts2ts(durationEnd)
+		logger.info(f"{profileType} segment ends at {stopTimeStampString}")
 	return segments
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
@@ -364,7 +366,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	durationEnd = qct_parse['durationEnd']
 
 	# set the start and end duration times
-	if qct_parse['barsDetection'] or qct_parse['detectProfile']:
+	if qct_parse['barsDetection'] or qct_parse['contentFilter']:
 		durationStart = ""				# if bar detection is turned on then we have to calculate this
 		durationEnd = ""				# if bar detection is turned on then we have to calculate this
 		duration_str = get_duration(video_path)
@@ -431,20 +433,24 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize)
 
 	######## Iterate Through the XML for Bars detection ########
-	if qct_parse['detectProfile']:
+	if qct_parse['detectContent']:
+		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the profile {qct_parse['contentFilter']}\n")
 		lastEnd = "0"  # Initialize with the start of the file
 		all_segments = []
+		profile_name = qct_parse['contentFilter']
 		# Keep calling detectProfile until no new segments are found
 		while True:
-			segments = detectProfile(startObj,pkt,lastEnd,'allBlack',framesList, buffSize)
+			segments = detectContentFilter(startObj,pkt,lastEnd,profile_name,framesList)
 			if not segments:
 				break  # Exit loop if no more segments are found
 			all_segments.extend(segments)
 			lastEnd = segments[-1][1]  # Update lastEnd to the end of the last segment found
+		if len(all_segments) == 0:
+			logger.error(f"No segments found matching all parameters of profile: {qct_parse['contentFilter']}\n")
 
 	
 	######## Iterate Through the XML for General Analysis ########
-	if qct_parse['detectProfile'] == 'false' and qct_parse['barsDetection'] == 'false':
+	if qct_parse['contentFilter'] == 'false' and qct_parse['barsDetection'] == 'false':
 		logger.debug(f"\nStarting qct-parse analysis on {baseName}")
 		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		
