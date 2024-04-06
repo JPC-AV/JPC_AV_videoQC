@@ -25,10 +25,10 @@ Once you've located anaconda3, run one the corresponding commands:
 or:     
 `export PATH="/usr/local/anaconda3/bin:$PATH"`     
 
-or install directly from anaconda's website using this guide: https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
+As an alternative to homebrew, you can install directly from anaconda's website using this guide: https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
 
 Finally, run `conda init` (for bash) or `conda init zsh` (for zsh) depending which shell you are using. (To check which shell you are using simply run `echo $SHELL`)
-
+* * *
 
 Install necessary python modules which are not built-in using pip and requirements.txt:     
 `pip install -r requirements.txt`
