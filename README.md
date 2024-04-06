@@ -2,6 +2,7 @@
 AV processing scripts for the Johnson Publishing Company archive
 
 ## Introduction:
+![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/av_spex_logo.png?raw=true)
 This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications. 
 
 ## Requirements:
