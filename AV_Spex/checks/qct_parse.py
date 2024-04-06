@@ -211,7 +211,7 @@ def detectContentFilter(startObj,pkt,lastEnd,profileType,framesList):
 						if not durationStart:
 							durationStart = frame_pkt_dts_time
 							startTimeStampString = dts2ts(frame_pkt_dts_time)
-							seg_timestamp.append(f" \nqct-parse profile {profileType} segment found at:\n{startTimeStampString}")
+							seg_timestamp.append(f"\nqct-parse profile {profileType} segment found at:\n{startTimeStampString}")
 						durationEnd = frame_pkt_dts_time
 					else:
 						if durationStart and durationEnd and float(durationEnd) - float(durationStart) > 2:
