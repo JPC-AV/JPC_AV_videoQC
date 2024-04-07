@@ -124,10 +124,12 @@ ffmpeg_values:
 qct-parse:
   content:
     allBlack:
-      YAVG: 105
-      YHIGH: 115
-      YMAX: 175
-      YDIF: 8
+      YMIN: 6
+      YLOW: 97
+      YAVG: 102
+      YHIGH: 112
+      YMAX: 180
+      YDIF: 10.5
     static:
       YMIN: 3
       YLOW: 3

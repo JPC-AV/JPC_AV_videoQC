@@ -29,7 +29,7 @@ tools:
     tagname: 
     over: 
     under: 
-    contentFilter: static
+    contentFilter: allBlack
     profile:
     buffSize:
     thumbExport: false

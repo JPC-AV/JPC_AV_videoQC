@@ -37,8 +37,8 @@ def get_duration(video_path):
 
 # Dictionary mapping keys to comparison operators
 comparison_operators = {
-    'YMIN': operator.lt,
-    'YLOW': operator.lt,
+    'YMIN': operator.gt,
+    'YLOW': operator.gt,
     'YAVG': operator.gt,
     'YHIGH': operator.gt,
     'YMAX': operator.gt,
@@ -59,7 +59,7 @@ comparison_operators = {
     'SATMAX': operator.gt,
     'HUEMED': operator.gt,
     'HUEAVG': operator.gt,
-    'YDIF': operator.lt,
+    'YDIF': operator.gt,
     'UDIF': operator.lt,
     'VDIF': operator.lt,
     'TOUT': operator.lt,
