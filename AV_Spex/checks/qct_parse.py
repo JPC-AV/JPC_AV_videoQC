@@ -59,9 +59,9 @@ comparison_operators = {
     'SATMAX': operator.gt,
     'HUEMED': operator.gt,
     'HUEAVG': operator.gt,
-    'YDIF': operator.gt,
-    'UDIF': operator.gt,
-    'VDIF': operator.gt,
+    'YDIF': operator.lt,
+    'UDIF': operator.lt,
+    'VDIF': operator.lt,
     'TOUT': operator.lt,
     'VREP': operator.lt,
     'BRNG': operator.lt
@@ -220,12 +220,13 @@ def detectContentFilter(startObj,pkt,lastEnd,profileType,framesList):
 							seg_timestamp.append(f"- {stopTimeStampString}")
 							logger.info(' '.join(seg_timestamp))
 							durationStart, durationEnd = "", ""  # Reset for next segment
+							seg_timestamp = []
 							# Don't break here to allow for finding multiple segments
 			elem.clear()
 	if durationStart and durationEnd:  # Check if the last segment needs to be added
 		segments.append((durationStart, durationEnd))
 		stopTimeStampString = dts2ts(durationEnd)
-		logger.info(f"{profileType} segment ends at {stopTimeStampString}")
+		logger.info(f"\nqct-parse profile {profileType} segment found at:\n{startTimeStampString} - {stopTimeStampString}")
 	return segments
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):

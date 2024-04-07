@@ -127,7 +127,25 @@ qct-parse:
       YAVG: 105
       YHIGH: 115
       YMAX: 175
-      YDIF: 11
+      YDIF: 8
+    static:
+      YMIN: 3
+      YLOW: 3
+      YAVG: 240
+      YHIGH: 720
+      YMAX: 1020
+      UMIN: 3
+      ULOW: 325
+      UAVG: 525
+      UHIGH: 700
+      UMAX: 1050
+      UDIF: 125
+      VMIN: 10
+      VLOW: 375
+      VAVG: 525
+      VHIGH: 650
+      VMAX: 1100
+      TOUT: 0.01
   profiles:
     default:
       YLOW: 64
