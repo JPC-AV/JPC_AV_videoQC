@@ -37,34 +37,34 @@ def get_duration(video_path):
 
 # Dictionary mapping keys to comparison operators
 comparison_operators = {
-    'YMIN': operator.gt,
-    'YLOW': operator.gt,
-    'YAVG': operator.gt,
-    'YHIGH': operator.gt,
-    'YMAX': operator.gt,
-    'UMIN': operator.lt,
-    'ULOW': operator.lt,
-    'UAVG': operator.gt,
-    'UHIGH': operator.gt,
-    'UMAX': operator.gt,
-    'VMIN': operator.lt,
-    'VLOW': operator.lt,
-    'VAVG': operator.gt,
-    'VHIGH': operator.gt,
-    'VMAX': operator.gt,
-    'SATMIN': operator.lt,
-    'SATLOW': operator.lt,
-    'SATAVG': operator.gt,
-    'SATHIGH': operator.gt,
-    'SATMAX': operator.gt,
-    'HUEMED': operator.gt,
-    'HUEAVG': operator.gt,
-    'YDIF': operator.gt,
-    'UDIF': operator.lt,
-    'VDIF': operator.lt,
-    'TOUT': operator.lt,
-    'VREP': operator.lt,
-    'BRNG': operator.lt
+	'YMIN': operator.lt,
+	'YLOW': operator.lt,
+	'YAVG': operator.lt,
+	'YHIGH': operator.lt,
+	'YMAX': operator.lt,
+	'UMIN': operator.gt,
+	'ULOW': operator.gt,
+	'UAVG': operator.lt,
+	'UHIGH': operator.lt,
+	'UMAX': operator.lt,
+	'VMIN': operator.gt,
+	'VLOW': operator.gt,
+	'VAVG': operator.lt,
+	'VHIGH': operator.lt,
+	'VMAX': operator.lt,
+	'SATMIN': operator.gt,
+	'SATLOW': operator.gt,
+	'SATAVG': operator.lt,
+	'SATHIGH': operator.lt,
+	'SATMAX': operator.lt,
+	'HUEMED': operator.lt,
+	'HUEAVG': operator.lt,
+	'YDIF': operator.lt,
+	'UDIF': operator.gt,
+	'VDIF': operator.gt,
+	'TOUT': operator.gt,
+	'VREP': operator.gt,
+	'BRNG': operator.gt
 }
 
 # Creates timestamp for pkt_dts_time
@@ -204,7 +204,7 @@ def detectContentFilter(startObj,pkt,lastEnd,profileType,framesList):
 						# Retrieve the appropriate comparison operator based on the key
 						comp_op = comparison_operators.get(key, operator.eq)
 						# Perform the comparison using the retrieved operator
-						if key in frameDict and not comp_op(float(config_value), float(frameDict[key])) :
+						if key in frameDict and not comp_op(float(frameDict[key]), float(config_value)) :
 							all_conditions_met = False
 							break
 					if all_conditions_met:
