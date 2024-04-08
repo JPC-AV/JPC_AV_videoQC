@@ -35,36 +35,10 @@ def get_duration(video_path):
     duration = result.stdout.decode().strip()
     return duration
 
-# Dictionary mapping keys to comparison operators
-comparison_operators = {
-	'YMIN': operator.lt,
-	'YLOW': operator.lt,
-	'YAVG': operator.lt,
-	'YHIGH': operator.lt,
-	'YMAX': operator.lt,
-	'UMIN': operator.gt,
-	'ULOW': operator.gt,
-	'UAVG': operator.lt,
-	'UHIGH': operator.lt,
-	'UMAX': operator.lt,
-	'VMIN': operator.gt,
-	'VLOW': operator.gt,
-	'VAVG': operator.lt,
-	'VHIGH': operator.lt,
-	'VMAX': operator.lt,
-	'SATMIN': operator.gt,
-	'SATLOW': operator.gt,
-	'SATAVG': operator.lt,
-	'SATHIGH': operator.lt,
-	'SATMAX': operator.lt,
-	'HUEMED': operator.lt,
-	'HUEAVG': operator.lt,
-	'YDIF': operator.lt,
-	'UDIF': operator.gt,
-	'VDIF': operator.gt,
-	'TOUT': operator.gt,
-	'VREP': operator.gt,
-	'BRNG': operator.gt
+# Dictionary to map the string to the corresponding operator function
+operator_mapping = {
+    'lt': operator.lt,
+    'gt': operator.gt,
 }
 
 # Creates timestamp for pkt_dts_time
@@ -91,30 +65,19 @@ def dts2ts(frame_pkt_dts_time):
     return timeStampString
 	
 # finds stuff over/under threshold
-def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay):
+def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay):
 	tagValue = float(inFrame[tag])
 	frame_pkt_dts_time = inFrame[pkt]
-	if "MIN" in tag or "LOW" in tag or "YAVG" in tag:
-		under = over
-		if tagValue < float(under): # if the attribute is under usr set threshold
-			timeStampString = dts2ts(frame_pkt_dts_time)
-			#logging.warning(tag + " is under " + str(under) + " with a value of " + str(tagValue) + " at duration " + timeStampString)
-			if qct_parse['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
-				printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
-				thumbDelay = 0
-			return True, thumbDelay # return true because it was over and thumbDelay
-		else:
-			return False, thumbDelay # return false because it was NOT over and thumbDelay
+	# Perform the comparison using the retrieved operator if the attribute is over/under threshold
+	if comp_op(float(tagValue), float(over)) :
+		timeStampString = dts2ts(frame_pkt_dts_time)
+		#logging.warning(f"{tag} is {comp_op} {str(over)} with a value of {str(tagValue)} at duration {timeStampString}")
+		if qct_parse['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
+			printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
+			thumbDelay = 0
+		return True, thumbDelay # return true because it was over and thumbDelay
 	else:
-		if tagValue > float(over): # if the attribute is over usr set threshold
-			timeStampString = dts2ts(frame_pkt_dts_time)
-			#logging.warning(tag + " is over " + str(over) + " with a value of " + str(tagValue) + " at duration " + timeStampString)
-			if qct_parse['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
-				printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString)
-				thumbDelay = 0
-			return True, thumbDelay # return true because it was over and thumbDelay
-		else:
-			return False, thumbDelay # return false because it was NOT over and thumbDelay
+		return False, thumbDelay # return false because it was NOT over and thumbDelay
 
 #  print thumbnail images of overs/unders	
 #  Need to update - file naming convention has changed
@@ -201,10 +164,10 @@ def detectContentFilter(startObj,pkt,lastEnd,profileType,framesList):
 				if frame_count % 25 == 0:
 					all_conditions_met = True
 					for key, config_value in config_path.config_dict['qct-parse']['content'][profileType].items():
-						# Retrieve the appropriate comparison operator based on the key
-						comp_op = comparison_operators.get(key, operator.eq)
+						tag_threshold, op_string = config_value.split(", ")
+						comp_op = operator_mapping[op_string]
 						# Perform the comparison using the retrieved operator
-						if key in frameDict and not comp_op(float(frameDict[key]), float(config_value)) :
+						if key in frameDict and not comp_op(float(frameDict[key]), float(tag_threshold)) :
 							all_conditions_met = False
 							break
 					if all_conditions_met:
@@ -263,10 +226,13 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 						tag = qct_parse['tagname']
 						if qct_parse['over']:
 							over = float(qct_parse['over'])
+							# Set the appropriate comparison operator based on command config value
+							comp_op = operator.gt
 						if qct_parse['under']:
 							over = float(qct_parse['under'])
+							comp_op = operator.lt
 						# ACTAULLY DO THE THING ONCE FOR EACH TAG
-						frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay)
+						frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
 						if frameOver is True:
 							kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
 					elif qct_parse['profile'] is not None: # if we're using a profile
@@ -402,8 +368,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	else:
 		thumbPath = os.path.join(metadata_dir, "ThumbExports")
 	
-	if not os.path.exists(thumbPath):
-		os.makedirs(thumbPath)
+	if qct_parse['thumbExport'] != 'false':
+		if not os.path.exists(thumbPath):
+			os.makedirs(thumbPath)
 	
 	profile = {} # init a dictionary where we'll store reference values from config.yaml file
 	
@@ -435,7 +402,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize)
 
 	######## Iterate Through the XML for Bars detection ########
-	if qct_parse['detectContent']:
+	if qct_parse['detectContent'] and qct_parse['contentFilter'] != None:
 		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the profile {qct_parse['contentFilter']}\n")
 		lastEnd = "0"  # Initialize with the start of the file
 		all_segments = []
@@ -447,19 +414,22 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				break  # Exit loop if no more segments are found
 			all_segments.extend(segments)
 			lastEnd = segments[-1][1]  # Update lastEnd to the end of the last segment found
+		#print(f"the variable all_segments is {all_segments}")
 		if len(all_segments) == 0:
 			logger.error(f"No segments found matching all parameters of profile: {qct_parse['contentFilter']}\n")
+	elif qct_parse['detectContent'] and qct_parse['contentFilter'] == None:
+		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
 	
 	######## Iterate Through the XML for General Analysis ########
-	if qct_parse['contentFilter'] == 'false' and qct_parse['barsDetection'] == 'false':
+	if qct_parse['over'] or qct_parse['under'] or (qct_parse['profile'] is not None and qct_parse['detectProfile'] == 'false') :
 		logger.debug(f"\nStarting qct-parse analysis on {baseName}")
 		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		
+			
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
 	
 	# do some maths for the printout
-	if qct_parse['over'] or qct_parse['under'] or (qct_parse['profile'] is not None and qct_parse['detectProfile'] == 'false'):
+	if qct_parse['over'] or qct_parse['under'] or (qct_parse['profile'] is not None and qct_parse['detectProfile'] == 'false') :
 		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}")
 	
