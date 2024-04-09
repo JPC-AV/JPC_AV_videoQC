@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+name = "JPC_AV_videoQC"
+version = "0.1.0"
+description = "A Python package for AV quality control."
+long_description = "file: README.md"
+long_description_content_type = "text/markdown"
+author = "Your Name"
+author_email = "your.email@example.com"
+license = "MIT"
+license_files = ["LICENSE"]
+url = "https://example.com/JPC_AV_videoQC"
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+packages = find:
+include_package_data = true
+
+[tool.setuptools.scripts]
+process-av = "AV_Spex.process_av:main"
+
+[project]
+dependencies = [
+    # Add your project dependencies here. For example:
+    # "requests >= 2.25.1",
+]
