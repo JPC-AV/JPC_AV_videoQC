@@ -43,7 +43,7 @@ profile_step1 = {
             "run_exiftool": 'yes'
         },
         "ffprobe": {
-            "check_ffprobe": 'yes',
+            "check_ffprobe": 'no',
             "run_ffprobe": 'yes'
         },
         "mediaconch": {
@@ -77,7 +77,7 @@ profile_step2 = {
             "run_exiftool": 'no'
         },
         "ffprobe": {
-            "check_ffprobe": 'yes',
+            "check_ffprobe": 'no',
             "run_ffprobe": 'no'
         },
         "mediaconch": {
