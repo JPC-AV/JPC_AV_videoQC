@@ -129,23 +129,22 @@ qct-parse:
       YLOW: 97, lt
       YMIN: 6.5, lt
     static:
-      YMIN: 3
-      YLOW: 3
-      YAVG: 240
-      YHIGH: 720
-      YMAX: 1020
-      UMIN: 3
-      ULOW: 325
-      UAVG: 525
-      UHIGH: 700
-      UMAX: 1050
-      UDIF: 125
-      VMIN: 10
-      VLOW: 375
-      VAVG: 525
-      VHIGH: 650
-      VMAX: 1100
-      TOUT: 0.01
+      YMIN: 5, lt
+      YLOW: 6, lt
+      YAVG: 240, lt
+      YMAX: 1018, gt
+      YDIF: 260, gt
+      ULOW: 325, gt
+      UAVG: 509, gt
+      UHIGH: 695, lt
+      UMAX: 990, gt
+      UDIF: 138, gt
+      VMIN: 100, lt
+      VLOW: 385, gt
+      VAVG: 500, gt
+      VHIGH: 650, lt
+      VMAX: 940, gt
+      VDIF: 98, gt
   profiles:
     default:
       YLOW: 64
