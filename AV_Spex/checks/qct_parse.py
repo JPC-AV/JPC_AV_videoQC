@@ -129,71 +129,67 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
 			elem.clear() # we're done with that element so let's get it outta memory
 	return durationStart, durationEnd
 
-# Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def old_detectContentFilter(startObj,pkt,lastEnd,profileType,framesList):
-	"""
-    Checks values against thresholds of multiple values
+def get_duration(video_path):
+    command = [
+        'ffprobe',
+        '-v', 'error',
+        '-show_entries', 'format=duration',
+        '-of', 'csv=p=0',
+        video_path
+    ]
+    result = subprocess.run(command, stdout=subprocess.PIPE)
+    duration = result.stdout.decode().strip()
+    return duration
 
-    Parameters:
-    - startObj: Object to start parsing from.
-    - pkt: Packet attribute to check.
-    - lastEnd: Last end time to compare with.
-    - framesList: List to append frames information.
-    - buffSize: Buffer size (currently not used in this function - consider removing).
-    - profileType: Type of profile to check frames against (e.g., 'allBlack', 'allWhite').
-    """
-	
-	frame_count = 0
-	durationStart, durationEnd = "", ""
-	segments = []
-	seg_timestamp = []
-	with gzip.open(startObj) as xml:
-		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
-			if elem.attrib['media_type'] == "video":
-				frame_pkt_dts_time = elem.attrib[pkt]
-				if float(frame_pkt_dts_time) <= float(lastEnd):
-					continue	
-				frameDict = {}  # start an empty dict for the new frame
-				frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
-				for t in list(elem):    # iterating through each attribute for each element
-					keySplit = t.attrib['key'].split(".")   # split the names by dots 
-					keyName = str(keySplit[-1])             # get just the last word for the key name
-					frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
-				framesList.append(frameDict)
-				frame_count += 1
-				if frame_count % 25 == 0:
-					all_conditions_met = True
-					for key, config_value in config_path.config_dict['qct-parse']['content'][profileType].items():
-						tag_threshold, op_string = config_value.split(", ")
-						comp_op = operator_mapping[op_string]
-						# Perform the comparison using the retrieved operator
-						if key in frameDict and not comp_op(float(frameDict[key]), float(tag_threshold)) :
-							all_conditions_met = False
-							break
-					if all_conditions_met:
-						if not durationStart:
-							durationStart = frame_pkt_dts_time
-							startTimeStampString = dts2ts(frame_pkt_dts_time)
-							seg_timestamp.append(f"\nqct-parse profile {profileType} segment found at:\n{startTimeStampString}")
-						durationEnd = frame_pkt_dts_time
-					else:
-						if durationStart and durationEnd and float(durationEnd) - float(durationStart) > 1:
-							segments.append((durationStart, durationEnd))
-							stopTimeStampString = dts2ts(durationEnd)
-							seg_timestamp.append(f"- {stopTimeStampString}")
-							logger.info(' '.join(seg_timestamp))
-							durationStart, durationEnd = "", ""  # Reset for next segment
-							seg_timestamp = []
-							# Don't break here to allow for finding multiple segments
-			elem.clear()
-	if durationStart and durationEnd:  # Check if the last segment needs to be added
-		segments.append((durationStart, durationEnd))
-		stopTimeStampString = dts2ts(durationEnd)
-		logger.info(f"\nqct-parse profile {profileType} segment found at:\n{startTimeStampString} - {stopTimeStampString}")
-	return segments
+def find_common_durations(content_over):
+    # Extract all tags and their durations into a dictionary of sets
+    tag_durations = {tag: set(durations) for tag, durations in content_over.items()}
+
+    # Use set intersection to find common durations across all tags
+    common_durations = set.intersection(*tag_durations.values())
+    return common_durations
+
+def sort_durations(durations):
+    sorted_durations = sorted(durations, key=lambda x: list(map(float, x.split(':'))))
+    return sorted_durations
+
+def print_consecutive_durations(durations):
+    sorted_durations = sort_durations(durations)
+
+    start_time = None
+    end_time = None
+
+    for i in range(len(sorted_durations)):
+        if start_time is None:
+            start_time = sorted_durations[i]
+            end_time = sorted_durations[i]
+        else:
+            current_time = sorted_durations[i]
+            previous_time = sorted_durations[i - 1]
+
+            current_seconds = sum(x * float(t) for x, t in zip([3600, 60, 1], current_time.split(':')))
+            previous_seconds = sum(x * float(t) for x, t in zip([3600, 60, 1], previous_time.split(':')))
+
+            if current_seconds - previous_seconds < 5:
+                end_time = current_time
+            else:
+                if start_time != end_time:
+                    print(f"{start_time} - {end_time}")
+                else:
+                    print(start_time)
+                start_time = current_time
+                end_time = current_time
+
+    # Print the last range or single time
+    if start_time and end_time:
+        if start_time != end_time:
+            print(f"{start_time} - {end_time}")
+        else:
+            print(start_time)
+
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def new_detectContentFilter(qct_parse,startObj,pkt,lastEnd,profileType,framesList):
+def detectContentFilter(startObj,pkt,profileType,framesList):
 	"""
     Checks values against thresholds of multiple values
 
@@ -208,43 +204,35 @@ def new_detectContentFilter(qct_parse,startObj,pkt,lastEnd,profileType,framesLis
 	
 	content_over = {}
 
-	for tag in config_path.config_dict['qct-parse']['content'][profileType].items():
-		content_over[tag]
+	for tag, settings in config_path.config_dict['qct-parse']['content'][profileType].items():
+		content_over[tag] = []
 
 	with gzip.open(startObj) as xml:	
-		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
-			if elem.attrib['media_type'] == "video": 	# get just the video frames
-				frameCount = frameCount + 1
-				frame_pkt_dts_time = elem.attrib[pkt] 	# get the timestamps for the current frame we're looking at
-				frameDict = {}  								# start an empty dict for the new frame
-				frameDict[pkt] = frame_pkt_dts_time  			# make a key for the timestamp, which we have now
-				if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time
-					if durationEnd:
-						if float(frame_pkt_dts_time) > durationEnd:		# only work on frames that are before the end time
-							logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frame_pkt_dts_time)} seconds {dts2ts(frame_pkt_dts_time)} or {str(frameCount)} frames")
-							break
-					for t in list(elem):    						# iterating through each attribute for each element
-						keySplit = t.attrib['key'].split(".")   	# split the names by dots 
-						keyName = str(keySplit[-1])             	# get just the last word for the key name
-						if len(keyName) == 1:						# if it's psnr or mse, keyName is gonna be a single char
-							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
-						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
-					framesList.append(frameDict)
-					for tag, config_value in config_path.config_dict['qct-parse']['content'][profileType].items():
-						tag_threshold, op_string = config_value.split(", ")
-						thresh = float(tag_threshold)
-						comp_op = operator_mapping[op_string]
-						if tag in frameDict:
-							# Perform the comparison using the retrieved operator if the attribute is over/under threshold
-							if comp_op(float(frameDict[tag]), float(thresh)) :
-								timeStampString = dts2ts(frame_pkt_dts_time)
-								content_over[tag].append(timeStampString)
-
-								## Then compare all content_over[tag] lists for common_durations using functions from parse_log.py
-				thumbDelay = thumbDelay + 1				
+		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): 	# iterparse the xml doc
+			if elem.attrib['media_type'] == "video": 							# get just the video frames
+				frame_pkt_dts_time = elem.attrib[pkt] 							# get the timestamps for the current frame we're looking at
+				frameDict = {}  												# start an empty dict for the new frame
+				frameDict[pkt] = frame_pkt_dts_time
+				for t in list(elem):    										# iterating through each attribute for each element
+					keySplit = t.attrib['key'].split(".")   					# split the names by dots 
+					keyName = str(keySplit[-1])             					# get just the last word for the key name
+					if len(keyName) == 1:										# if it's psnr or mse, keyName is gonna be a single char
+						keyName = '.'.join(keySplit[-2:])						# full attribute made by combining last 2 parts of split with a period in btw
+					frameDict[keyName] = t.attrib['value']						# add each attribute to the frame dictionary
+				framesList.append(frameDict)
+				for tag, config_value in config_path.config_dict['qct-parse']['content'][profileType].items():
+					tag_threshold, op_string = config_value.split(", ")
+					thresh = float(tag_threshold)
+					comp_op = operator_mapping[op_string]
+					if tag in frameDict:
+						# Perform the comparison using the retrieved operator if the attribute is over/under threshold
+						if comp_op(float(frameDict[tag]), float(thresh)) :
+							timeStampString = dts2ts(frame_pkt_dts_time)
+							content_over[tag].append(timeStampString)
+				#thumbDelay = thumbDelay + 1				
 		elem.clear() # we're done with that element so let's get it outta memory
-	return segments
-
+		common_durations = find_common_durations(content_over)
+		print_consecutive_durations(common_durations)
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
@@ -459,18 +447,11 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	if qct_parse['detectContent'] and qct_parse['contentFilter'] != None:
 		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the profile {qct_parse['contentFilter']}\n")
 		lastEnd = "0"  # Initialize with the start of the file
+		duration_str = get_duration(video_path)
+		duration = float(duration_str)
 		all_segments = []
 		profile_name = qct_parse['contentFilter']
-		# Keep calling detectProfile until no new segments are found
-		while True:
-			segments = detectContentFilter(qct_parse,startObj,pkt,lastEnd,profile_name,framesList)
-			if not segments:
-				break  # Exit loop if no more segments are found
-			all_segments.extend(segments)
-			lastEnd = segments[-1][1]  # Update lastEnd to the end of the last segment found
-		#print(f"the variable all_segments is {all_segments}")
-		if len(all_segments) == 0:
-			logger.error(f"No segments found matching all parameters of profile: {qct_parse['contentFilter']}\n")
+		detectContentFilter(startObj,pkt,profile_name,framesList)
 	elif qct_parse['detectContent'] and qct_parse['contentFilter'] == None:
 		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
