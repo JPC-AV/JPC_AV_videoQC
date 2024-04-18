@@ -391,10 +391,11 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		durationEnd = ""				# if bar detection is turned on then we have to calculate this
 		duration_str = get_duration(video_path)
 		ffprobe_duration = float(duration_str)
-	elif qct_parse['durationStart'] is not None:
-		durationStart = float(qct_parse['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
-	elif qct_parse['durationEnd'] != 99999999 and qct_parse['durationEnd'] is not None:
-		durationEnd = float(qct_parse['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
+	elif qct_parse['durationStart'] or qct_parse['durationEnd'] is not None:
+		if qct_parse['durationStart'] is not None:
+			durationStart = float(qct_parse['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
+		if qct_parse['durationEnd'] != 99999999 and qct_parse['durationEnd'] is not None:
+			durationEnd = float(qct_parse['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
 	else:
 		durationStart = 0
 		durationEnd = 99999999
