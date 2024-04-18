@@ -149,47 +149,56 @@ def find_common_durations(content_over):
     common_durations = set.intersection(*tag_durations.values())
     return common_durations
 
-def sort_durations(durations):
-    sorted_durations = sorted(durations, key=lambda x: list(map(float, x.split(':'))))
-    return sorted_durations
+def print_consecutive_durations(durations, qctools_check_output, profileType):
+	logger.info(f"Segments found within thresholds of content profile {profileType}:")
 
-def print_consecutive_durations(durations):
-    sorted_durations = sort_durations(durations)
+	sorted_durations = sorted(durations, key=lambda x: list(map(float, x.split(':'))))
 
-    start_time = None
-    end_time = None
+	start_time = None
+	end_time = None
 
-    for i in range(len(sorted_durations)):
-        if start_time is None:
-            start_time = sorted_durations[i]
-            end_time = sorted_durations[i]
-        else:
-            current_time = sorted_durations[i]
-            previous_time = sorted_durations[i - 1]
+	with open(qctools_check_output, 'w') as f:
+		f.write("**************************\n")
+		f.write("\nqct-parse results summary:\n")
+		f.write("\n**************************\n")
+		f.write(f"\nSegments found within thresholds of content profile {profileType}:\n")
 
-            current_seconds = sum(x * float(t) for x, t in zip([3600, 60, 1], current_time.split(':')))
-            previous_seconds = sum(x * float(t) for x, t in zip([3600, 60, 1], previous_time.split(':')))
+		for i in range(len(sorted_durations)):
+			if start_time is None:
+				start_time = sorted_durations[i]
+				end_time = sorted_durations[i]
+			else:
+				current_time = sorted_durations[i]
+				previous_time = sorted_durations[i - 1]
 
-            if current_seconds - previous_seconds < 5:
-                end_time = current_time
-            else:
-                if start_time != end_time:
-                    print(f"{start_time} - {end_time}")
-                else:
-                    print(start_time)
-                start_time = current_time
-                end_time = current_time
+				current_seconds = sum(x * float(t) for x, t in zip([3600, 60, 1], current_time.split(':')))
+				previous_seconds = sum(x * float(t) for x, t in zip([3600, 60, 1], previous_time.split(':')))
 
-    # Print the last range or single time
-    if start_time and end_time:
-        if start_time != end_time:
-            print(f"{start_time} - {end_time}")
-        else:
-            print(start_time)
+				if current_seconds - previous_seconds < 5:
+					end_time = current_time
+				else:
+					if start_time != end_time:
+						logger.info(f"{start_time} - {end_time}")
+						f.write(f"{start_time} - {end_time}\n")
+					else:
+						logger.info(start_time)
+						f.write(start_time)
+					start_time = current_time
+					end_time = current_time
+
+		# Print the last range or single time
+		if start_time and end_time:
+			if start_time != end_time:
+				logger.info(f"{start_time} - {end_time}")
+				f.write(f"{start_time} - {end_time}\n")
+			else:
+				logger.info(start_time)
+				f.write(start_time)
+		f.write("\n**************************")
 
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def detectContentFilter(startObj,pkt,profileType,framesList):
+def detectContentFilter(startObj,pkt,profileType,qctools_check_output,framesList):
 	"""
     Checks values against thresholds of multiple values
 
@@ -232,7 +241,8 @@ def detectContentFilter(startObj,pkt,profileType,framesList):
 				#thumbDelay = thumbDelay + 1				
 		elem.clear() # we're done with that element so let's get it outta memory
 		common_durations = find_common_durations(content_over)
-		print_consecutive_durations(common_durations)
+		if common_durations:
+			print_consecutive_durations(common_durations, qctools_check_output, profileType)
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
@@ -376,7 +386,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	durationEnd = qct_parse['durationEnd']
 
 	# set the start and end duration times
-	if qct_parse['barsDetection'] or qct_parse['contentFilter']:
+	if qct_parse['barsDetection']:
 		durationStart = ""				# if bar detection is turned on then we have to calculate this
 		durationEnd = ""				# if bar detection is turned on then we have to calculate this
 		duration_str = get_duration(video_path)
@@ -446,12 +456,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	######## Iterate Through the XML for Bars detection ########
 	if qct_parse['detectContent'] and qct_parse['contentFilter'] != None:
 		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the profile {qct_parse['contentFilter']}\n")
-		lastEnd = "0"  # Initialize with the start of the file
 		duration_str = get_duration(video_path)
-		duration = float(duration_str)
-		all_segments = []
 		profile_name = qct_parse['contentFilter']
-		detectContentFilter(startObj,pkt,profile_name,framesList)
+		detectContentFilter(startObj,pkt,profile_name,qctools_check_output,framesList)
 	elif qct_parse['detectContent'] and qct_parse['contentFilter'] == None:
 		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
