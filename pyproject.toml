@@ -1,33 +1,34 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
-[tool.setuptools]
-name = AV_Spex
-version = 0.1.0
-description = A Python project written for NMAAHC media conservation lab
-long_description = file: README.md
-long_description_content_type = text/markdown
-author = Eddy Colloton
-author_email = eddy.colloton@gmail.com
-license = GNU v3
-license_file = LICENSE
-url = "https://github.com/JPC-AV/JPC_AV_videoQC"
-
+[project]
+name = "AV_Spex"
+version = "0.1.0"
+description = "A Python project written for NMAAHC media conservation lab"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+  { name="Eddy Colloton", email="eddy.colloton@gmail.com" },
+]
 classifiers = [
     "Programming Language :: Python :: 3",
-    "License :: OSI Approved :: GNU v3 License",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
 ]
-
-packages = find:
-include_package_data = true
-
-[tool.setuptools.scripts]
-process-av = "AV_Spex.process_av:main"
-
-[project]
 dependencies = [
     "PyYAML==6.0.1",
     "colorlog==6.7.0",
     "art==6.1"
 ]
+
+[project.urls]
+Repository = "https://github.com/JPC-AV/JPC_AV_videoQC"
+
+[project.scripts]
+process-av = "AV_Spex.process_av:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]  # list of folders that contain the packages (["."] by default)
+include = ["AV_Spex*"]  # package names should match these glob patterns (["*"] by default)
+exclude = ["config", "logs", "tests"]  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
