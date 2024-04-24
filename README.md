@@ -6,8 +6,8 @@ AV processing scripts for the Johnson Publishing Company archive
 This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications. 
 
 ## Requirements:
-An installation script is on our Roadmap and will be implemented in the future. In the meantime please find dependencies below:
 
+#### Environment
 These scripts require Python 3.10+. Any Python 3.10+ environment should be compatible, but we have included conda instructions below for those who wish to create an isolated python environment. conda is not a requirement.
 
 The scripts are written and tested in the follow environment:
@@ -30,8 +30,12 @@ As an alternative to homebrew, you can install directly from anaconda's website 
 Finally, run `conda init` (for bash) or `conda init zsh` (for zsh) depending which shell you are using. (To check which shell you are using simply run `echo $SHELL`)
 * * *
 
-Install necessary python modules which are not built-in using pip and requirements.txt:     
-`pip install -r requirements.txt`
+#### Install
+Install necessary python modules and the AV Spex scripts by navigating to the root directory of the project (the directory containing the pyproject.toml file):
+`cd path-to/JPC_AV/JPC_AV_videoQC`
+
+Install the package in editable mode using pip. Run the following command from the root directory of the project:
+`python -m pip install -e .`
 
 Lastly, these scripts make use of the following command line tools:
 - MediaConch
@@ -40,17 +44,23 @@ Lastly, these scripts make use of the following command line tools:
 - ffmpeg
 - QCTools
 
+This will install the AV Spex scripts. To call them use the command:
+`process-av`
+
+Verify the install by running:
+`process-av --help`
+
 ## Running the scripts:
 
 Usage:
-`python JPC_AV/process_file.py [path/to/directory]`
+`process-av [path/to/directory]`
 
-All actions performed by process_file.py are recorded in a log file located here:`logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log`
+All actions performed by process-av are recorded in a log file located here:`logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log`
 
-The process_file.py will first check to ensure that the video file matches the JPC_AV file naming convention, such as `JPC_AV_00001.mkv`
+The process-av will first check to ensure that the video file matches the JPC_AV file naming convention, such as `JPC_AV_00001.mkv`
 If the file does not match the file naming convention, the script will exit. 
 
-process_file.py will run metadata tools on the input video file. The available tools are:
+process-av will run metadata tools on the input video file. The available tools are:
 - MediaConch (checks files against the MediaConch policy listed in 'config/command_config.yaml')
 - MediaInfo ("full" or `-f` output)
 - Exiftool
