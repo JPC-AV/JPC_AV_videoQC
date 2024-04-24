@@ -11,7 +11,7 @@ This repository stores python scripts designed to help process digital audio and
 These scripts require Python 3.10+. Any Python 3.10+ environment should be compatible, but we have included conda instructions below for those who wish to create an isolated python environment. conda is not a requirement.
 
 The scripts are written and tested in the follow environment:
-`conda create -n JPC_AV python=3.10.13`
+`conda create -n AV_Spex python=3.10.13`
 
 You can install conda with homebrew: `brew install --cask anaconda` 
 
@@ -45,22 +45,22 @@ Lastly, these scripts make use of the following command line tools:
 - QCTools
 
 This will install the AV Spex scripts. To call them use the command:
-`process-av`
+`av-spex`
 
 Verify the install by running:
-`process-av --help`
+`av-spex --help`
 
 ## Running the scripts:
 
 Usage:
-`process-av [path/to/directory]`
+`av-spex [path/to/directory]`
 
-All actions performed by process-av are recorded in a log file located here:`logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log`
+All actions performed by av-spex are recorded in a log file located here:`logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log`
 
-The process-av will first check to ensure that the video file matches the JPC_AV file naming convention, such as `JPC_AV_00001.mkv`
+AV Spex will first check to ensure that the video file matches the JPC_AV file naming convention, such as `JPC_AV_00001.mkv`
 If the file does not match the file naming convention, the script will exit. 
 
-process-av will run metadata tools on the input video file. The available tools are:
+AV Spex will run metadata tools on the input video file. The available tools are:
 - MediaConch (checks files against the MediaConch policy listed in 'config/command_config.yaml')
 - MediaInfo ("full" or `-f` output)
 - Exiftool

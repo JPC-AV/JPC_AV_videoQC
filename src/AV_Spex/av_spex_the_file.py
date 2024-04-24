@@ -174,8 +174,8 @@ def parse_arguments():
 
 def main():
     '''
-    process_file.py takes 1 input file or directory as an argument, like this:
-    python process_file.py <input_directory> (or -f <input_file.mkv>)
+    av-spex takes 1 input file or directory as an argument, like this:
+    av-spex <input_directory> (or -f <input_file.mkv>)
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
