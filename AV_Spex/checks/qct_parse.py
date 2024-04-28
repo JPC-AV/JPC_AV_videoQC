@@ -218,16 +218,27 @@ def detectContentFilter(startObj,pkt,profileType,qctools_check_output,framesList
 
 	with gzip.open(startObj) as xml:	
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): 	# iterparse the xml doc
-			if elem.attrib['media_type'] == "video": 							# get just the video frames
-				frame_pkt_dts_time = elem.attrib[pkt] 							# get the timestamps for the current frame we're looking at
-				frameDict = {}  												# start an empty dict for the new frame
+			if elem.attrib['media_type'] == "video" or elem.attrib['media_type'] == "audio": 	# get audio and video frames
+				frame_pkt_dts_time = elem.attrib[pkt] 											# get the timestamps for the current frame we're looking at
+				frameDict = {}  																# start an empty dict for the new frame
 				frameDict[pkt] = frame_pkt_dts_time
 				for t in list(elem):    										# iterating through each attribute for each element
-					keySplit = t.attrib['key'].split(".")   					# split the names by dots 
-					keyName = str(keySplit[-1])             					# get just the last word for the key name
-					if len(keyName) == 1:										# if it's psnr or mse, keyName is gonna be a single char
-						keyName = '.'.join(keySplit[-2:])						# full attribute made by combining last 2 parts of split with a period in btw
-					frameDict[keyName] = t.attrib['value']						# add each attribute to the frame dictionary
+					if elem.attrib['media_type'] == "audio":
+						keySplit = t.attrib['key'].replace('lavfi.astats.', '')  					# split the names 
+						if '.' in keySplit:
+							# Split the string at the period and join with an underscore
+							audio_keyParts = keySplit.split('.')
+							keyName = '_'.join(audio_keyParts)
+							frameDict[keyName] = t.attrib['value']	
+						else:
+							# Use the cleaned line as the keyName if no period is present
+							keyName = keySplit
+					elif elem.attrib['media_type'] == "video":
+						keySplit = t.attrib['key'].split(".")   					# split the names by dots 
+						keyName = str(keySplit[-1])             					# get just the last word for the key name
+						if len(keyName) == 1:										# if it's psnr or mse, keyName is gonna be a single char
+							keyName = '.'.join(keySplit[-2:])						# full attribute made by combining last 2 parts of split with a period in btw
+						frameDict[keyName] = t.attrib['value']						# add each attribute to the frame dictionary
 				framesList.append(frameDict)
 				for tag, config_value in config_path.config_dict['qct-parse']['content'][profileType].items():
 					tag_threshold, op_string = config_value.split(", ")
@@ -238,11 +249,13 @@ def detectContentFilter(startObj,pkt,profileType,qctools_check_output,framesList
 						if comp_op(float(frameDict[tag]), float(thresh)) :
 							timeStampString = dts2ts(frame_pkt_dts_time)
 							content_over[tag].append(timeStampString)
-				#thumbDelay = thumbDelay + 1				
+				#thumbDelay = thumbDelay + 1
 		elem.clear() # we're done with that element so let's get it outta memory
 		common_durations = find_common_durations(content_over)
 		if common_durations:
 			print_consecutive_durations(common_durations, qctools_check_output, profileType)
+		else:
+			logger.error(f"No segments found matching content profile {profileType}")
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over

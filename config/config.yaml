@@ -123,6 +123,9 @@ ffmpeg_values:
       ENCODED_BY:
 qct-parse:
   content:
+    silence:
+      Overall_Min_level: 0.001050, lt
+      Overall_Max_level: 0.001100, lt
     allBlack:
       YMAX: 300, lt
       YHIGH: 115, lt
@@ -223,3 +226,5 @@ qct-parse:
       psnr_u:
       psnr_v:
       psnr_avg:
+      Overall_Min_level:
+      Overall_Max_level:
