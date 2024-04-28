@@ -29,7 +29,6 @@ tools:
     tagname: 
     over:
     under:
-    contentFilter: allBlack
     profile:
     buffSize:
     thumbExport: false
@@ -38,3 +37,4 @@ tools:
     durationEnd: 
     barsDetection: false
     detectContent: true
+    contentFilter: silence
