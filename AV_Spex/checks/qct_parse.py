@@ -300,14 +300,18 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 						frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
 						if frameOver is True:
 							kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
-					elif qct_parse['profile'] is not None: # if we're using a profile
+					elif qct_parse['profile']: # if we're using a profile
 						for k,v in profile.items():
 							# confirm k (tag) is in config.yaml profile
 							if v is not None:
 								tag = k
+								if "MIN" in tag or "LOW" in tag:
+									comp_op = operator.lt
+								else:
+									comp_op = operator.gt
 								over = float(v)
 								# ACTUALLY DO THE THING ONCE FOR EACH TAG
-								frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,thumbPath,thumbDelay,thumbExportDelay)
+								frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
 								if frameOver is True:
 									kbeyond[k] = kbeyond[k] + 1 # note the over in the key over dict
 									if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
@@ -383,7 +387,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		buffSize = 11
 	
 	# Set thumbExport delay
-	if qct_parse['thumbExportDelay'] is not None:
+	if qct_parse['thumbExportDelay']:
 		thumbDelay = int(qct_parse['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
 	else:
 		thumbDelay = 9000
@@ -478,14 +482,14 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 
 	
 	######## Iterate Through the XML for General Analysis ########
-	if qct_parse['over'] or qct_parse['under'] or (qct_parse['profile'] is not None and qct_parse['detectProfile'] == 'false') :
+	if qct_parse['over'] or qct_parse['under'] or qct_parse['profile']:
 		logger.debug(f"\nStarting qct-parse analysis on {baseName}")
 		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 			
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
 	
 	# do some maths for the printout
-	if qct_parse['over'] or qct_parse['under'] or (qct_parse['profile'] is not None and qct_parse['detectProfile'] == 'false') :
+	if qct_parse['over'] or qct_parse['under'] or qct_parse['profile']:
 		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}")
 	
