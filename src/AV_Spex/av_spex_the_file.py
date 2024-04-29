@@ -141,7 +141,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Process video file with optional settings")
     parser.add_argument("paths", nargs='+', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
-    parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
+    parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory. This option is default, and does not need to be declared.")
     parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
 
     args = parser.parse_args()
