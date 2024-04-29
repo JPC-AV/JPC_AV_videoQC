@@ -8,6 +8,9 @@
 # The original code from the qct-parse was written by Brendan Coates and Morgan Morel as part of the 2016 AMIA "Hack Day"
 # Summary of that event here: https://wiki.curatecamp.org/index.php/Association_of_Moving_Image_Archivists_%26_Digital_Library_Federation_Hack_Day_2016
 
+# This copy of qct_parse.py was saved on 04-29-2024 to archive the script "as is" before it is revised further to be merged to AV Spex main branch.
+# This version contains feature to be implemented or revised later on.
+
 from lxml import etree	
 import gzip            
 import logging         
