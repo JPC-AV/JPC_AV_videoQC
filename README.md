@@ -92,8 +92,10 @@ logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log
 - Expected output values are configured in `config/config.yaml`.
 
 ### Output and Validation
-- Outputs are saved in the same directory as the input file.
+- Outputs are saved in a subdirectory within the input directory named: [input_dir_name]_qc_metadata.
 - Outputs are validated against predefined expectations, with results logged and failures also printed to the terminal (STDOUT).
+- Toggle outputs and metadata validation checks on/off from the command_config.yaml
+- The 'qctools_check' uses the open source tool [qct-parse](https://github.com/amiaopensource/qct-parse) to check for individual tags, profiles, or specific content. The parameters of profilea and content filters are defined in the config.yaml
 
 ---
 
