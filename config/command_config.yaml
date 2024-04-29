@@ -30,11 +30,8 @@ tools:
     over:
     under:
     profile:
-    buffSize:
     thumbExport: false
     thumbExportDelay: 
-    durationStart: 
-    durationEnd: 
     barsDetection: false
     detectContent: true
     contentFilter: silence

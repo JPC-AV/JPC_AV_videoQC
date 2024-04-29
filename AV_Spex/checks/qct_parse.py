@@ -102,7 +102,7 @@ def printThumb(video_path,tag,startObj,thumbPath,tagValue,timeStampString):
 	return	
 	
 # detect bars	
-def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
+def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 	frame_count = 0
 	with gzip.open(startObj) as xml:
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
@@ -149,8 +149,8 @@ def find_common_durations(content_over):
     common_durations = set.intersection(*tag_durations.values())
     return common_durations
 
-def print_consecutive_durations(durations, qctools_check_output, profileType):
-	logger.info(f"Segments found within thresholds of content profile {profileType}:")
+def print_consecutive_durations(durations, qctools_check_output, contentFilter_name):
+	logger.info(f"Segments found within thresholds of content filter {contentFilter_name}:")
 
 	sorted_durations = sorted(durations, key=lambda x: list(map(float, x.split(':'))))
 
@@ -161,7 +161,7 @@ def print_consecutive_durations(durations, qctools_check_output, profileType):
 		f.write("**************************\n")
 		f.write("\nqct-parse results summary:\n")
 		f.write("\n**************************\n")
-		f.write(f"\nSegments found within thresholds of content profile {profileType}:\n")
+		f.write(f"\nSegments found within thresholds of content filter {contentFilter_name}:\n")
 
 		for i in range(len(sorted_durations)):
 			if start_time is None:
@@ -198,22 +198,21 @@ def print_consecutive_durations(durations, qctools_check_output, profileType):
 
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def detectContentFilter(startObj,pkt,profileType,qctools_check_output,framesList):
+def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,framesList):
 	"""
     Checks values against thresholds of multiple values
 
     Parameters:
     - startObj: Object to start parsing from.
     - pkt: Packet attribute to check.
-    - lastEnd: Last end time to compare with.
+    - contentFilter_name: Type of content to check frames against (e.g., 'allBlack', 'allWhite').
+	- qctools_check_output: file path to qct-parse output summary text file 
     - framesList: List to append frames information.
-    - buffSize: Buffer size (currently not used in this function - consider removing).
-    - profileType: Type of profile to check frames against (e.g., 'allBlack', 'allWhite').
     """
 	
 	content_over = {}
 
-	for tag, settings in config_path.config_dict['qct-parse']['content'][profileType].items():
+	for tag, settings in config_path.config_dict['qct-parse']['content'][contentFilter_name].items():
 		content_over[tag] = []
 
 	with gzip.open(startObj) as xml:	
@@ -240,7 +239,7 @@ def detectContentFilter(startObj,pkt,profileType,qctools_check_output,framesList
 							keyName = '.'.join(keySplit[-2:])						# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']						# add each attribute to the frame dictionary
 				framesList.append(frameDict)
-				for tag, config_value in config_path.config_dict['qct-parse']['content'][profileType].items():
+				for tag, config_value in config_path.config_dict['qct-parse']['content'][contentFilter_name].items():
 					tag_threshold, op_string = config_value.split(", ")
 					thresh = float(tag_threshold)
 					comp_op = operator_mapping[op_string]
@@ -253,9 +252,9 @@ def detectContentFilter(startObj,pkt,profileType,qctools_check_output,framesList
 		elem.clear() # we're done with that element so let's get it outta memory
 		common_durations = find_common_durations(content_over)
 		if common_durations:
-			print_consecutive_durations(common_durations, qctools_check_output, profileType)
+			print_consecutive_durations(common_durations, qctools_check_output, contentFilter_name)
 		else:
-			logger.error(f"No segments found matching content profile {profileType}")
+			logger.error(f"No segments found matching content filter: {contentFilter_name}")
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
@@ -378,14 +377,6 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	
 	startObj = qctools_output_path
 	
-	# Set buffer size
-	if qct_parse['buffSize'] is not None:
-		buffSize = int(qct_parse['buffSize'])   # cast the input buffer as an integer
-		if buffSize%2 == 0:
-			buffSize = buffSize + 1
-	else:
-		buffSize = 11
-	
 	# Set thumbExport delay
 	if qct_parse['thumbExportDelay']:
 		thumbDelay = int(qct_parse['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
@@ -398,21 +389,12 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	baseName = os.path.basename(startObj)
 	baseName = baseName.replace(".qctools.xml.gz", "")
 
-	# Initialize duration variables, may be over written...
-	durationStart = qct_parse['durationStart']
-	durationEnd = qct_parse['durationEnd']
-
 	# set the start and end duration times
 	if qct_parse['barsDetection']:
 		durationStart = ""				# if bar detection is turned on then we have to calculate this
 		durationEnd = ""				# if bar detection is turned on then we have to calculate this
 		duration_str = get_duration(video_path)
 		ffprobe_duration = float(duration_str)
-	elif qct_parse['durationStart'] or qct_parse['durationEnd'] is not None:
-		if qct_parse['durationStart'] is not None:
-			durationStart = float(qct_parse['durationStart']) 	# The duration at which we start analyzing the file if no bar detection is selected
-		if qct_parse['durationEnd'] != 99999999 and qct_parse['durationEnd'] is not None:
-			durationEnd = float(qct_parse['durationEnd']) 	# The duration at which we stop analyzing the file if no bar detection is selected
 	else:
 		durationStart = 0
 		durationEnd = 99999999
@@ -421,6 +403,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	overcount = 0	# init count of overs
 	undercount = 0	# init count of unders
 	count = 0		# init total frames counter
+	buffSize = 11
 	framesList = collections.deque(maxlen=buffSize)		# init holding object for holding all frame data in a circular buffer. 
 	bdFramesList = collections.deque(maxlen=buffSize) 	# init holding object for holding all frame data in a circular buffer. 
 
@@ -469,14 +452,14 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	######## Iterate Through the XML for Bars detection ########
 	if qct_parse['barsDetection']:
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
-		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize)
+		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
 
 	######## Iterate Through the XML for Bars detection ########
 	if qct_parse['detectContent'] and qct_parse['contentFilter'] != None:
-		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the profile {qct_parse['contentFilter']}\n")
+		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {qct_parse['contentFilter']}\n")
 		duration_str = get_duration(video_path)
-		profile_name = qct_parse['contentFilter']
-		detectContentFilter(startObj,pkt,profile_name,qctools_check_output,framesList)
+		contentFilter_name = qct_parse['contentFilter']
+		detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,framesList)
 	elif qct_parse['detectContent'] and qct_parse['contentFilter'] == None:
 		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
