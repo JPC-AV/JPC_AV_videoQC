@@ -121,3 +121,111 @@ ffmpeg_values:
       DESCRIPTION:  
       ORIGINAL MEDIA TYPE: 
       ENCODED_BY:
+qct-parse:
+  content:
+    silence:
+      Overall_Min_level: 0.001900, lt
+      Overall_Max_level: 0.001900, lt
+      Overall_Mean_difference: 0.009, lt
+    allBlack:
+      YMAX: 300, lt
+      YHIGH: 115, lt
+      YLOW: 97, lt
+      YMIN: 6.5, lt
+    static:
+      YMIN: 5, lt
+      YLOW: 6, lt
+      YAVG: 240, lt
+      YMAX: 1018, gt
+      YDIF: 260, gt
+      ULOW: 325, gt
+      UAVG: 509, gt
+      UHIGH: 695, lt
+      UMAX: 990, gt
+      UDIF: 138, gt
+      VMIN: 100, lt
+      VLOW: 385, gt
+      VAVG: 500, gt
+      VHIGH: 650, lt
+      VMAX: 940, gt
+      VDIF: 98, gt
+  profiles:
+    default:
+      YLOW: 64
+      YHIGH: 940
+      ULOW: 64
+      UHIGH: 940
+      VLOW: 0
+      VHIGH: 1023
+      SATMAX: 181.02
+      TOUT: 0.009
+      VREP: 0.03
+    highTolerance:
+      YLOW: 40
+      YMAX: 1000
+      UMIN: 64
+      UMAX: 1000
+      VMIN: 0
+      VMAX: 1023
+      SATMAX: 181.02
+      TOUT: 0.009
+      VREP: 0.03
+    midTolerance:
+      YLOW: 40
+      YMAX: 980
+      UMIN: 64
+      UMAX: 980
+      VMIN: 0
+      VMAX: 1023
+      SATMAX: 181.02
+      TOUT: 0.009
+      VREP: 0.03
+    lowTolerance:
+      YLOW: 64
+      YMAX: 940
+      UMIN: 64
+      UMAX: 940
+      VMIN: 0
+      VMAX: 1023
+      SATMAX: 181.02
+      TOUT: 0.009
+      VREP: 0.03
+  fullTagList:
+      YMIN:
+      YLOW:
+      YAVG:
+      YHIGH:
+      YMAX:
+      UMIN:
+      ULOW:
+      UAVG:
+      UHIGH:
+      UMAX:
+      VMIN:
+      VLOW:
+      VAVG:
+      VHIGH:
+      VMAX:
+      SATMIN:
+      SATLOW:
+      SATAVG:
+      SATHIGH:
+      SATMAX:
+      HUEMED:
+      HUEAVG:
+      YDIF:
+      UDIF:
+      VDIF:
+      TOUT:
+      VREP:
+      BRNG:
+      mse_y:
+      mse_u:
+      mse_v:
+      mse_avg:
+      psnr_y:
+      psnr_u:
+      psnr_v:
+      psnr_avg:
+      Overall_Min_level:
+      Overall_Max_level:

@@ -317,11 +317,18 @@ def main():
             parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
+        qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+        qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
         if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
-            qctools_ext = command_config.command_dict['outputs']['qctools_ext']
-            qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
             run_command('qcli -i', video_path, '-o', qctools_output_path)
 
+        if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
+            qctools_check_output = os.path.join(destination_directory, f'{video_id}_qct-parse_summary.txt')
+            if not os.path.isfile(qctools_output_path):
+                logger.critical(f"Error: {qctools_output_path} is not a valid file.")
+            else:
+                run_qctparse(video_path, qctools_output_path, qctools_check_output)
+        
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':
             make_access_file(video_path, access_output_path)
