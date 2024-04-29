@@ -18,7 +18,7 @@ def setup_logger():
 
     # Establishes path to 'logs' directory
     script_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)))
-    root_dir = os.path.dirname(os.path.dirname(script_dir))
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
     logs_parent_dir = os.path.join(root_dir, 'logs')
     log_dir_path = os.path.join(logs_parent_dir, datetime.now().strftime('%Y-%m-%d'))
     if not os.path.exists(log_dir_path):

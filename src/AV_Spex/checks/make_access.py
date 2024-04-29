@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime
 import logging
-from utils.log_setup import logger
+from ..utils.log_setup import logger
 
 def get_duration(video_path):
     command = [

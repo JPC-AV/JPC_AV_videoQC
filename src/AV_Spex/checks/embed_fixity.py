@@ -4,7 +4,7 @@ import tempfile
 import os
 import sys
 import logging
-from utils.log_setup import logger
+from ..utils.log_setup import logger
 
 def get_total_frames(video_path):
     command = [
