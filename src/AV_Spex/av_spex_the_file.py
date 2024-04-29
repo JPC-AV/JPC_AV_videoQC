@@ -14,21 +14,17 @@ import time
 from art import *
 from datetime import datetime
 
-#path = os.path.abspath()
-sys.path.append("utils")
-sys.path.append("checks")
-
-from utils.log_setup import logger
-from utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from utils.find_config import config_path, command_config
-from utils.yaml_profiles import apply_profile, profile_step1, profile_step2
-from checks.fixity_check import check_fixity, output_fixity
-from checks.filename_check import check_filenames
-from checks.mediainfo_check import parse_mediainfo
-from checks.exiftool_check import parse_exiftool
-from checks.ffprobe_check import parse_ffprobe
-from checks.embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
-from checks.make_access import make_access_file
+from .utils.log_setup import logger
+from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
+from .utils.find_config import config_path, command_config
+from .utils.yaml_profiles import apply_profile, profile_step1, profile_step2
+from .checks.fixity_check import check_fixity, output_fixity
+from .checks.filename_check import check_filenames
+from .checks.mediainfo_check import parse_mediainfo
+from .checks.exiftool_check import parse_exiftool
+from .checks.ffprobe_check import parse_ffprobe
+from .checks.embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
+from .checks.make_access import make_access_file
 
 def check_directory(source_directory, video_id):
     '''
@@ -178,8 +174,8 @@ def parse_arguments():
 
 def main():
     '''
-    process_file.py takes 1 input file or directory as an argument, like this:
-    python process_file.py <input_directory> (or -f <input_file.mkv>)
+    av-spex takes 1 input file or directory as an argument, like this:
+    av-spex <input_directory> (or -f <input_file.mkv>)
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 

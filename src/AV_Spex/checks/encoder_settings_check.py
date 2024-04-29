@@ -5,7 +5,7 @@ import os
 import sys
 import json
 import logging
-from utils.log_setup import logger
+from ..utils.log_setup import logger
 
 ## This is script is for parsing the customized "Encoder settings" containing transfer information 
 # The Encoder Settings value that are expected (stored in cofing/config.yaml) are based on the Encoder Settings value of JPC_AV_05000:
