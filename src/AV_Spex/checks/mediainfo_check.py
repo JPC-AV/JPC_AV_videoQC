@@ -4,8 +4,8 @@
 import os
 import sys
 import logging
-from utils.log_setup import logger
-from utils.find_config import config_path
+from ..utils.log_setup import logger
+from ..utils.find_config import config_path
 
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script

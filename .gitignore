@@ -3,6 +3,7 @@
 
 ### NMAAHC ### 
 /logs/
+/AV_Spex.egg-info/
 
 ### macOS ###
 # General
@@ -39,7 +40,7 @@ Temporary Items
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
-__pycache__/
+__pycache__
 *.py[cod]
 *$py.class
 
@@ -210,3 +211,6 @@ poetry.toml
 pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python,macos
+
+# VSCode
+.vscode
