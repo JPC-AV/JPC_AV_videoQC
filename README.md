@@ -37,6 +37,15 @@ While an automated installation script is in development, users currently need t
   conda create -n JPC_AV python=3.10.13
   ```
 
+### Required Command Line Tools
+
+The following command line tools are necessary and must be installed separately:
+- MediaConch
+- MediaInfo
+- Exiftool
+- ffmpeg
+- QCTools
+
 ## Installation of AV Spex Scripts
 
 ### Initial Setup
@@ -50,15 +59,6 @@ While an automated installation script is in development, users currently need t
    ```bash
    python -m pip install -e .
    ```
-
-### Required Command Line Tools
-
-The following command line tools are necessary and must be installed separately:
-- MediaConch
-- MediaInfo
-- Exiftool
-- ffmpeg
-- QCTools
 
 Verify the installation by running:
 ```bash
