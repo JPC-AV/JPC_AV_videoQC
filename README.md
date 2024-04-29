@@ -5,74 +5,98 @@ AV processing scripts for the Johnson Publishing Company archive
 ![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/av_spex_the_logo.png?raw=true)
 This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications. 
 
-## Requirements:
+----
 
-#### Environment
-These scripts require Python 3.10+. Any Python 3.10+ environment should be compatible, but we have included conda instructions below for those who wish to create an isolated python environment. conda is not a requirement.
+## Requirements
 
-The scripts are written and tested in the follow environment:
-`conda create -n AV_Spex python=3.10.13`
+### Python Version
+- Python 3.10 or higher is required.
 
-You can install conda with homebrew: `brew install --cask anaconda` 
+### Installation
+While an automated installation script is in development, users currently need to manually manage dependencies. Below are the instructions for setting up a compatible Python environment using Conda, although Conda is optional - any Python 3.10+ environment should be compatible.
 
-You need to add conda to your path. The install location for homebrew changed when Apple moved from x86 to ARM architecture. 
+#### Setting Up Conda
+1. **Install Conda:**
+   - Via Homebrew: `brew install --cask anaconda`
+   - Alternatively, follow the installation guide on [Anaconda's official website](https://conda.io/projects/conda/en/latest/user-guide/install/macos.html).
 
-Confirm the location of anaconda3 after install. If you installed it with homebrew it will be here:
-`/opt/homebrew/anaconda3/` or here: `/usr/local/anaconda3/`
+2. **Add Conda to Your Path:**
+   - Installation paths may vary based on your system's architecture (x86 or ARM).
+   - For Homebrew installations:
+     - ARM architecture: `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
+     - x86 architecture: `export PATH="/usr/local/anaconda3/bin:$PATH"`
 
-Once you've located anaconda3, run one the corresponding commands:    
-`export PATH="/opt/homebrew/anaconda3/bin:$PATH"`    
-or:     
-`export PATH="/usr/local/anaconda3/bin:$PATH"`     
+3. **Initialize Conda:**
+   - For Bash: `conda init`
+   - For Zsh: `conda init zsh`
+   - To check your shell, run: `echo $SHELL`
 
-As an alternative to homebrew, you can install directly from anaconda's website using this guide: https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
+#### Create an Isolated Environment
+- To create an environment with the required Python version:
+  ```bash
+  conda create -n JPC_AV python=3.10.13
+  ```
 
-Finally, run `conda init` (for bash) or `conda init zsh` (for zsh) depending which shell you are using. (To check which shell you are using simply run `echo $SHELL`)
-* * *
+## Installation of AV Spex Scripts
 
-#### Install
-Install necessary python modules and the AV Spex scripts by navigating to the root directory of the project (the directory containing the pyproject.toml file):
-`cd path-to/JPC_AV/JPC_AV_videoQC`
+### Initial Setup
 
-Install the package in editable mode using pip. Run the following command from the root directory of the project:
-`python -m pip install -e .`
+1. **Navigate to the Project Root Directory:**
+   ```bash
+   cd path-to/JPC_AV/JPC_AV_videoQC
+   ```
 
-Lastly, these scripts make use of the following command line tools:
+2. **Install the AV Spex Scripts in Editable Mode:**
+   ```bash
+   python -m pip install -e .
+   ```
+
+### Required Command Line Tools
+
+The following command line tools are necessary and must be installed separately:
 - MediaConch
 - MediaInfo
 - Exiftool
 - ffmpeg
 - QCTools
 
-This will install the AV Spex scripts. To call them use the command:
-`av-spex`
+Verify the installation by running:
+```bash
+av-spex --help
+```
 
-Verify the install by running:
-`av-spex --help`
+## Usage
 
-## Running the scripts:
+Execute the scripts with:
+```bash
+av-spex [path/to/directory]
+```
 
-Usage:
-`av-spex [path/to/directory]`
+### Logging
+All operations are recorded in a log file located at:
+```
+logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log
+```
 
-All actions performed by av-spex are recorded in a log file located here:`logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log`
+### File Validation
+- AV Spex checks if the video file follows the JPC_AV naming convention (e.g., `JPC_AV_00001.mkv`). The script exits if the naming convention is not met.
 
-AV Spex will first check to ensure that the video file matches the JPC_AV file naming convention, such as `JPC_AV_00001.mkv`
-If the file does not match the file naming convention, the script will exit. 
+### Metadata Analysis and Configuration
+- Various metadata tools are run on the video files, which can be enabled or disabled in the `config/command_config.yaml` file.
+- Tools include:
+  - **MediaConch**: Checks compliance with specific policies.
+  - **MediaInfo**: Provides detailed file information.
+  - **Exiftool**: Edits and analyzes metadata.
+  - **ffprobe**: Outputs information in JSON format.
+  - **QCTools**: Analyzes video quality.
+- Expected output values are configured in `config/config.yaml`.
 
-AV Spex will run metadata tools on the input video file. The available tools are:
-- MediaConch (checks files against the MediaConch policy listed in 'config/command_config.yaml')
-- MediaInfo ("full" or `-f` output)
-- Exiftool
-- ffprobe (output in JSON format)
-- QCTools
+### Output and Validation
+- Outputs are saved in the same directory as the input file.
+- Outputs are validated against predefined expectations, with results logged and failures also printed to the terminal (STDOUT).
 
-These tools can be toggled on/off by changing the config/command_config.yaml file. Set tools to 'yes' to run them 'no' to turn them off. 
+---
 
-Outputs are written to the same directory as the input file.
+## Contributing
+Contributions that enhance script functionality are welcome. Please ensure compatibility with Python 3.10 or higher.
 
-The outputs of these metadata tools are then checked against expected values. 
-
-Expected values are stored in config/config.yaml. These checks can be turned on or off from config/command_config.yaml
-
-Successful checks are recorded to the log file, unsuccessful checks are recorded to the log, and printed to the terminal (STDOUT).
