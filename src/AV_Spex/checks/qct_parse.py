@@ -419,22 +419,54 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 						logger.debug(framesList[-1][pkt] + ": " + qct_parse['tagname'] + " " + framesList[-1][qct_parse['tagname']])
 					# Now we can parse the frame data from the buffer!	
 					if qct_parse['over'] or qct_parse['under'] and qct_parse['profile'] is None: # if we're just doing a single tag
-						for each_tag in qct_parse['tagname']:
-							tag = each_tag
-							if qct_parse['over']:
-								over = float(qct_parse['over'])
-								# Set the appropriate comparison operator based on command config value
-								comp_op = operator.gt
-							if qct_parse['under']:
-								over = float(qct_parse['under'])
-								comp_op = operator.lt
-							# ACTUALLY DO THE THING ONCE FOR EACH TAG
-							frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
-							if frameOver is True:
-								kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
-								if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
-										overallFrameFail = overallFrameFail + 1
-										fots = frame_pkt_dts_time # set it again so we don't dupe
+						if len(qct_parse['tagname']) > 1:
+							if qct_parse['over'] is not None and len(qct_parse['tagname']) == len(qct_parse['over']):
+								for each_tag, each_over in zip(qct_parse['tagname'], qct_parse['over']):
+									tag = each_tag
+									over = float(each_over)
+									# Set the appropriate comparison operator based on command config value
+									comp_op = operator.gt
+									# ACTUALLY DO THE THING ONCE FOR EACH TAG
+									frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
+									if frameOver is True:
+										kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
+										if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
+												overallFrameFail = overallFrameFail + 1
+												fots = frame_pkt_dts_time # set it again so we don't dupe
+							elif qct_parse['under'] is not None and len(qct_parse['tagname']) == len(qct_parse['under']):
+								for each_tag, each_under in qct_parse['tagname'], qct_parse['under']:
+									over = float(each_under)
+									comp_op = operator.lt
+									# ACTUALLY DO THE THING ONCE FOR EACH TAG
+									frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
+									if frameOver is True:
+										kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
+										if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
+												overallFrameFail = overallFrameFail + 1
+												fots = frame_pkt_dts_time # set it again so we don't dupe
+							elif ((qct_parse['under'] is not None and len(qct_parse['under']) > len(qct_parse['tagname'])) or (qct_parse['over'] is not None and len(qct_parse['over']) > len(qct_parse['tagname']))) or (len(qct_parse['tagname']) !=1 and (qct_parse['over'] is not None and len(qct_parse['over']) != 1) or (qct_parse['under'] is not None and len(qct_parse['under']) != 1)):
+								# A doozy of a conditional: 
+								# if there are more values in either over and under than there are in tagname, then exit.
+								# OR if there is more than one tag and more than one value in either over or under, and they are not equal, then exit
+								logger.critical(f"Mismatch of tags and over/under values! quitting qct-parse analysis")
+								return
+							else:
+								for each_tag in qct_parse['tagname']:
+									tag = each_tag
+									if qct_parse['over']:
+										over = float(qct_parse['over'])
+										# Set the appropriate comparison operator based on command config value
+										comp_op = operator.gt
+									if qct_parse['under']:
+										over = float(qct_parse['under'])
+										comp_op = operator.lt
+									# ACTUALLY DO THE THING ONCE FOR EACH TAG
+									frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
+									if frameOver is True:
+										kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
+										if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
+												overallFrameFail = overallFrameFail + 1
+												fots = frame_pkt_dts_time # set it again so we don't dupe
 					elif qct_parse['profile']: # if we're using a profile
 						for k,v in profile.items():
 							# confirm k (tag) is in config.yaml profile
@@ -589,7 +621,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	else:
 		thumbPath = os.path.join(metadata_dir, "ThumbExports")
 	
-	if qct_parse['thumbExport'] != 'false':
+	if qct_parse['thumbExport']:
 		if not os.path.exists(thumbPath):
 			os.makedirs(thumbPath)
 	

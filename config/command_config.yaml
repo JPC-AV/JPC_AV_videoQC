@@ -1,6 +1,6 @@
 ---
 outputs:
-  access_file: 'no'
+  access_file: 'yes'
   difference_csv: 'no'
   fixity:
     check_fixity: 'no'
@@ -27,10 +27,10 @@ tools:
     run_qctools: 'no'
   qct-parse:
     tagname: [YMAX, YHIGH]
-    over: 900
+    over: [900, 800]
     under:
     profile:
-    thumbExport: false
+    thumbExport: 
     thumbExportDelay: 
     barsDetection: false
     detectContent: false
