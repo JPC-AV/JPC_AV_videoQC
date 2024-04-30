@@ -420,7 +420,7 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 					# Now we can parse the frame data from the buffer!	
 					if qct_parse['over'] or qct_parse['under'] and qct_parse['profile'] is None: # if we're just doing a single tag
 						for each_tag in qct_parse['tagname']:
-							tag = qct_parse['tagname']
+							tag = each_tag
 							if qct_parse['over']:
 								over = float(qct_parse['over'])
 								# Set the appropriate comparison operator based on command config value
@@ -432,6 +432,9 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 							frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
 							if frameOver is True:
 								kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
+								if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
+										overallFrameFail = overallFrameFail + 1
+										fots = frame_pkt_dts_time # set it again so we don't dupe
 					elif qct_parse['profile']: # if we're using a profile
 						for k,v in profile.items():
 							# confirm k (tag) is in config.yaml profile
@@ -490,7 +493,7 @@ def printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output):
 					percentOverallString = percentOverallString[1:]
 					percentOverallString = percentOverallString[:4]
 				else:
-					percentOverallString = percentOverallString[:5]			
+					percentOverallString = percentOverallString[:5]	
 			for k,v in kbeyond.items():
 				percentOver = float(kbeyond[k]) / float(frameCount)
 				if percentOver == 1:
