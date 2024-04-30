@@ -25,6 +25,7 @@ from .checks.exiftool_check import parse_exiftool
 from .checks.ffprobe_check import parse_ffprobe
 from .checks.embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
 from .checks.make_access import make_access_file
+from .checks.qct_parse import run_qctparse
 
 def check_directory(source_directory, video_id):
     '''
