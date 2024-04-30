@@ -26,12 +26,12 @@ tools:
     check_qctools: 'yes'
     run_qctools: 'no'
   qct-parse:
-    tagname: 
-    over:
+    tagname: [YMAX, YHIGH]
+    over: 900
     under:
     profile:
     thumbExport: false
     thumbExportDelay: 
     barsDetection: false
-    detectContent: true
-    contentFilter: silence
+    detectContent: false
+    contentFilter: 

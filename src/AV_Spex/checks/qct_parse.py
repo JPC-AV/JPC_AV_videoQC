@@ -390,7 +390,9 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
 	fots = ""
 	if qct_parse['tagname']:
-		kbeyond[qct_parse['tagname']] = 0 
+		if len(qct_parse['tagname']) > 1:
+			for each_tag in qct_parse['tagname']:
+				kbeyond[each_tag] = 0 
 	else:
 		for k,v in profile.items(): 
 			kbeyond[k] = 0
@@ -413,22 +415,23 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
-					if qct_parse['profile'] is True:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
+					if qct_parse['profile'] is True:
 						logger.debug(framesList[-1][pkt] + ": " + qct_parse['tagname'] + " " + framesList[-1][qct_parse['tagname']])
 					# Now we can parse the frame data from the buffer!	
 					if qct_parse['over'] or qct_parse['under'] and qct_parse['profile'] is None: # if we're just doing a single tag
-						tag = qct_parse['tagname']
-						if qct_parse['over']:
-							over = float(qct_parse['over'])
-							# Set the appropriate comparison operator based on command config value
-							comp_op = operator.gt
-						if qct_parse['under']:
-							over = float(qct_parse['under'])
-							comp_op = operator.lt
-						# ACTAULLY DO THE THING ONCE FOR EACH TAG
-						frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
-						if frameOver is True:
-							kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
+						for each_tag in qct_parse['tagname']:
+							tag = qct_parse['tagname']
+							if qct_parse['over']:
+								over = float(qct_parse['over'])
+								# Set the appropriate comparison operator based on command config value
+								comp_op = operator.gt
+							if qct_parse['under']:
+								over = float(qct_parse['under'])
+								comp_op = operator.lt
+							# ACTUALLY DO THE THING ONCE FOR EACH TAG
+							frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
+							if frameOver is True:
+								kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
 					elif qct_parse['profile']: # if we're using a profile
 						for k,v in profile.items():
 							# confirm k (tag) is in config.yaml profile
@@ -565,11 +568,21 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		if qct_parse['profile']: # if profile has been specified 
 			logger.error(f"Values will be assessed against profile in command_config.yaml: {qct_parse['profile']}\nTagname cannot be used in combination with profile. Listed tagname in command_config.yaml will be ignored: {qct_parse['tagname']}")
 			thumbPath = os.path.join(metadata_dir, "ThumbExports")
-		elif qct_parse['over'] or qct_parse['under']: 
-			if qct_parse['over'] : # if the tag is looking for a threshold Over
-				thumbPath = os.path.join(metadata_dir, str(qct_parse['tagname']) + "." + str(qct_parse['over']))
-			if qct_parse['under']: # if the tag was looking for a threshold Under
-				thumbPath = os.path.join(metadata_dir, str(qct_parse['tagname']) + "." + str(qct_parse['under']))
+		if len(qct_parse['tagname']) > 1:
+			for each_tag in qct_parse['tagname']:
+				if qct_parse['over'] and qct_parse['under']: 
+					logger.error(f"Both over and under values have been set for {qct_parse['tagname']}. Please remove one setting from command_config.yaml")
+					return
+				elif qct_parse['over'] : # if the tag is looking for a threshold Over
+					thumbPath = os.path.join(metadata_dir, str(each_tag) + "." + str(qct_parse['over']))
+				elif qct_parse['under']: # if the tag was looking for a threshold Under
+					thumbPath = os.path.join(metadata_dir, str(each_tag) + "." + str(qct_parse['under']))
+		else:
+			if qct_parse['over'] or qct_parse['under']: 
+				if qct_parse['over'] : # if the tag is looking for a threshold Over
+					thumbPath = os.path.join(metadata_dir, str(qct_parse['tagname']) + "." + str(qct_parse['over']))
+				if qct_parse['under']: # if the tag was looking for a threshold Under
+					thumbPath = os.path.join(metadata_dir, str(qct_parse['tagname']) + "." + str(qct_parse['under']))
 	else:
 		thumbPath = os.path.join(metadata_dir, "ThumbExports")
 	
@@ -606,7 +619,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
 		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
 
-	######## Iterate Through the XML for Bars detection ########
+	######## Iterate Through the XML for content detection ########
 	if qct_parse['detectContent'] and qct_parse['contentFilter'] != None:
 		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {qct_parse['contentFilter']}\n")
 		duration_str = get_duration(video_path)
