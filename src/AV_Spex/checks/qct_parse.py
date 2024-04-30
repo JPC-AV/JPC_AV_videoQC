@@ -19,8 +19,8 @@ import sys
 import re
 import yaml
 import operator
-from utils.log_setup import logger
-from utils.find_config import config_path, command_config			
+from ..utils.log_setup import logger
+from ..utils.find_config import config_path, command_config			
 
 
 def get_duration(video_path):
