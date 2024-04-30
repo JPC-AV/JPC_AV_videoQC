@@ -402,7 +402,7 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 				if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time
 					if durationEnd:
 						if float(frame_pkt_dts_time) > durationEnd:		# only work on frames that are before the end time
-							logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frame_pkt_dts_time)} seconds {dts2ts(frame_pkt_dts_time)} or {str(frameCount)} frames")
+							logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frame_pkt_dts_time)} seconds {dts2ts(frame_pkt_dts_time)}")
 							break
 					frameDict = {}  								# start an empty dict for the new frame
 					frameDict[pkt] = frame_pkt_dts_time  			# make a key for the timestamp, which we have now
@@ -605,6 +605,51 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	if qct_parse['barsDetection']:
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
 		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
+		if durationStart != "" and durationEnd != "":
+			with gzip.open(startObj) as xml:	
+				for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
+					if elem.attrib['media_type'] == "video": 	# get just the video frames
+						frame_pkt_dts_time = elem.attrib[pkt] 	# get the timestamps for the current frame we're looking at
+						if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time
+							if float(frame_pkt_dts_time) > durationEnd:		# only work on frames that are before the end time
+								logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frame_pkt_dts_time)} seconds {dts2ts(frame_pkt_dts_time)}")
+								break
+							frameDict = {}  								# start an empty dict for the new frame
+							frameDict[pkt] = frame_pkt_dts_time  			# make a key for the timestamp, which we have now
+							for t in list(elem):    						# iterating through each attribute for each element
+								keySplit = t.attrib['key'].split(".")   	# split the names by dots 
+								keyName = str(keySplit[-1])             	# get just the last word for the key name
+								if len(keyName) == 1:						# if it's psnr or mse, keyName is gonna be a single char
+									keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
+								frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
+							framesList.append(frameDict)					# add this dict to our circular buffer
+				# Define the keys for which you want to calculate the average
+				keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
+
+				# Initialize dictionaries to store the sum and count for each key
+				sum_dict = {key: 0 for key in keys_to_average}
+				count_dict = {key: 0 for key in keys_to_average}
+
+				# Iterate over each frame dictionary in framesList
+				for frameDict in framesList:
+					# Iterate over each key you're interested in
+					for key in keys_to_average:
+						# Check if the key exists in the current frame dictionary
+						if key in frameDict:
+							# If the key exists, add its value to the sum for that key
+							sum_dict[key] += float(frameDict[key])
+							# Increment the count for that key
+							count_dict[key] += 1
+
+				# Initialize a dictionary to store the average values
+				average_dict = {key: sum_dict[key] / count_dict[key] if count_dict[key] > 0 else 0 for key in keys_to_average}
+
+				# Print the average values
+				for key, value in average_dict.items():
+					print(f"Average {key}: {value}")
+		else:
+			print("no bars")
+
 
 	######## Iterate Through the XML for Bars detection ########
 	if qct_parse['detectContent'] and qct_parse['contentFilter'] != None:
