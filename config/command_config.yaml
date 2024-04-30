@@ -30,8 +30,8 @@ tools:
     over:
     under:
     profile:
-    thumbExport: false
+    thumbExport: 
     thumbExportDelay: 
-    barsDetection: false
-    detectContent: true
+    barsDetection: False
+    detectContent: False
     contentFilter: silence

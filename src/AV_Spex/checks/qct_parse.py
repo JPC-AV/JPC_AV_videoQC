@@ -413,7 +413,7 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
-					if qct_parse['profile'] is True:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
+					if qct_parse['profile']:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
 						logger.debug(framesList[-1][pkt] + ": " + qct_parse['tagname'] + " " + framesList[-1][qct_parse['tagname']])
 					# Now we can parse the frame data from the buffer!	
 					if qct_parse['over'] or qct_parse['under'] and qct_parse['profile'] is None: # if we're just doing a single tag
@@ -573,7 +573,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	else:
 		thumbPath = os.path.join(metadata_dir, "ThumbExports")
 	
-	if qct_parse['thumbExport'] != 'false':
+	if qct_parse['thumbExport']:
 		if not os.path.exists(thumbPath):
 			os.makedirs(thumbPath)
 	
