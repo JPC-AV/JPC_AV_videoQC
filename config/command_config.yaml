@@ -33,5 +33,6 @@ tools:
     thumbExport: 
     thumbExportDelay: 
     barsDetection: True
+    evaluateBars: True
     detectContent: False
     contentFilter: silence
