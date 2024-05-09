@@ -19,6 +19,7 @@ import sys
 import re
 import yaml
 import operator
+from statistics import mean, median
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config			
 
@@ -527,6 +528,16 @@ def printresults(qct_parse,kbeyond,frameCount,overallFrameFail, qctools_check_ou
 				f.write("\nFrames With At Least One Fail:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
 			f.write("\n**************************")
 	return
+
+# Define the percentage of values to trim from each end
+trim_percentage = 0.1
+
+# Function to calculate trimmed mean
+def trimmed_mean(data):
+    sorted_data = sorted(data)
+    trim_size = int(len(sorted_data) * trim_percentage)
+    trimmed_data = sorted_data[trim_size:-trim_size]
+    return mean(trimmed_data)
 	
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	"""
@@ -662,8 +673,27 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				average_dict = {key: sum_dict[key] / count_dict[key] if count_dict[key] > 0 else 0 for key in keys_to_average}
 
 				# Print the average values
-				#for key, value in average_dict.items():
-				#	print(f"Average {key}: {value}")
+				print("MEAN VALUES:")
+				for key, value in average_dict.items():
+					print(f"Average {key}: {value}")
+				print(f"\n\n")
+
+				# Calculate the trimmed mean for each key
+				trimmed_average_dict = {key: trimmed_mean([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
+
+				# Print the average values
+				print("TRIMMED MEAN VALUES:")
+				for key, value in trimmed_average_dict.items():
+					print(f"Average {key}: {value}")
+				print(f"\n\n")
+
+				# Calculate the median for each key
+				median_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
+				# Print the average values
+				print("MEDIAN VALUES:")
+				for key, value in median_dict.items():
+					print(f"Average {key}: {value}")
+				print(f"\n\n")
 		else:
 			logger.error("No color bars detected")
 
