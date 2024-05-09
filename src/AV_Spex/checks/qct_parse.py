@@ -651,17 +651,15 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 									keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 								frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 							framesList.append(frameDict)					# add this dict to our circular buffer
-				# Define the keys for which you want to calculate the average
-				keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
-
-				# Initialize a dictionary to store the average values
-				average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
-				
 		else:
 			logger.error("No color bars detected")
 
 	######## Iterate Through the XML for Bars Evaluation ########
 	if qct_parse['evaluateBars']:
+		# Define the keys for which you want to calculate the average
+		keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
+		# Initialize a dictionary to store the average values
+		average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
 		if average_dict is None:
 			logger.critical(f"Cannot run evaluate color bars")
 		else:
