@@ -364,6 +364,20 @@ def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,fra
 		else:
 			logger.error(f"No segments found matching content filter: {contentFilter_name}")
 
+def getCompFromConfig(qct_parse,tag):
+	if qct_parse['profile']:
+		if "MIN" in tag or "LOW" in tag:
+			comp_op = operator.lt
+		else:
+			comp_op = operator.gt
+	if qct_parse['evaluateBars']: 
+		if "MIN" in tag:
+			comp_op = operator.gt
+		else:
+			comp_op = operator.lt
+	return comp_op
+
+
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	"""
     Analyzes video frames to detect exceeded specified thresholds defined in a profile or tag,
@@ -387,8 +401,9 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
     Returns:
         tuple: A tuple containing a dictionary of tags with the count of their exceedances, total frame count, and count of overall frame failures.
     """
-	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
-	fots = ""
+	
+	kbeyond = {} 		# init a dict for each key which we'll use to track how often a given key is over
+	fots = "" 			# acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count for qct_parse['profile'] or qct_parse['evaluateBars']
 	if qct_parse['tagname']:
 		kbeyond[qct_parse['tagname']] = 0 
 	else:
@@ -413,9 +428,10 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
-					if qct_parse['profile']:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
-						logger.debug(framesList[-1][pkt] + ": " + qct_parse['tagname'] + " " + framesList[-1][qct_parse['tagname']])
-					# Now we can parse the frame data from the buffer!	
+					if qct_parse['profile']:						
+						logger.debug(framesList[-1][pkt] + ": " + qct_parse['tagname'] + " " + framesList[-1][qct_parse['tagname']])	# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
+					# Now we can parse the frame data
+					# if a single tag is selected, we only need to loop through the frames once
 					if qct_parse['over'] or qct_parse['under'] and qct_parse['profile'] is None: # if we're just doing a single tag
 						tag = qct_parse['tagname']
 						if qct_parse['over']:
@@ -429,32 +445,13 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 						frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
 						if frameOver is True:
 							kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
-					elif qct_parse['profile']: # if we're using a profile
+					# elif multiple tags need to be checked, we need to loop through per tag
+					elif qct_parse['profile'] or qct_parse['evaluateBars']: 
 						for k,v in profile.items():
 							# confirm k (tag) is in config.yaml profile
 							if v is not None:
 								tag = k
-								if "MIN" in tag or "LOW" in tag:
-									comp_op = operator.lt
-								else:
-									comp_op = operator.gt
-								over = float(v)
-								# ACTUALLY DO THE THING ONCE FOR EACH TAG
-								frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
-								if frameOver is True:
-									kbeyond[k] = kbeyond[k] + 1 # note the over in the key over dict
-									if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
-										overallFrameFail = overallFrameFail + 1
-										fots = frame_pkt_dts_time # set it again so we don't dupe
-					elif qct_parse['evaluateBars']: 
-						for k,v in profile.items():
-							# confirm k (tag) is in config.yaml profile
-							if v is not None:
-								tag = k
-								if "MIN" in tag in tag:
-									comp_op = operator.gt
-								else:
-									comp_op = operator.lt
+								comp_op = getCompFromConfig(qct_parse,tag)
 								over = float(v)
 								# ACTUALLY DO THE THING ONCE FOR EACH TAG
 								frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
@@ -668,17 +665,18 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				#for key, value in average_dict.items():
 				#	print(f"Average {key}: {value}")
 		else:
-			print("no bars")
+			logger.error("No color bars detected")
 
 	######## Iterate Through the XML for Bars Evaluation ########
 	if qct_parse['evaluateBars']:
 		if average_dict is None:
-			logger.critical(f"Cannot run evaluate color bars ")
-		logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
-		durationStart = 0
-		durationEnd = 99999999
-		profile = average_dict
-		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+			logger.critical(f"Cannot run evaluate color bars")
+		else:
+			logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
+			durationStart = 0
+			durationEnd = 99999999
+			profile = average_dict
+			kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 
 	######## Iterate Through the XML for Content detection ########
 	if qct_parse['detectContent'] and qct_parse['contentFilter'] != None:
