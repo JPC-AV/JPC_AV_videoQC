@@ -19,7 +19,7 @@ import sys
 import re
 import yaml
 import operator
-from statistics import mean, median
+from statistics import median
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config			
 
@@ -654,46 +654,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				# Define the keys for which you want to calculate the average
 				keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
 
-				# Initialize dictionaries to store the sum and count for each key
-				sum_dict = {key: 0 for key in keys_to_average}
-				count_dict = {key: 0 for key in keys_to_average}
-
-				# Iterate over each frame dictionary in framesList
-				for frameDict in framesList:
-					# Iterate over each key you're interested in
-					for key in keys_to_average:
-						# Check if the key exists in the current frame dictionary
-						if key in frameDict:
-							# If the key exists, add its value to the sum for that key
-							sum_dict[key] += float(frameDict[key])
-							# Increment the count for that key
-							count_dict[key] += 1
-
 				# Initialize a dictionary to store the average values
-				average_dict = {key: sum_dict[key] / count_dict[key] if count_dict[key] > 0 else 0 for key in keys_to_average}
-
-				# Print the average values
-				print("MEAN VALUES:")
-				for key, value in average_dict.items():
-					print(f"Average {key}: {value}")
-				print(f"\n\n")
-
-				# Calculate the trimmed mean for each key
-				trimmed_average_dict = {key: trimmed_mean([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
-
-				# Print the average values
-				print("TRIMMED MEAN VALUES:")
-				for key, value in trimmed_average_dict.items():
-					print(f"Average {key}: {value}")
-				print(f"\n\n")
-
-				# Calculate the median for each key
-				median_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
-				# Print the average values
-				print("MEDIAN VALUES:")
-				for key, value in median_dict.items():
-					print(f"Average {key}: {value}")
-				print(f"\n\n")
+				average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
+				
 		else:
 			logger.error("No color bars detected")
 
