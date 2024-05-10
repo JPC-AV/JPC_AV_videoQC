@@ -194,6 +194,25 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 			elem.clear() # we're done with that element so let's get it outta memory
 	return durationStart, durationEnd
 
+def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
+	with gzip.open(startObj) as xml:	
+		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
+			if elem.attrib['media_type'] == "video": 	# get just the video frames
+				frame_pkt_dts_time = elem.attrib[pkt] 	# get the timestamps for the current frame we're looking at
+				if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time
+					if float(frame_pkt_dts_time) > durationEnd:		# only work on frames that are before the end time
+						logger.debug(f"qct-parse bars detection complete")
+						break
+					frameDict = {}  								# start an empty dict for the new frame
+					frameDict[pkt] = frame_pkt_dts_time  			# make a key for the timestamp, which we have now
+					for t in list(elem):    						# iterating through each attribute for each element
+						keySplit = t.attrib['key'].split(".")   	# split the names by dots 
+						keyName = str(keySplit[-1])             	# get just the last word for the key name
+						if len(keyName) == 1:						# if it's psnr or mse, keyName is gonna be a single char
+							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
+						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
+					framesList.append(frameDict)					# add this dict to our circular buffer
+
 def get_duration(video_path):
 	"""
     Retrieves the duration of a video file using ffprobe.
@@ -633,29 +652,12 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	if qct_parse['barsDetection']:
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
 		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
-		if durationStart != "" and durationEnd != "":
-			with gzip.open(startObj) as xml:	
-				for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
-					if elem.attrib['media_type'] == "video": 	# get just the video frames
-						frame_pkt_dts_time = elem.attrib[pkt] 	# get the timestamps for the current frame we're looking at
-						if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time
-							if float(frame_pkt_dts_time) > durationEnd:		# only work on frames that are before the end time
-								logger.debug(f"qct-parse bars detection complete")
-								break
-							frameDict = {}  								# start an empty dict for the new frame
-							frameDict[pkt] = frame_pkt_dts_time  			# make a key for the timestamp, which we have now
-							for t in list(elem):    						# iterating through each attribute for each element
-								keySplit = t.attrib['key'].split(".")   	# split the names by dots 
-								keyName = str(keySplit[-1])             	# get just the last word for the key name
-								if len(keyName) == 1:						# if it's psnr or mse, keyName is gonna be a single char
-									keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
-								frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
-							framesList.append(frameDict)					# add this dict to our circular buffer
-		else:
+		if durationStart == "" and durationEnd == "":
 			logger.error("No color bars detected")
 
 	######## Iterate Through the XML for Bars Evaluation ########
 	if qct_parse['evaluateBars']:
+		evalBars(startObj,pkt,durationStart,durationEnd,framesList)
 		# Define the keys for which you want to calculate the average
 		keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
 		# Initialize a dictionary to store the average values
