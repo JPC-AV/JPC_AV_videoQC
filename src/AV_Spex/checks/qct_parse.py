@@ -285,10 +285,9 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 	start_time = None
 	end_time = None
 
-	with open(qctools_check_output, 'w') as f:
+	with open(qctools_check_output, 'a') as f:
 		f.write("**************************\n")
-		f.write("\nqct-parse results summary:\n")
-		f.write("\n**************************\n")
+		f.write("\nqct-parse content detection summary:\n")
 		f.write(f"\nSegments found within thresholds of content filter {contentFilter_name}:\n")
 
 		for i in range(len(sorted_durations)):
@@ -448,8 +447,6 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
-					if qct_parse['profile']:						
-						logger.debug(framesList[-1][pkt] + ": " + qct_parse['tagname'] + " " + framesList[-1][qct_parse['tagname']])	# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
 					# Now we can parse the frame data
 					# if a single tag is selected, we only need to loop through the frames once
 					if qct_parse['over'] or qct_parse['under'] and qct_parse['profile'] is None: # if we're just doing a single tag
@@ -499,9 +496,10 @@ def printresults(qct_parse,kbeyond,frameCount,overallFrameFail, qctools_check_ou
     Returns:
         None
     """
-	with open(qctools_check_output, 'w') as f:
+	with open(qctools_check_output, 'a') as f:
 		f.write("**************************\n")
-		f.write("\nqct-parse results summary:\n")
+		if qct_parse['evaluateBars']: 
+			f.write("\nqct-parse color bars evaluation summary:\n")
 		if frameCount == 0:
 			percentOverString = "0"
 		else:
@@ -543,20 +541,11 @@ def printresults(qct_parse,kbeyond,frameCount,overallFrameFail, qctools_check_ou
 			f.write("\n\nOverall:")
 			if qct_parse['evaluateBars']:
 				f.write("\nFrames Within MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
-			else:
+			if qct_parse['over'] or qct_parse['under'] or qct_parse['profile']:
 				f.write("\nFrames With At Least One Fail:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
 			f.write("\n**************************")
 	return
 
-# Define the percentage of values to trim from each end
-trim_percentage = 0.1
-
-# Function to calculate trimmed mean
-def trimmed_mean(data):
-    sorted_data = sorted(data)
-    trim_size = int(len(sorted_data) * trim_percentage)
-    trimmed_data = sorted_data[trim_size:-trim_size]
-    return mean(trimmed_data)
 	
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	"""
@@ -690,6 +679,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	
 	# do some maths for the printout
 	if qct_parse['over'] or qct_parse['under'] or qct_parse['profile'] or qct_parse['evaluateBars']:
+		#prtinresults is currently only writing evaluate bars profile and not config profile summary. 
 		printresults(qct_parse,kbeyond,frameCount,overallFrameFail,qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}")
 	

@@ -29,10 +29,10 @@ tools:
     tagname: 
     over:
     under:
-    profile:
+    profile: lowTolerance
     thumbExport: 
     thumbExportDelay: 
     barsDetection: True
     evaluateBars: True
-    detectContent: False
+    detectContent: True
     contentFilter: silence
