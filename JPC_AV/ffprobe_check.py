@@ -9,7 +9,6 @@ import json
 import csv
 from log_setup import logger
 from find_config import config_path
-from encoder_settings_check import parse_encoder_settings
 
 ## creates the function 'parse_exiftool' which takes the argument 'file_path' 
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
@@ -82,28 +81,27 @@ def parse_ffprobe(file_path):
         encoder_settings_string = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
         encoder_settings_list = re.split(r'\s*;\s*', encoder_settings_string)
         # Expected number of values for each key
-        expected_values_count = {'Source VTR': 4, 'Frame sync': 3, 'Capture Device': 3, 'Computer': 4}
+        expected_values_count = {'Source VTR': 4, 'Frame sync': 3, 'Capture Device': 3, 'Computer': 5}
         sn_strings = ["SN ", "SN-", "SN##"]
         encoder_settings_dict = {}
         for encoder_settings_device in encoder_settings_list:
-            key, *values = re.split(r'\s*:\s*|\s*,\s*', encoder_settings_device)
-            encoder_settings_dict[key] = values
+            device_field_name, *device_subfields_w_values = re.split(r'\s*:\s*|\s*,\s*', encoder_settings_device)
+            encoder_settings_dict[device_field_name] = device_subfields_w_values
         for expected_key, expected_value in expected_settings_values.items():
             # defines variables "expected_key" and "expected_value" to the dictionary "expected_settings_values"
-                if expected_key in encoder_settings_dict:
-                    # if the key in the dictionary "encoder_settings_dict"
-                    for key, expected_count in expected_values_count.items():
-                        # Check if each key in encoder_settings has the correct number of values
-                        values = encoder_settings_dict.get(key, [])
-                        if len(values) != expected_count:
-                            ffprobe_differences.append(f"Encoder setting {key} has {len(values)} subfields, expected {expected_count}")
-                    for key, value in encoder_settings_dict.items():
-                        has_serial_number = any(any(sn_format.lower() in value.lower() for sn_format in sn_strings) for value in values)
-                        if not has_serial_number:
-                            ffprobe_differences.append(f"Encoder Settings field '{key}' does not contain a recognized serial number format (starting with 'SN ', 'SN-', 'SN##' - not case sensitive)")       
-                else:
-                    ffprobe_differences.append(f"Encoder setting field {expected_key} was not found\n")
+                if expected_key not in encoder_settings_dict:
                     # append this string to the list "ffprobe_differences"
+                    ffprobe_differences.append(f"Encoder setting field {expected_key} was not found\n")
+                elif len(encoder_settings_dict[expected_key]) != float(expected_values_count[expected_key]):
+                    ffprobe_differences.append(f"Encoder setting field '{expected_key}' has {len(encoder_settings_dict[expected_key])} subfields, expected {expected_values_count[expected_key]}")
+                else:
+                    encoder_settings_pass = 'yes'
+        if encoder_settings_pass:
+            for field, subfields in encoder_settings_dict.items():
+                has_serial_number = any(any(sn_format.lower() in subfield.lower() for sn_format in sn_strings) for subfield in subfields)
+                if not has_serial_number:
+                    ffprobe_differences.append(f"Encoder Settings field '{field}' does not contain a recognized serial number format (starting with 'SN ', 'SN-', 'SN##' - not case sensitive)")
+                    ffprobe_differences.append(f"Encoder Settings field '{field}' has the following subfields and values: {subfields}")
     else:
         logger.critical(f"No 'encoder settings' in ffprobe output\n")
 
