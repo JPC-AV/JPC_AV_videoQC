@@ -96,30 +96,10 @@ ffmpeg_values:
       ENCODER:
       TITLE: 
       ENCODER_SETTINGS: 
-        settings_1:
-          O: VHS 
-          C: Color 
-          S: Analog
-          VS: NTSC
-          F: '24'
-          A: '4:3'
-          R: '640×480'
-          T: 'Sony SVO-5800'
-        settings_2:
-          O: FFV1mkv 
-          C: Color 
-          V: Composite
-          S: Analog Stereo
-          F: '24' 
-          A: '4:3' 
-          W: 10-bit 
-          R: '640×480' 
-          M: YUV422p10 
-          T: Blackmagic UltraStudio 4K Mini SN123456, ffmpeg vrecord; in-house
-        settings_3:
-          O: FFV1mkv 
-          W: 10-bit, 'R640x480', MYUV422p10
-          N: AJ Lawrence
+        Source VTR:
+        Frame sync:
+        Capture Device:
+        Computer:
       DESCRIPTION:  
       ORIGINAL MEDIA TYPE: 
       ENCODED_BY:
