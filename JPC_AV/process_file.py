@@ -22,7 +22,7 @@ from mediainfo_check import parse_mediainfo
 from exiftool_check import parse_exiftool
 from ffprobe_check import parse_ffprobe
 from embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
-from yaml_profiles import apply_profile, profile_step1, profile_step2
+from yaml_profiles import apply_profile, update_config, profile_step1, profile_step2, JPC_AV_SVHS, bowser_filename, JPCAV_filename
 from make_access import make_access_file
 
 # Read command_config.yaml and retrieve log level
@@ -151,6 +151,8 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Process video file with optional settings")
     parser.add_argument("paths", nargs='+', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
+    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS"], help="Select signal flow config type (JPC_AV_SVHS)")
+    parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
     parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
     parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
 
@@ -180,7 +182,19 @@ def parse_arguments():
         elif args.profile == "step2":
             selected_profile = profile_step2
 
-    return source_directories, selected_profile
+    sn_config_changes = None
+    if args.signalflow:
+        if args.signalflow == "JPC_AV_SVHS":
+            sn_config_changes = JPC_AV_SVHS
+    
+    fn_config_changes = None
+    if args.filename:
+        if args.filename == "jpc":
+            fn_config_changes = JPCAV_filename
+        elif args.filename =="bowser":
+            fn_config_changes = bowser_filename
+
+    return source_directories, selected_profile, sn_config_changes, fn_config_changes
 
 def main():
     '''
@@ -189,7 +203,7 @@ def main():
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
-    source_directories, selected_profile = parse_arguments()
+    source_directories, selected_profile, sn_config_changes, fn_config_changes = parse_arguments()
 
     check_py_version()
     
@@ -200,6 +214,12 @@ def main():
     
     if selected_profile:
         apply_profile(command_config, selected_profile)
+
+    if sn_config_changes:
+        update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+
+    if fn_config_changes:
+        update_config(config_path, 'filename_values', fn_config_changes)
 
     check_filenames(source_directories)
 

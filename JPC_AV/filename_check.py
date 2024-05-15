@@ -17,23 +17,27 @@ def find_all_filenames(source_directory, found_mkvs):
     
     return found_mkvs
 
-def is_valid_filename(video_filename, failed_mkvs):
-    '''
-    Locates approved values for the file name, stored in key:value pairs under 'filename_values' in config/config.yaml
-    The file name pattern is in 3 sections: Collection, Media type, and file extension
-    Approved values for each of these sections is stored in config/config.yaml
-    '''
-    approved_values = config_path.config_dict['filename_values']
-    
+
 def is_valid_filename(video_filename, failed_mkvs):
     '''
     Locates approved values for the file name, stored in key:value pairs under 'filename_values' in config/config.yaml
     The file name pattern is in 5 sections: Collection, ObjectID, Media type, Digital generation, and file extension
     Approved values for each of these sections are stored in config/config.yaml
     '''
+    # Reads filename_values from config.yaml into dictionary approved_values
     approved_values = config_path.config_dict['filename_values']
-    
-    pattern = r'^{Collection}_{MediaType}_{ObjectID}_{DigitalGeneration}\.{FileExtension}$'.format(**approved_values)
+
+    #initialize list pattern_parts
+    pattern_parts = []
+    # Read values from each key:value pair in approved_values dictionary and append them to the list pattern_parts
+    for approved_name_key, approved_name_value in approved_values.items():
+        if approved_name_key == 'ObjectID':
+            pattern_parts.append(approved_name_value)
+        else:
+            pattern_parts.append(re.escape(approved_name_value))
+    # Then piece the parts of the approved values into the file name pattern that the input video will be tested against
+    # The pattern has to account for the last value in the approved_values dict being a file extension instead of a file name "field"
+    pattern = '_'.join(pattern_parts[:-1]) + '.' + pattern_parts[-1]
     
     # Check if the filename matches the pattern
     if re.match(pattern, video_filename, re.IGNORECASE):

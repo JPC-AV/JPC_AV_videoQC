@@ -84,6 +84,7 @@ def parse_ffprobe(file_path):
         expected_values_count = {'Source VTR': 4, 'TBC': 3, 'Framesync': 3, 'ADC': 3, 'Capture Device': 3, 'Computer': 5}
         sn_strings = ["SN ", "SN-", "SN##"]
         encoder_settings_dict = {}
+        encoder_settings_pass = False
         for encoder_settings_device in encoder_settings_list:
             device_field_name, *device_subfields_w_values = re.split(r'\s*:\s*|\s*,\s*', encoder_settings_device)
             encoder_settings_dict[device_field_name] = device_subfields_w_values
