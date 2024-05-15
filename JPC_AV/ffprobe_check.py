@@ -81,7 +81,7 @@ def parse_ffprobe(file_path):
         encoder_settings_string = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
         encoder_settings_list = re.split(r'\s*;\s*', encoder_settings_string)
         # Expected number of values for each key
-        expected_values_count = {'Source VTR': 4, 'Frame sync': 3, 'Capture Device': 3, 'Computer': 5}
+        expected_values_count = {'Source VTR': 4, 'TBC': 3, 'Framesync': 3, 'ADC': 3, 'Capture Device': 3, 'Computer': 5}
         sn_strings = ["SN ", "SN-", "SN##"]
         encoder_settings_dict = {}
         for encoder_settings_device in encoder_settings_list:

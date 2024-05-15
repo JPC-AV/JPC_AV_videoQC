@@ -97,7 +97,9 @@ ffmpeg_values:
       TITLE: 
       ENCODER_SETTINGS: 
         Source VTR:
-        Frame sync:
+        TBC:
+        Framesync:
+        ADC:
         Capture Device:
         Computer:
       DESCRIPTION:  
