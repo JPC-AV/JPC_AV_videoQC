@@ -28,7 +28,7 @@ tools:
   qct-parse:
     tagname:
     - [YMAX, gt, 900]
-    - [YHIGH, gt, 700]
+    - [YHGIH, gt, 700]
     profile:
     thumbExport: 
     thumbExportDelay: 

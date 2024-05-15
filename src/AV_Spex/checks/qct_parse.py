@@ -391,7 +391,11 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 	fots = ""
 	if qct_parse['tagname']:
 		for each_tag, tag_operator, tag_thresh in qct_parse['tagname']:
-			kbeyond[each_tag] = 0 
+			if each_tag not in profile:
+				logger.critical(f"The tag name {each_tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
+				break
+			else:
+				kbeyond[each_tag] = 0 
 	else:
 		for k,v in profile.items(): 
 			kbeyond[k] = 0
@@ -575,8 +579,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	
 	profile = {} # init a dictionary where we'll store reference values from config.yaml file
 	
-	# init a list of every tag available in a QCTools Report
-	tagList = ["YMIN","YLOW","YAVG","YHIGH","YMAX","UMIN","ULOW","UAVG","UHIGH","UMAX","VMIN","VLOW","VAVG","VHIGH","VMAX","SATMIN","SATLOW","SATAVG","SATHIGH","SATMAX","HUEMED","HUEAVG","YDIF","UDIF","VDIF","TOUT","VREP","BRNG","mse_y","mse_u","mse_v","mse_avg","psnr_y","psnr_u","psnr_v","psnr_avg"]
+	# init a list of every tag available in a QCTools Report from the fullTagList in the config.yaml
+	tagList = list(config_path.config_dict['qct-parse']['fullTagList'].keys())
 	
 	if qct_parse['profile'] is not None:
 		template = qct_parse['profile'] # get the profile/ section name from the command config
@@ -585,6 +589,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 			for t in tagList:
 				if t in config_path.config_dict['qct-parse']['profiles'][template]:
 					profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
+	elif qct_parse['tagname'] is not None:
+		profile = config_path.config_dict['qct-parse']['fullTagList']
 	
 	# open qctools report 
 	# determine if report stores pkt_dts_time or pkt_pts_time
