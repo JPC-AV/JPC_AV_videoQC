@@ -364,7 +364,7 @@ def main():
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
             qctools_check_output = os.path.join(destination_directory, f'{video_id}_qct-parse_summary.txt')
             if not os.path.isfile(qctools_output_path):
-                logger.critical(f"Error: {qctools_output_path} is not a valid file.")
+                logger.critical(f"Unable to check qctools report. No file found at this path: {qctools_output_path}.")
             else:
                 run_qctparse(video_path, qctools_output_path, qctools_check_output)
         
@@ -382,7 +382,6 @@ def main():
         dir_end_time = time.time()
         dir_total_time = dir_end_time - dir_start_time
         formatted_total_time = time.strftime("%H:%M:%S", time.gmtime(dir_total_time))
-        #print(f"Process time for {video_id}: time start: {dir_start_time:%Y-%m-%d %H:%M:%S}")
 
         logger.info(f'\nProcess time for {video_id}: \ntime start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; \ntotal time: {formatted_total_time}')
         
