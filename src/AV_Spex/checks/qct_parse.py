@@ -389,7 +389,7 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
     """
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
 	fots = ""
-	if qct_parse['tagname']:
+	if profile == config_path.config_dict['qct-parse']['fullTagList']:
 		for each_tag, tag_operator, tag_thresh in qct_parse['tagname']:
 			if each_tag not in profile:
 				logger.critical(f"The tag name {each_tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
@@ -589,8 +589,6 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 			for t in tagList:
 				if t in config_path.config_dict['qct-parse']['profiles'][template]:
 					profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
-	elif qct_parse['tagname'] is not None:
-		profile = config_path.config_dict['qct-parse']['fullTagList']
 	
 	# open qctools report 
 	# determine if report stores pkt_dts_time or pkt_pts_time
@@ -617,11 +615,16 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	elif qct_parse['detectContent'] and qct_parse['contentFilter'] == None:
 		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
-	
 	######## Iterate Through the XML for General Analysis ########
 	if qct_parse['tagname'] or qct_parse['profile']:
 		logger.debug(f"\nStarting qct-parse analysis on {baseName}")
-		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		if qct_parse['profile']:
+			kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+			logger.debug(f"qct-parse summary written to {qctools_check_output}")
+		if qct_parse['tagname']:
+			profile = config_path.config_dict['qct-parse']['fullTagList']
+			kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+			logger.debug(f"qct-parse summary written to {qctools_check_output}")
 			
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
 	

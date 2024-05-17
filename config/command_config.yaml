@@ -28,8 +28,8 @@ tools:
   qct-parse:
     tagname:
     - [YMAX, gt, 900]
-    - [YHGIH, gt, 700]
-    profile:
+    - [YHIGH, gt, 700]
+    profile: 'lowTolerance'
     thumbExport: 
     thumbExportDelay: 
     barsDetection: false
