@@ -2,53 +2,103 @@
 AV processing scripts for the Johnson Publishing Company archive
 
 ## Introduction:
+![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/av_spex_the_logo.png?raw=true)
 This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications. 
 
-## Requirements:
-An installation script is on our Roadmap and will be implemented in the future. In the meantime please find dependencies below:
+----
 
-The scripts are written and tested in the follow environemnt:
-`conda create -n JPC_AV python=3.10.13`
+## Requirements
 
-(conda is not a requirement for running these scripts, any python 3.10 + environement is compatible.)
+### Python Version
+- Python 3.10 or higher is required.
 
-You can install conda with homebrew: `brew install --cask anaconda` && `export PATH="/usr/local/anaconda3/bin:$PATH"` (or `export PATH="/opt/homebrew/anaconda3/bin:$PATH"` depending on Apple Silicon)
+### Installation
+While an automated installation script is in development, users currently need to manually manage dependencies. Below are the instructions for setting up a compatible Python environment using Conda, although Conda is optional - any Python 3.10+ environment should be compatible.
 
-or https://conda.io/projects/conda/en/latest/user-guide/install/macos.html
+#### Setting Up Conda
+1. **Install Conda:**
+   - Via Homebrew: `brew install --cask anaconda`
+   - Alternatively, follow the installation guide on [Anaconda's official website](https://conda.io/projects/conda/en/latest/user-guide/install/macos.html).
 
-Install necessary python modules which are not built-in using pip and requirements.txt:
-`pip install -r requirements.txt`
+2. **Add Conda to Your Path:**
+   - Installation paths may vary based on your system's architecture (x86 or ARM).
+   - For Homebrew installations:
+     - ARM architecture: `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
+     - x86 architecture: `export PATH="/usr/local/anaconda3/bin:$PATH"`
 
-Lastly, these scripts make use of the following command line tools:
+3. **Initialize Conda:**
+   - For Bash: `conda init`
+   - For Zsh: `conda init zsh`
+   - To check your shell, run: `echo $SHELL`
+
+#### Create an Isolated Environment
+- To create an environment with the required Python version:
+  ```bash
+  conda create -n JPC_AV python=3.10.13
+  ```
+
+### Required Command Line Tools
+
+The following command line tools are necessary and must be installed separately:
 - MediaConch
 - MediaInfo
 - Exiftool
 - ffmpeg
 - QCTools
 
-## Running the scripts:
+## Installation of AV Spex Scripts
 
-Usage:
-`python JPC_AV/process_file.py [path/to/video_file.mkv]`
+### Initial Setup
 
-All actions performed by process_file.py are recorded in a log file located here:`logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log`
+1. **Navigate to the Project Root Directory:**
+   ```bash
+   cd path-to/JPC_AV/JPC_AV_videoQC
+   ```
 
-The process_file.py will first check to ensure that the video file matches the JPC_AV file naming convention, such as `JPC_AV_00001.mkv`
-If the file does not match the file naming convention, the script will exit. 
+2. **Install the AV Spex Scripts in Editable Mode:**
+   ```bash
+   python -m pip install -e .
+   ```
 
-process_file.py will run metadata tools on the input video file. The available tools are:
-- MediaConch (checks files against the MediaConch poilcy listed in 'config/command_config.yaml')
-- MediaInfo ("full" or `-f` output)
-- Exiftool
-- ffprobe (output in JSON format)
-- QCTools
+Verify the installation by running:
+```bash
+av-spex --help
+```
 
-These tools can be toggled on/off by changing the config/command_config.yaml file. Set tools to 'yes' to run them 'no' to turn them off. 
+## Usage
 
-Outputs are written to the same directory as the input file.
+Execute the scripts with:
+```bash
+av-spex [path/to/directory]
+```
 
-The outputs of these metadata tools are then checked against expected values. 
+### Logging
+All operations are recorded in a log file located at:
+```
+logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log
+```
 
-Expected values are stored in config/config.yaml. These checks can be turned on or off from config/command_config.yaml
+### File Validation
+- AV Spex checks if the video file follows the JPC_AV naming convention (e.g., `JPC_AV_00001.mkv`). The script exits if the naming convention is not met.
 
-Successful checks are recorded to the log file, unsuccessful checks are recorded to the log, saved to a CSV called {filename}_metadata_difference_YYYYMMDD_HH-MM-SS.csv, and printed to the terminal (STOUT).
+### Metadata Analysis and Configuration
+- Various metadata tools are run on the video files, which can be enabled or disabled in the `config/command_config.yaml` file.
+- Tools include:
+  - **MediaConch**: Checks compliance with specific policies.
+  - **MediaInfo**: Provides detailed file information.
+  - **Exiftool**: Edits and analyzes metadata.
+  - **ffprobe**: Outputs information in JSON format.
+  - **QCTools**: Analyzes video quality.
+- Expected output values are configured in `config/config.yaml`.
+
+### Output and Validation
+- Outputs are saved in a subdirectory within the input directory named: [input_dir_name]_qc_metadata.
+- Outputs are validated against predefined expectations, with results logged and failures also printed to the terminal (STDOUT).
+- Toggle outputs and metadata validation checks on/off from the command_config.yaml
+- The 'qctools_check' uses the open source tool [qct-parse](https://github.com/amiaopensource/qct-parse) to check for individual tags, profiles, or specific content. The parameters of profilea and content filters are defined in the config.yaml
+
+---
+
+## Contributing
+Contributions that enhance script functionality are welcome. Please ensure compatibility with Python 3.10 or higher.
+

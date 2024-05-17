@@ -2,8 +2,8 @@ import os
 import re
 import sys
 import logging
-from log_setup import logger
-from find_config import config_path, command_config
+from ..utils.log_setup import logger
+from ..utils.find_config import config_path, command_config
 
 def find_all_filenames(source_directory, found_mkvs):
     # Create empty list to store any found mkv files

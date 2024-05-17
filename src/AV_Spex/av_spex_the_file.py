@@ -13,32 +13,19 @@ import argparse
 import time
 from art import *
 from datetime import datetime
-from log_setup import logger, console_handler
-from deps_setup import required_commands, check_external_dependency, check_py_version
-from find_config import config_path, command_config
-from fixity_check import check_fixity, output_fixity
-from filename_check import check_filenames
-from mediainfo_check import parse_mediainfo
-from exiftool_check import parse_exiftool
-from ffprobe_check import parse_ffprobe
-from embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
-from yaml_profiles import apply_profile, update_config, profile_step1, profile_step2, JPC_AV_SVHS, bowser_filename, JPCAV_filename
-from make_access import make_access_file
 
-# Read command_config.yaml and retrieve log level
-log_level_str = command_config.command_dict['log_level']
-# Match log level from command_config.yaml to logging command
-log_level_mapping = {
-    'DEBUG': logging.DEBUG,
-    'INFO': logging.INFO,
-    'WARNING': logging.WARNING,
-    'ERROR': logging.ERROR,
-    'CRITICAL': logging.CRITICAL,
-}
-
-# Set the console_handler log level, the color output to terminal, based on the mapping
-if log_level_str in log_level_mapping:
-    console_handler.setLevel(log_level_mapping[log_level_str])
+from .utils.log_setup import logger
+from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
+from .utils.find_config import config_path, command_config
+from .utils.yaml_profiles import apply_profile, update_config, profile_step1, profile_step2, JPC_AV_SVHS, bowser_filename, JPCAV_filename
+from .checks.fixity_check import check_fixity, output_fixity
+from .checks.filename_check import check_filenames
+from .checks.mediainfo_check import parse_mediainfo
+from .checks.exiftool_check import parse_exiftool
+from .checks.ffprobe_check import parse_ffprobe
+from .checks.embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
+from .checks.make_access import make_access_file
+from .checks.qct_parse import run_qctparse
 
 def check_directory(source_directory, video_id):
     
@@ -72,10 +59,14 @@ def run_command(command, input_path, output_type, output_path):
     Run a shell command with 4 variables: command name, path to the input file, output type (often '>'), path to the output file
     '''
 
+    # Get the current PATH environment variable
+    env = os.environ.copy()
+    env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
+
     full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
 
-    logger.debug(f'\nrunning command: {full_command}')
-    subprocess.run(full_command, shell=True)
+    logger.debug(f'\nRunning command: {full_command}')
+    subprocess.run(full_command, shell=True, env=env)
 
 # Mediaconch needs its own function, because the command's flags and multiple inputs don't conform to the simple 3 part structure of the other commands
 def run_mediaconch_command(command, input_path, output_type, output_path):
@@ -96,7 +87,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     
     full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
-    logger.debug(f'running command: {full_command}')
+    logger.debug(f'\nRunning command: {full_command}')
     subprocess.run(full_command, shell=True)
 
 def move_vrec_files(directory, video_id):
@@ -167,13 +158,13 @@ def parse_arguments():
                 logger.critical(f"Error: {input_path} is not a valid file.")
                 sys.exit(1)
             source_directories.append(os.path.dirname(input_path))
-            logger.info(f'Input directory found: {(os.path.dirname(input_path))}')
+            logger.info(f'\nInput directory found: {(os.path.dirname(input_path))}\n')
         else:
             if not os.path.isdir(input_path):
                 logger.critical(f"Error: {input_path} is not a valid directory.")
                 sys.exit(1)
             source_directories.append(input_path)
-            logger.info(f'Input directory found: {input_path}')
+            logger.info(f'\nInput directory found: {input_path}\n')
 
     selected_profile = None
     if args.profile:
@@ -198,11 +189,15 @@ def parse_arguments():
 
 def main():
     '''
-    process_file.py takes 1 input file or directory as an argument, like this:
-    python process_file.py <input_directory> (or -f <input_file.mkv>)
+    av-spex takes 1 input file or directory as an argument, like this:
+    av-spex <input_directory> (or -f <input_file.mkv>)
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
+    avspex_icon = text2art("A-V Spex",font='5lineoblique')
+    print(f'\n{avspex_icon}\n\n')
+    time.sleep(1)
+    
     source_directories, selected_profile, sn_config_changes, fn_config_changes = parse_arguments()
 
     check_py_version()
@@ -211,7 +206,7 @@ def main():
         if not check_external_dependency(command):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
-    
+
     if selected_profile:
         apply_profile(command_config, selected_profile)
 
@@ -257,6 +252,7 @@ def main():
             else:
                 logger.critical(f"Existing stream hashes found!")
                 if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+                    logger.critical(f'New stream hashes will be generated and old hashes will be overwritten!')
                     embed_fixity(video_path)
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
                     logger.debug(f'Not writing stream hashes to MKV')
@@ -342,16 +338,23 @@ def main():
             parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
+        qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+        qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
         if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
-            qctools_ext = command_config.command_dict['outputs']['qctools_ext']
-            qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
             run_command('qcli -i', video_path, '-o', qctools_output_path)
 
+        if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
+            qctools_check_output = os.path.join(destination_directory, f'{video_id}_qct-parse_summary.txt')
+            if not os.path.isfile(qctools_output_path):
+                logger.critical(f"Error: {qctools_output_path} is not a valid file.")
+            else:
+                run_qctparse(video_path, qctools_output_path, qctools_check_output)
+        
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':
             make_access_file(video_path, access_output_path)
             
-        logger.debug(f'\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
+        logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
         ascii_video_id = text2art(video_id, font='small')
 

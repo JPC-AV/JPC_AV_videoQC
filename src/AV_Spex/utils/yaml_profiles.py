@@ -2,8 +2,8 @@ import os
 import sys
 import yaml
 import argparse
-from find_config import config_path, command_config
-from log_setup import logger, console_handler
+from ..utils.find_config import config_path, command_config
+from ..utils.log_setup import logger
 
 def represent_string(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')

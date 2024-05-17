@@ -1,5 +1,4 @@
 ---
-log_level: DEBUG
 outputs:
   access_file: 'no'
   difference_csv: 'no'
@@ -15,7 +14,7 @@ tools:
     check_exiftool: 'no'
     run_exiftool: 'no'
   ffprobe:
-    check_ffprobe: 'yes'
+    check_ffprobe: 'no'
     run_ffprobe: 'no'
   mediaconch:
     mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
@@ -24,5 +23,15 @@ tools:
     check_mediainfo: 'no'
     run_mediainfo: 'no'
   qctools:
-    check_qctools: 'no'
+    check_qctools: 'yes'
     run_qctools: 'no'
+  qct-parse:
+    tagname: 
+    over:
+    under:
+    profile:
+    thumbExport: 
+    thumbExportDelay: 
+    barsDetection: False
+    detectContent: False
+    contentFilter: silence

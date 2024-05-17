@@ -4,7 +4,7 @@ import tempfile
 import os
 import sys
 import logging
-from log_setup import logger
+from ..utils.log_setup import logger
 
 def get_total_frames(video_path):
     command = [
@@ -194,7 +194,7 @@ def embed_fixity(video_path):
 
 def validate_embedded_md5(video_path):
 
-    logger.debug(f'\nExtracting existing video and audio stream hashes')
+    logger.debug(f'Extracting existing video and audio stream hashes')
     existing_tags = extract_tags(video_path)
     existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
     # Print result of extracting hashes:

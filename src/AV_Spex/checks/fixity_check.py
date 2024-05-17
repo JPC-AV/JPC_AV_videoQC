@@ -3,7 +3,7 @@ import sys
 import hashlib
 from datetime import datetime
 import logging
-from log_setup import logger
+from ..utils.log_setup import logger
 
 def check_fixity(directory, video_id, actual_checksum=None):
     fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity_check.txt')

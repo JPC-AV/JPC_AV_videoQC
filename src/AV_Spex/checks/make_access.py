@@ -3,7 +3,7 @@ import os
 import sys
 from datetime import datetime
 import logging
-from log_setup import logger
+from ..utils.log_setup import logger
 
 def get_duration(video_path):
     command = [
@@ -20,7 +20,7 @@ def get_duration(video_path):
 def make_access_file(video_path, output_path):
     """Create access file using ffmpeg."""
     
-    logger.debug(f'Running ffmpeg on {video_path} to create access copy {output_path}')
+    logger.debug(f'\nRunning ffmpeg on {os.path.basename(video_path)} to create access copy {os.path.basename(output_path)}\n')
 
     duration_str = get_duration(video_path)
     
