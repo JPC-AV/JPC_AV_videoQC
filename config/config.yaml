@@ -1,50 +1,53 @@
----
 mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
 filename_values:
-  Collection: JPC
-  MediaType: AV
-  FileExtension: mkv 
+  Collection: '2012_79'
+  MediaType: '2'
+  ObjectID: \d{3}_\d{1}[a-zA-Z]
+  DigitalGeneration: PM
+  FileExtension: mkv
 mediainfo_values:
-  expected_general: 
-    File extension: mkv  
-    Format: Matroska  
+  expected_general:
+    File extension: mkv
+    Format: Matroska
     Overall bit rate mode: Variable
   expected_video:
-    Format: FFV1  
-    Format settings  GOP: N=1  
-    Codec ID: V_MS/VFW/FOURCC / FFV1  
-    Width: 720 pixels  
-    Height: 486 pixels  
-    Pixel aspect ratio: '0.900'  
-    Display aspect ratio: '4:3'  
-    Frame rate mode: Constant  
+    Format: FFV1
+    Format settings  GOP: N=1
+    Codec ID: V_MS/VFW/FOURCC / FFV1
+    Width: 720 pixels
+    Height: 486 pixels
+    Pixel aspect ratio: '0.900'
+    Display aspect ratio: '4:3'
+    Frame rate mode: Constant
     Frame rate: '29.970'
-    Standard: NTSC  
-    Color space: YUV  
-    Chroma subsampling: '4:2:2'  
-    Bit depth: 10 bits  
-    Scan type: Interlaced  
-    Scan order: Bottom Field First  
-    Compression mode: Lossless  
-    Color primaries: BT.601 NTSC  
-    colour_primaries_Source: Container  
-    Transfer characteristics: BT.709  
-    transfer_characteristics_Source: Container  
-    Matrix coefficients: BT.601  
-    MaxSlicesCount: '24'  
-    ErrorDetectionType: Per slice  
-  expected_audio: 
-    Format : [ FLAC, PCM ] 
-    Channel(s): 2 channels  
-    Sampling rate: 48.0 kHz  
-    Bit depth: 24 bits  
+    Standard: NTSC
+    Color space: YUV
+    Chroma subsampling: '4:2:2'
+    Bit depth: 10 bits
+    Scan type: Interlaced
+    Scan order: Bottom Field First
     Compression mode: Lossless
-  expected_custom_fields: 
-    Title:   
-    Encoded by:   
-    Description:   
-    Encoding settings:   
-    ORIGINAL MEDIA TYPE :
+    Color primaries: BT.601 NTSC
+    colour_primaries_Source: Container
+    Transfer characteristics: BT.709
+    transfer_characteristics_Source: Container
+    Matrix coefficients: BT.601
+    MaxSlicesCount: '24'
+    ErrorDetectionType: Per slice
+  expected_audio:
+    Format:
+    - FLAC
+    - PCM
+    Channel(s): 2 channels
+    Sampling rate: 48.0 kHz
+    Bit depth: 24 bits
+    Compression mode: Lossless
+  expected_custom_fields:
+    Title: null
+    Encoded by: null
+    Description: null
+    Encoding settings: null
+    ORIGINAL MEDIA TYPE: null
 exiftool_values:
   File Type: MKV
   File Type Extension: mkv
@@ -56,7 +59,9 @@ exiftool_values:
   Display Width: '4'
   Display Height: '3'
   Display Unit: Display Aspect Ratio
-  Codec ID: [ A_FLAC, A_PCM/INT/LIT ]
+  Codec ID:
+  - A_FLAC
+  - A_PCM/INT/LIT
   Audio Channels: '2'
   Audio Sample Rate: '48000'
   Audio Bits Per Sample: '24'
@@ -64,168 +69,66 @@ ffmpeg_values:
   video_stream:
     codec_name: ffv1
     codec_long_name: 'FFmpeg video codec #1'
-    codec_type: video  
-    codec_tag_string: FFV1  
-    codec_tag: '0x31564646'  
+    codec_type: video
+    codec_tag_string: FFV1
+    codec_tag: '0x31564646'
     width: '720'
     height: '486'
-    display_aspect_ratio: '4:3'  
-    pix_fmt: yuv422p10le  
-    color_space: smpte170m  
-    color_transfer: bt709  
-    color_primaries: smpte170m  
-    field_order: bt  
+    display_aspect_ratio: '4:3'
+    pix_fmt: yuv422p10le
+    color_space: smpte170m
+    color_transfer: bt709
+    color_primaries: smpte170m
+    field_order: bt
     bits_per_raw_sample: '10'
-  audio_stream: 
-    codec_name: [ flac, pcm_s24le ]  
-    codec_long_name: [ FLAC (Free Lossless Audio Codec), PCM signed 24-bit little-endian ]  
+  audio_stream:
+    codec_name:
+    - flac
+    - pcm_s24le
+    codec_long_name:
+    - FLAC (Free Lossless Audio Codec)
+    - PCM signed 24-bit little-endian
     codec_type: audio
     codec_tag: '0x0000'
-    sample_fmt: s32  
-    sample_rate: '48000'  
+    sample_fmt: s32
+    sample_rate: '48000'
     channels: '2'
-    channel_layout: stereo  
+    channel_layout: stereo
     bits_per_raw_sample: '24'
   format:
-    format_name: matroska webm  
-    format_long_name: Matroska / WebM  
+    format_name: matroska webm
+    format_long_name: Matroska / WebM
     tags:
-      creation_time:
-      ENCODER:
-      TITLE: 
-      ENCODER_SETTINGS: 
-        settings_1:
-          O: VHS 
-          C: Color 
-          S: Analog
-          VS: NTSC
-          F: '24'
-          A: '4:3'
-          R: '640×480'
-          T: 'Sony SVO-5800'
-        settings_2:
-          O: FFV1mkv 
-          C: Color 
-          V: Composite
-          S: Analog Stereo
-          F: '24' 
-          A: '4:3' 
-          W: 10-bit 
-          R: '640×480' 
-          M: YUV422p10 
-          T: Blackmagic UltraStudio 4K Mini SN123456, ffmpeg vrecord; in-house
-        settings_3:
-          O: FFV1mkv 
-          W: 10-bit, 'R640x480', MYUV422p10
-          N: AJ Lawrence
-      DESCRIPTION:  
-      ORIGINAL MEDIA TYPE: 
-      ENCODED_BY:
-qct-parse:
-  content:
-    silence:
-      Overall_Min_level: 0.001900, lt
-      Overall_Max_level: 0.001900, lt
-      Overall_Mean_difference: 0.009, lt
-    allBlack:
-      YMAX: 300, lt
-      YHIGH: 115, lt
-      YLOW: 97, lt
-      YMIN: 6.5, lt
-    static:
-      YMIN: 5, lt
-      YLOW: 6, lt
-      YAVG: 240, lt
-      YMAX: 1018, gt
-      YDIF: 260, gt
-      ULOW: 325, gt
-      UAVG: 509, gt
-      UHIGH: 695, lt
-      UMAX: 990, gt
-      UDIF: 138, gt
-      VMIN: 100, lt
-      VLOW: 385, gt
-      VAVG: 500, gt
-      VHIGH: 650, lt
-      VMAX: 940, gt
-      VDIF: 98, gt
-  profiles:
-    default:
-      YLOW: 64
-      YHIGH: 940
-      ULOW: 64
-      UHIGH: 940
-      VLOW: 0
-      VHIGH: 1023
-      SATMAX: 181.02
-      TOUT: 0.009
-      VREP: 0.03
-    highTolerance:
-      YLOW: 40
-      YMAX: 1000
-      UMIN: 64
-      UMAX: 1000
-      VMIN: 0
-      VMAX: 1023
-      SATMAX: 181.02
-      TOUT: 0.009
-      VREP: 0.03
-    midTolerance:
-      YLOW: 40
-      YMAX: 980
-      UMIN: 64
-      UMAX: 980
-      VMIN: 0
-      VMAX: 1023
-      SATMAX: 181.02
-      TOUT: 0.009
-      VREP: 0.03
-    lowTolerance:
-      YLOW: 64
-      YMAX: 940
-      UMIN: 64
-      UMAX: 940
-      VMIN: 0
-      VMAX: 1023
-      SATMAX: 181.02
-      TOUT: 0.009
-      VREP: 0.03
-  fullTagList:
-      YMIN:
-      YLOW:
-      YAVG:
-      YHIGH:
-      YMAX:
-      UMIN:
-      ULOW:
-      UAVG:
-      UHIGH:
-      UMAX:
-      VMIN:
-      VLOW:
-      VAVG:
-      VHIGH:
-      VMAX:
-      SATMIN:
-      SATLOW:
-      SATAVG:
-      SATHIGH:
-      SATMAX:
-      HUEMED:
-      HUEAVG:
-      YDIF:
-      UDIF:
-      VDIF:
-      TOUT:
-      VREP:
-      BRNG:
-      mse_y:
-      mse_u:
-      mse_v:
-      mse_avg:
-      psnr_y:
-      psnr_u:
-      psnr_v:
-      psnr_avg:
-      Overall_Min_level:
-      Overall_Max_level:
+      creation_time: null
+      ENCODER: null
+      TITLE: null
+      ENCODER_SETTINGS:
+        Source VTR:
+        - SVO5800
+        - SN 122345
+        - composite
+        TBC:
+        - SVO5800
+        - SN 122345
+        - composite
+        Framesync:
+        - DPS575
+        - SN 23456
+        - SDI
+        Capture Device:
+        - Black Magic Ultra Jam
+        - SN 34567
+        - Thunderbolt
+        Computer:
+        - Mac Mini
+        - SN 45678
+        - OS 14.4
+        - vrecord (2024.01.01)
+        - ffmpeg
+        ADC:
+        - DPS575
+        - SN 23456
+        - SDI
+      DESCRIPTION: null
+      ORIGINAL MEDIA TYPE: null
+      ENCODED_BY: null
