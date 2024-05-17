@@ -93,6 +93,24 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
 def move_vrec_files(directory, video_id):
     vrecord_files_found = False
 
+    # Create the target directory path
+    vrecord_directory = os.path.join(directory, f'{video_id}_vrecord_metadata')
+
+    # Check if the vrecord directory already exists and contains the expected files
+    if os.path.exists(vrecord_directory):
+        expected_files = [
+            '_QC_output_graphs.jpeg',
+            '_vrecord_input.log',
+            '_capture_options.log',
+            '.mkv.qctools.mkv',
+            '.framemd5'
+        ]
+    
+        # Check if at least one expected file is in the vrecord directory
+        if any(filename.endswith(ext) for ext in expected_files for filename in os.listdir(vrecord_directory)):
+            logger.debug(f"\nExisting vrecord files found in {os.path.basename(directory)}/{os.path.basename(vrecord_directory)}\n")
+            return
+
     # Iterate through files in the directory
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
