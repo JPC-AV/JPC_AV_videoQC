@@ -467,7 +467,7 @@ def printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output):
     Returns:
         None
     """
-	with open(qctools_check_output, 'w') as f:
+	with open(qctools_check_output, 'a') as f:
 		f.write("**************************\n")
 		f.write("\nqct-parse results summary:\n")
 		if frameCount == 0:
@@ -562,16 +562,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 
 	# set the path for the thumbnail export
 	metadata_dir = os.path.dirname(qctools_output_path)
-	thumbPath = metadata_dir
-	if qct_parse['tagname']: # if tag is in command_config.yaml
-		if qct_parse['profile']: # if profile has been specified 
-			logger.error(f"Values will be assessed against profile in command_config.yaml: {qct_parse['profile']}\nTagname cannot be used in combination with profile. Listed tagname in command_config.yaml will be ignored: {qct_parse['tagname']}")
-			thumbPath = os.path.join(metadata_dir, "ThumbExports")
-		else:
-			if qct_parse['tagname']: 
-				thumbPath = os.path.join(metadata_dir, "ThumbExports")
-	else:
-		thumbPath = os.path.join(metadata_dir, "ThumbExports")
+	thumbPath = os.path.join(metadata_dir, "ThumbExports")
 	
 	if qct_parse['thumbExport']:
 		if not os.path.exists(thumbPath):
@@ -616,22 +607,19 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
 	######## Iterate Through the XML for General Analysis ########
-	if qct_parse['tagname'] or qct_parse['profile']:
-		logger.debug(f"\nStarting qct-parse analysis on {baseName}")
-		if qct_parse['profile']:
-			kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-			logger.debug(f"qct-parse summary written to {qctools_check_output}")
-		if qct_parse['tagname']:
-			profile = config_path.config_dict['qct-parse']['fullTagList']
-			kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-			logger.debug(f"qct-parse summary written to {qctools_check_output}")
+	if qct_parse['profile']:
+		logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
+		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
+	if qct_parse['tagname']:
+		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
+		profile = config_path.config_dict['qct-parse']['fullTagList']
+		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 			
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
-	
-	# do some maths for the printout
-	if qct_parse['tagname'] or qct_parse['profile']:
-		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
-		logger.debug(f"qct-parse summary written to {qctools_check_output}")
 	
 	return
 
