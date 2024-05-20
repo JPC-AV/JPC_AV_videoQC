@@ -26,13 +26,12 @@ tools:
     check_qctools: 'yes'
     run_qctools: 'no'
   qct-parse:
-    tagname: 
-    over:
-    under:
-    profile: lowTolerance
+    tagname:
+    - [YMAX, gt, 900]
+    - [YHIGH, gt, 700]
+    profile: 'lowTolerance'
     thumbExport: 
     thumbExportDelay: 
-    barsDetection: True
-    evaluateBars: True
-    detectContent: True
-    contentFilter: silence
+    barsDetection: false
+    detectContent: false
+    contentFilter: 

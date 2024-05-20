@@ -420,11 +420,15 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
     Returns:
         tuple: A tuple containing a dictionary of tags with the count of their exceedances, total frame count, and count of overall frame failures.
     """
-	
-	kbeyond = {} 		# init a dict for each key which we'll use to track how often a given key is over
-	fots = "" 			# acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count for qct_parse['profile'] or qct_parse['evaluateBars']
-	if qct_parse['tagname']:
-		kbeyond[qct_parse['tagname']] = 0 
+	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
+	fots = "" # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count for qct_parse['profile'] or qct_parse['evaluateBars']
+	if profile == config_path.config_dict['qct-parse']['fullTagList']:
+		for each_tag, tag_operator, tag_thresh in qct_parse['tagname']:
+			if each_tag not in profile:
+				logger.critical(f"The tag name {each_tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
+				break
+			else:
+				kbeyond[each_tag] = 0 
 	else:
 		for k,v in profile.items(): 
 			kbeyond[k] = 0
@@ -447,25 +451,24 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
-					# Now we can parse the frame data
-					# if a single tag is selected, we only need to loop through the frames once
-					if qct_parse['over'] or qct_parse['under'] and qct_parse['profile'] is None: # if we're just doing a single tag
-						tag = qct_parse['tagname']
-						if qct_parse['over']:
-							over = float(qct_parse['over'])
-							# Set the appropriate comparison operator based on command config value
-							comp_op = operator.gt
-						if qct_parse['under']:
-							over = float(qct_parse['under'])
-							comp_op = operator.lt
-						# ACTAULLY DO THE THING ONCE FOR EACH TAG
-						frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
-						if frameOver is True:
-							kbeyond[tag] = kbeyond[tag] + 1 # note the over in the keyover dictionary
-					# elif multiple tags need to be checked, we need to loop through per tag
-					elif qct_parse['profile'] or qct_parse['evaluateBars']: 
+					if qct_parse['profile']:								# display "timestamp: Tag Value" (654.754100: YMAX 229) to the terminal window
+						logger.debug(framesList[-1][pkt] + ": " + qct_parse['tagname'] + " " + framesList[-1][qct_parse['tagname']])
+					# Now we can parse the frame data from the buffer!	
+					if qct_parse['tagname'] and qct_parse['profile'] is None: # if we're just doing a single tag
+						for config_tag, config_op, config_value in qct_parse['tagname']:
+							over = float(config_value)
+							comp_op = operator_mapping[config_op]
+							if config_tag in frameDict:
+								# ACTUALLY DO THE THING ONCE FOR EACH TAG
+								tag = config_tag
+								frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay)
+								if frameOver is True:
+									kbeyond[config_tag] = kbeyond[config_tag] + 1 					# note the over in the key over dict
+									if not frame_pkt_dts_time in fots: 				# make sure that we only count each over frame once
+										overallFrameFail = overallFrameFail + 1
+										fots = frame_pkt_dts_time 					# set it again so we don't dupe
+					elif qct_parse['profile']: # if we're using a profile
 						for k,v in profile.items():
-							# confirm k (tag) is in config.yaml profile
 							if v is not None:
 								tag = k
 								comp_op = getCompFromConfig(qct_parse,tag)
@@ -519,7 +522,7 @@ def printresults(qct_parse,kbeyond,frameCount,overallFrameFail, qctools_check_ou
 					percentOverallString = percentOverallString[1:]
 					percentOverallString = percentOverallString[:4]
 				else:
-					percentOverallString = percentOverallString[:5]			
+					percentOverallString = percentOverallString[:5]	
 			for k,v in kbeyond.items():
 				percentOver = float(kbeyond[k]) / float(frameCount)
 				if percentOver == 1:
@@ -596,18 +599,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 
 	# set the path for the thumbnail export
 	metadata_dir = os.path.dirname(qctools_output_path)
-	thumbPath = metadata_dir
-	if qct_parse['tagname']: # if tag is in command_config.yaml
-		if qct_parse['profile']: # if profile has been specified 
-			logger.error(f"Values will be assessed against profile in command_config.yaml: {qct_parse['profile']}\nTagname cannot be used in combination with profile. Listed tagname in command_config.yaml will be ignored: {qct_parse['tagname']}")
-			thumbPath = os.path.join(metadata_dir, "ThumbExports")
-		elif qct_parse['over'] or qct_parse['under']: 
-			if qct_parse['over'] : # if the tag is looking for a threshold Over
-				thumbPath = os.path.join(metadata_dir, str(qct_parse['tagname']) + "." + str(qct_parse['over']))
-			if qct_parse['under']: # if the tag was looking for a threshold Under
-				thumbPath = os.path.join(metadata_dir, str(qct_parse['tagname']) + "." + str(qct_parse['under']))
-	else:
-		thumbPath = os.path.join(metadata_dir, "ThumbExports")
+	thumbPath = os.path.join(metadata_dir, "ThumbExports")
 	
 	if qct_parse['thumbExport']:
 		if not os.path.exists(thumbPath):
@@ -615,8 +607,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	
 	profile = {} # init a dictionary where we'll store reference values from config.yaml file
 	
-	# init a list of every tag available in a QCTools Report
-	tagList = ["YMIN","YLOW","YAVG","YHIGH","YMAX","UMIN","ULOW","UAVG","UHIGH","UMAX","VMIN","VLOW","VAVG","VHIGH","VMAX","SATMIN","SATLOW","SATAVG","SATHIGH","SATMAX","HUEMED","HUEAVG","YDIF","UDIF","VDIF","TOUT","VREP","BRNG","mse_y","mse_u","mse_v","mse_avg","psnr_y","psnr_u","psnr_v","psnr_avg"]
+	# init a list of every tag available in a QCTools Report from the fullTagList in the config.yaml
+	tagList = list(config_path.config_dict['qct-parse']['fullTagList'].keys())
 	
 	if qct_parse['profile'] is not None:
 		template = qct_parse['profile'] # get the profile/ section name from the command config
@@ -644,23 +636,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		if durationStart == "" and durationEnd == "":
 			logger.error("No color bars detected")
 
-	######## Iterate Through the XML for Bars Evaluation ########
-	if qct_parse['evaluateBars']:
-		evalBars(startObj,pkt,durationStart,durationEnd,framesList)
-		# Define the keys for which you want to calculate the average
-		keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
-		# Initialize a dictionary to store the average values
-		average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
-		if average_dict is None:
-			logger.critical(f"Cannot run evaluate color bars")
-		else:
-			logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
-			durationStart = 0
-			durationEnd = 99999999
-			profile = average_dict
-			kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-
-	######## Iterate Through the XML for Content detection ########
+	######## Iterate Through the XML for content detection ########
 	if qct_parse['detectContent'] and qct_parse['contentFilter'] != None:
 		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {qct_parse['contentFilter']}\n")
 		duration_str = get_duration(video_path)
@@ -669,19 +645,20 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	elif qct_parse['detectContent'] and qct_parse['contentFilter'] == None:
 		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
-	
 	######## Iterate Through the XML for General Analysis ########
-	if qct_parse['over'] or qct_parse['under'] or qct_parse['profile']:
-		logger.debug(f"\nStarting qct-parse analysis on {baseName}")
+	if qct_parse['profile']:
+		logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
 		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
+	if qct_parse['tagname']:
+		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
+		profile = config_path.config_dict['qct-parse']['fullTagList']
+		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		printresults(kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 			
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
-	
-	# do some maths for the printout
-	if qct_parse['over'] or qct_parse['under'] or qct_parse['profile'] or qct_parse['evaluateBars']:
-		#prtinresults is currently only writing evaluate bars profile and not config profile summary. 
-		printresults(qct_parse,kbeyond,frameCount,overallFrameFail,qctools_check_output)
-		logger.debug(f"qct-parse summary written to {qctools_check_output}")
 	
 	return
 
