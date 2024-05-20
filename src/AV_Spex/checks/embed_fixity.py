@@ -180,7 +180,11 @@ def embed_fixity(video_path):
     existing_tags = extract_tags(video_path)
 
     # Add stream_hash tag
-    updated_tags = add_stream_hash_tag(existing_tags, video_hash, audio_hash)
+    if existing_tags:
+        updated_tags = add_stream_hash_tag(existing_tags, video_hash, audio_hash)
+    else:
+        logger.critical(f"mkvextract unable to extract MKV tags! Unable to embed stream hashes.")
+        return
 
     # Write updated tags to a temporary XML file
     temp_xml_file = write_tags_to_temp_file(updated_tags)

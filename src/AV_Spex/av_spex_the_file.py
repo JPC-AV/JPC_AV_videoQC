@@ -277,7 +277,11 @@ def main():
         # Embed stream md5 hashes into MKV tags 
         if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
             existing_tags = extract_tags(video_path)
-            existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+            if existing_tags:
+                existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+            else:
+                existing_video_hash = None 
+                existing_audio_hash = None
             # Check if VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags exists
             if existing_video_hash is None or existing_audio_hash is None :
                 embed_fixity(video_path)
