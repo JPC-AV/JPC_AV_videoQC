@@ -29,7 +29,7 @@ def apply_profile(command_config, selected_profile):
     # Optionally, write back to the YAML file
     with open(command_config.command_yml, "w") as f:
         f.write("---\n")
-        yaml.safe_dump(command_config.command_dict, f)
+        yaml.safe_dump(command_config.command_dict, f, sort_keys=False)
         logger.info(f'command_config.yaml updated to match selected tool profile')
 
 def update_config(config_path, nested_key, value_dict):

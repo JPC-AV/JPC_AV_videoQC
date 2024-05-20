@@ -22,6 +22,9 @@ tools:
   mediainfo:
     check_mediainfo: 'yes'
     run_mediainfo: 'yes'
+  qctools:
+    check_qctools: 'no'
+    run_qctools: 'no'
   qct-parse:
     barsDetection: null
     contentFilter: null
@@ -31,6 +34,3 @@ tools:
     tagname: null
     thumbExport: null
     thumbExportDelay: null
-  qctools:
-    check_qctools: 'no'
-    run_qctools: 'no'
