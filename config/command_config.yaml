@@ -23,15 +23,16 @@ tools:
     check_mediainfo: 'no'
     run_mediainfo: 'no'
   qctools:
-    check_qctools: 'yes'
+    check_qctools: 'no'
     run_qctools: 'no'
   qct-parse:
     tagname:
-    - [YMAX, gt, 900]
-    - [YHIGH, gt, 700]
-    profile: 'lowTolerance'
+ #  - Example tag format:
+ #  - [YMAX, lt, 900]
+    profile:
     thumbExport: 
     thumbExportDelay: 
-    barsDetection: false
-    detectContent: false
+    barsDetection: False
+    evaluateBars: False
+    detectContent: False
     contentFilter: 
