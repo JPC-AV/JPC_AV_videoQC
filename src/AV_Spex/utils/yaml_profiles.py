@@ -32,6 +32,32 @@ def apply_profile(command_config, selected_profile):
         yaml.safe_dump(command_config.command_dict, f)
         logger.info(f'command_config.yaml updated')
 
+def update_config(config_path, nested_key, value_dict):
+    keys = nested_key.split('.')                # creates a list of keys from the input, for example 'ffmpeg_values.format.tags.ENCODER_SETTINGS'
+    current_dict = config_path.config_dict      # initializes current_dict as config.yaml, this var will be reset in the for loop below
+    for key in keys[:-1]:                   # Iterating through the keys (except the last one)
+        if key in current_dict:             
+            current_dict = current_dict[key]
+        else:
+            return                          # If the current key is in the current_dict, move loop "in" to nested dict
+    last_key = keys[-1]
+    # The code block above should get us to the nested dictionary we want to update 
+    if last_key in current_dict:
+        # Remove keys from current_dict[last_key] that are not in value_dict
+        for k in list(current_dict[last_key].keys()):
+            if k not in value_dict:
+                del current_dict[last_key][k]
+        
+        # Create a new ordered dictionary based on value_dict
+        ordered_dict = {k: value_dict[k] for k in value_dict}
+        
+        # Replace the old dictionary with the ordered one
+        current_dict[last_key].clear()
+        current_dict[last_key].update(ordered_dict)
+        
+        with open(config_path.config_yml, 'w') as y:
+            yaml.safe_dump(config_path.config_dict, y, sort_keys=False, default_flow_style=False)
+
 profile_step1 = {
     "tools": {
         "qctools": {
@@ -43,7 +69,7 @@ profile_step1 = {
             "run_exiftool": 'yes'
         },
         "ffprobe": {
-            "check_ffprobe": 'yes',
+            "check_ffprobe": 'no',
             "run_ffprobe": 'yes'
         },
         "mediaconch": {
@@ -77,7 +103,7 @@ profile_step2 = {
             "run_exiftool": 'no'
         },
         "ffprobe": {
-            "check_ffprobe": 'yes',
+            "check_ffprobe": 'no',
             "run_ffprobe": 'no'
         },
         "mediaconch": {
@@ -99,6 +125,31 @@ profile_step2 = {
         }
     }
 }
+
+JPC_AV_SVHS = {
+    "Source VTR": ["SVO5800", "SN 122345", "composite"], 
+    "TBC": ["SVO5800", "SN 122345", "composite"], 
+    "Framesync": ["DPS575", "SN 23456", "SDI"], 
+    "ADC": ["DPS575", "SN 23456", "SDI"], 
+    "Capture Device": ["Black Magic Ultra Jam", "SN 34567", "Thunderbolt"],
+    "Computer": ["Mac Mini", "SN 45678", "OS 14.4", "vrecord (2024.01.01)", "ffmpeg"]
+}
+
+bowser_filename = {
+    "Collection": "2012_79",
+    "MediaType": "2",
+    "ObjectID": r"\d{3}_\d{1}[a-zA-Z]",
+    "DigitalGeneration": "PM",
+    "FileExtension": "mkv"
+}
+
+JPCAV_filename = {
+    "Collection": "JPC",
+    "MediaType": "AV",
+    "ObjectID": r"\d{5}",
+    "FileExtension": "mkv"
+}
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Change command_config.yaml to processing profile")

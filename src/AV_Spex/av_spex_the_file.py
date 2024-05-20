@@ -17,7 +17,7 @@ from datetime import datetime
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config
-from .utils.yaml_profiles import apply_profile, profile_step1, profile_step2
+from .utils.yaml_profiles import apply_profile, update_config, profile_step1, profile_step2, JPC_AV_SVHS, bowser_filename, JPCAV_filename
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
 from .checks.mediainfo_check import parse_mediainfo
@@ -28,16 +28,17 @@ from .checks.make_access import make_access_file
 from .checks.qct_parse import run_qctparse
 
 def check_directory(source_directory, video_id):
-    '''
-    confirms source directory has the same name as the input video file
-    '''
+    
+    # Assuming DigitalGeneration is always prefixed with an underscore and is the last part before the file extension
+    base_video_id = video_id.rsplit('_', 1)[0]  # Splits off the DigitalGeneration part
 
     directory_name = os.path.basename(source_directory)
     
-    if video_id == directory_name:
-        logger.info(f'\nVideo ID matches directory name\n')
+ # Check if the directory name starts with the base_video_id string
+    if directory_name.startswith(base_video_id):
+        logger.info(f'\nDirectory name "{directory_name}" correctly starts with "{base_video_id}".\n')
     else:
-        logger.critical(f'Video ID, {video_id}, does not match directory name: {directory_name}')
+        logger.critical(f'Directory name "{directory_name}" does not correctly start with the expected "{base_video_id}" derived from the video ID "{video_id}".')
     
 def make_qc_output_dir(source_directory, video_id):
     '''
@@ -92,6 +93,24 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
 def move_vrec_files(directory, video_id):
     vrecord_files_found = False
 
+    # Create the target directory path
+    vrecord_directory = os.path.join(directory, f'{video_id}_vrecord_metadata')
+
+    # Check if the vrecord directory already exists and contains the expected files
+    if os.path.exists(vrecord_directory):
+        expected_files = [
+            '_QC_output_graphs.jpeg',
+            '_vrecord_input.log',
+            '_capture_options.log',
+            '.mkv.qctools.mkv',
+            '.framemd5'
+        ]
+    
+        # Check if at least one expected file is in the vrecord directory
+        if any(filename.endswith(ext) for ext in expected_files for filename in os.listdir(vrecord_directory)):
+            logger.debug(f"\nExisting vrecord files found in {os.path.basename(directory)}/{os.path.basename(vrecord_directory)}\n")
+            return
+
     # Iterate through files in the directory
     for filename in os.listdir(directory):
         file_path = os.path.join(directory, filename)
@@ -99,7 +118,6 @@ def move_vrec_files(directory, video_id):
         # Check if the file matches the naming convention
         if (
             os.path.isfile(file_path)
-            and "JPC_AV_" in filename
             and filename.endswith(('_QC_output_graphs.jpeg', '_vrecord_input.log', '_capture_options.log', '.mkv.qctools.mkv', '.framemd5'))
         ):
             # Create the target directory if it doesn't exist
@@ -142,7 +160,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Process video file with optional settings")
     parser.add_argument("paths", nargs='+', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
-    parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory. This option is default, and does not need to be declared.")
+    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS"], help="Select signal flow config type (JPC_AV_SVHS)")
+    parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
+    parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
     parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
 
     args = parser.parse_args()
@@ -171,7 +191,19 @@ def parse_arguments():
         elif args.profile == "step2":
             selected_profile = profile_step2
 
-    return source_directories, selected_profile
+    sn_config_changes = None
+    if args.signalflow:
+        if args.signalflow == "JPC_AV_SVHS":
+            sn_config_changes = JPC_AV_SVHS
+    
+    fn_config_changes = None
+    if args.filename:
+        if args.filename == "jpc":
+            fn_config_changes = JPCAV_filename
+        elif args.filename =="bowser":
+            fn_config_changes = bowser_filename
+
+    return source_directories, selected_profile, sn_config_changes, fn_config_changes
 
 def main():
     '''
@@ -184,7 +216,7 @@ def main():
     print(f'\n{avspex_icon}\n\n')
     time.sleep(1)
     
-    source_directories, selected_profile = parse_arguments()
+    source_directories, selected_profile, sn_config_changes, fn_config_changes = parse_arguments()
 
     check_py_version()
     
@@ -195,6 +227,12 @@ def main():
 
     if selected_profile:
         apply_profile(command_config, selected_profile)
+
+    if sn_config_changes:
+        update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+
+    if fn_config_changes:
+        update_config(config_path, 'filename_values', fn_config_changes)
 
     check_filenames(source_directories)
 
@@ -328,7 +366,7 @@ def main():
             if os.path.isfile(qctools_check_output):
                     qctools_check_output = os.path.join(destination_directory, f"{video_id}_qct-parse_summary_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             if not os.path.isfile(qctools_output_path):
-                logger.critical(f"Error: {qctools_output_path} is not a valid file.")
+                logger.critical(f"Unable to check qctools report. No file found at this path: {qctools_output_path}.")
             else:
                 run_qctparse(video_path, qctools_output_path, qctools_check_output)
         
@@ -346,7 +384,6 @@ def main():
         dir_end_time = time.time()
         dir_total_time = dir_end_time - dir_start_time
         formatted_total_time = time.strftime("%H:%M:%S", time.gmtime(dir_total_time))
-        #print(f"Process time for {video_id}: time start: {dir_start_time:%Y-%m-%d %H:%M:%S}")
 
         logger.info(f'\nProcess time for {video_id}: \ntime start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; \ntotal time: {formatted_total_time}')
         
