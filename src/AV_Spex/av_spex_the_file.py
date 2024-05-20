@@ -158,7 +158,8 @@ def find_mkv(source_directory):
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process video file with optional settings")
-    parser.add_argument("paths", nargs='+', help="Path to the input -f: video file(s) or -d: directory(ies)")
+    parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
+    parser.add_argument("-dr","--dryrun", action="store_true", help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
     parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS"], help="Select signal flow config type (JPC_AV_SVHS)")
     parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
@@ -167,7 +168,14 @@ def parse_arguments():
 
     args = parser.parse_args()
 
-    input_paths = args.paths
+    # Validate arguments
+    if not args.dryrun and not args.paths:
+        parser.error("the following arguments are required: paths")
+
+    if args.dryrun:
+        input_paths = []
+    else:
+        input_paths = args.paths
     source_directories = []
 
     for input_path in input_paths:
@@ -203,7 +211,9 @@ def parse_arguments():
         elif args.filename =="bowser":
             fn_config_changes = bowser_filename
 
-    return source_directories, selected_profile, sn_config_changes, fn_config_changes
+    dry_run_only = args.dryrun
+
+    return source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only
 
 def main():
     '''
@@ -216,7 +226,7 @@ def main():
     print(f'\n{avspex_icon}\n\n')
     time.sleep(1)
     
-    source_directories, selected_profile, sn_config_changes, fn_config_changes = parse_arguments()
+    source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only = parse_arguments()
 
     check_py_version()
     
@@ -233,6 +243,10 @@ def main():
 
     if fn_config_changes:
         update_config(config_path, 'filename_values', fn_config_changes)
+
+    if dry_run_only:
+        logger.critical(f"Dry run selected. Exiting now.\n\n")
+        sys.exit(1)
 
     check_filenames(source_directories)
 

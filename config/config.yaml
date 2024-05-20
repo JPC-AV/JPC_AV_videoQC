@@ -114,6 +114,10 @@ ffmpeg_values:
         - DPS575
         - SN 23456
         - SDI
+        ADC:
+        - DPS575
+        - SN 23456
+        - SDI
         Capture Device:
         - Black Magic Ultra Jam
         - SN 34567
@@ -124,10 +128,6 @@ ffmpeg_values:
         - OS 14.4
         - vrecord (2024.01.01)
         - ffmpeg
-        ADC:
-        - DPS575
-        - SN 23456
-        - SDI
       DESCRIPTION: null
       ORIGINAL MEDIA TYPE: null
       ENCODED_BY: null
@@ -201,41 +201,41 @@ qct-parse:
       TOUT: 0.009
       VREP: 0.03
   fullTagList:
-      YMIN:
-      YLOW:
-      YAVG:
-      YHIGH:
-      YMAX:
-      UMIN:
-      ULOW:
-      UAVG:
-      UHIGH:
-      UMAX:
-      VMIN:
-      VLOW:
-      VAVG:
-      VHIGH:
-      VMAX:
-      SATMIN:
-      SATLOW:
-      SATAVG:
-      SATHIGH:
-      SATMAX:
-      HUEMED:
-      HUEAVG:
-      YDIF:
-      UDIF:
-      VDIF:
-      TOUT:
-      VREP:
-      BRNG:
-      mse_y:
-      mse_u:
-      mse_v:
-      mse_avg:
-      psnr_y:
-      psnr_u:
-      psnr_v:
-      psnr_avg:
-      Overall_Min_level:
-      Overall_Max_level:
+    YMIN: null
+    YLOW: null
+    YAVG: null
+    YHIGH: null
+    YMAX: null
+    UMIN: null
+    ULOW: null
+    UAVG: null
+    UHIGH: null
+    UMAX: null
+    VMIN: null
+    VLOW: null
+    VAVG: null
+    VHIGH: null
+    VMAX: null
+    SATMIN: null
+    SATLOW: null
+    SATAVG: null
+    SATHIGH: null
+    SATMAX: null
+    HUEMED: null
+    HUEAVG: null
+    YDIF: null
+    UDIF: null
+    VDIF: null
+    TOUT: null
+    VREP: null
+    BRNG: null
+    mse_y: null
+    mse_u: null
+    mse_v: null
+    mse_avg: null
+    psnr_y: null
+    psnr_u: null
+    psnr_v: null
+    psnr_avg: null
+    Overall_Min_level: null
+    Overall_Max_level: null

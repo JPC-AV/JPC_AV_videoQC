@@ -30,7 +30,7 @@ def apply_profile(command_config, selected_profile):
     with open(command_config.command_yml, "w") as f:
         f.write("---\n")
         yaml.safe_dump(command_config.command_dict, f)
-        logger.info(f'command_config.yaml updated')
+        logger.info(f'command_config.yaml updated to match selected tool profile')
 
 def update_config(config_path, nested_key, value_dict):
     keys = nested_key.split('.')                # creates a list of keys from the input, for example 'ffmpeg_values.format.tags.ENCODER_SETTINGS'
@@ -57,6 +57,7 @@ def update_config(config_path, nested_key, value_dict):
         
         with open(config_path.config_yml, 'w') as y:
             yaml.safe_dump(config_path.config_dict, y, sort_keys=False, default_flow_style=False)
+            logger.info(f'config.yaml updated to match profile {last_key}')
 
 profile_step1 = {
     "tools": {
