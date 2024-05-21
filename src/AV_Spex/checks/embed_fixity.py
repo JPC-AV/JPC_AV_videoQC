@@ -200,23 +200,24 @@ def validate_embedded_md5(video_path):
 
     logger.debug(f'Extracting existing video and audio stream hashes')
     existing_tags = extract_tags(video_path)
-    existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
-    # Print result of extracting hashes:
-    if existing_video_hash is not None:
-        logger.info(f'Video stream md5 found: {existing_video_hash}')
+    if existing_tags:
+        existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+        # Print result of extracting hashes:
+        if existing_video_hash is not None:
+            logger.info(f'Video stream md5 found: {existing_video_hash}')
+        else:
+            logger.warning(f'No video stream hash found')
+
+        if existing_audio_hash is not None:
+            logger.info(f'Audio stream md5 found: {existing_audio_hash}')
+        else:
+            logger.warning(f'No audio stream hash found')
+        logger.debug(f'\nGenerating video and audio stream hashes. This may take a moment...')
+        video_hash, audio_hash = make_stream_hash(video_path)
+        logger.debug(f'\n\nValidating stream fixity')
+        compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
     else:
-        logger.warning(f'No video stream hash found')
-
-    if existing_audio_hash is not None:
-        logger.info(f'Audio stream md5 found: {existing_audio_hash}')
-    else:
-        logger.warning(f'No audio stream hash found')
-
-    logger.debug(f'\nGenerating video and audio stream hashes. This may take a moment...')
-    video_hash, audio_hash = make_stream_hash(video_path)
-
-    logger.debug(f'\n\nValidating stream fixity')
-    compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
+        logger.critical(f"mkvextract unable to extract MKV tags! Cannot validate stream hashes.")    
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

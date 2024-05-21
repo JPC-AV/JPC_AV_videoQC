@@ -305,8 +305,7 @@ def main():
                             break
                         else:
                             print("Invalid input. Please enter yes/no.")
-                
-        
+
         # Validate stream hashes
         if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
             validate_embedded_md5(video_path)
