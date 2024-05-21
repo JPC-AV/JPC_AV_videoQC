@@ -3,8 +3,8 @@ outputs:
   access_file: 'no'
   difference_csv: 'no'
   fixity:
-    check_fixity: 'yes'
-    check_stream_fixity: 'yes'
+    check_fixity: 'no'
+    check_stream_fixity: 'no'
     embed_stream_fixity: 'no'
     output_fixity: 'no'
     overwrite_stream_fixity: 'no'
@@ -14,7 +14,7 @@ tools:
     check_exiftool: 'yes'
     run_exiftool: 'no'
   ffprobe:
-    check_ffprobe: 'no'
+    check_ffprobe: 'yes'
     run_ffprobe: 'no'
   mediaconch:
     mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
@@ -23,14 +23,15 @@ tools:
     check_mediainfo: 'yes'
     run_mediainfo: 'no'
   qctools:
-    check_qctools: 'no'
-    run_qctools: 'yes'
+    check_qctools: 'yes'
+    run_qctools: 'no'
   qct-parse:
-    barsDetection: null
-    contentFilter: null
-    detectContent: null
-    evaluateBars: null
-    profile: null
-    tagname: null
+    barsDetection: True
+    contentFilter: silence
+    detectContent: True
+    evaluateBars: True
+    profile: highTolerance
+    tagname: 
+      - [YMIN, lt, 100]
     thumbExport: null
     thumbExportDelay: null

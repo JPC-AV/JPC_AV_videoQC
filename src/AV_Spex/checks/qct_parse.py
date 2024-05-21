@@ -185,14 +185,16 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 					if float(frameDict['YMAX']) > 800 and float(frameDict['YMIN']) < 10 and float(frameDict['YDIF']) < 7 :
 						if durationStart == "":
 							durationStart = float(frameDict[pkt])
-							logger.info("Bars start at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")						
+							logger.info("Bars start at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")
+							barsStartString = "Bars start at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")"
 						durationEnd = float(frameDict[pkt])
 					else:
 						if durationStart != "" and durationEnd != "" and durationEnd - durationStart > 2: 
-							logger.info("Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")							
+							logger.info("Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")
+							barsEndString = "Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")"
 							break
 			elem.clear() # we're done with that element so let's get it outta memory
-	return durationStart, durationEnd
+	return durationStart, durationEnd, barsStartString, barsEndString
 
 def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
 	with gzip.open(startObj) as xml:	
@@ -659,9 +661,17 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		duration_str = get_duration(video_path)
 		ffprobe_duration = float(duration_str)
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
-		durationStart,durationEnd = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
+		durationStart, durationEnd, barsStartString, barsEndString = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
 		if durationStart == "" and durationEnd == "":
 			logger.error("No color bars detected")
+		if barsStartString and barsEndString:
+			with open(qctools_check_output, 'a') as f:
+				f.write("**************************\n")
+				f.write("\nqct-parse color bars found:\n")
+				f.write(barsStartString)
+				f.write("\n")
+				f.write(barsEndString)
+				f.write("\n**************************")
 
 	######## Iterate Through the XML for Bars Evaluation ########
 	if qct_parse['evaluateBars']:
