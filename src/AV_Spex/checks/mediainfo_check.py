@@ -125,9 +125,11 @@ def parse_mediainfo(file_path):
             custom_mediainfo_differences.append(f"General: {expected_key} is empty")
             # append this string to the list "mediainfo_differences"
     
-    if not mediainfo_differences:
+    if not mediainfo_differences and not custom_mediainfo_differences:
     # if the list "mediainfo_differences" is empty, then
-        logger.info("All specified fields and values found in the MediaInfo output.")
+        logger.info("\nAll specified fields and values found in the MediaInfo output.")
+    elif not mediainfo_differences:
+        logger.info("\nAll specified metadata fields and values found in the MediaInfo output, but some custom embedded fields are missing or don't match.")
     else:
     # if the list "mediainfo_differences" is not empty, then
         logger.critical(f"\nSome specified MediaInfo fields or values are missing or don't match:")

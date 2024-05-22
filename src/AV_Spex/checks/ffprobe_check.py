@@ -104,14 +104,14 @@ def parse_ffprobe(file_path):
                     ffprobe_differences.append(f"Encoder Settings field '{field}' does not contain a recognized serial number format (starting with 'SN ', 'SN-', 'SN##' - not case sensitive)")
                     ffprobe_differences.append(f"Encoder Settings field '{field}' has the following subfields and values: {subfields}")
     else:
-        logger.critical(f"\nNo 'encoder settings' in ffprobe output\n")
+        ffprobe_differences.append(f"\nNo 'encoder settings' in ffprobe output\n")
 
     if not ffprobe_differences:
         # if the list "ffprobe_differences" is empty, then
-        logger.info("All specified fields and values found in the ffprobe output.")
+        logger.info("\nAll specified fields and values found in the ffprobe output.")
     else:
         # if the list "ffprobe_differences" is not empty, then
-        logger.critical("Some specified ffprobe fields or values are missing or don't match:")
+        logger.critical(f"\nSome specified ffprobe fields or values are missing or don't match:")
         for diff in ffprobe_differences:
             logger.critical(f'{diff}')
 

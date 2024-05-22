@@ -513,7 +513,7 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_
 		elif set(profile.keys()) == set(color_bar_keys):
 			f.write("\nqct-parse color bars evaluation summary:\n")
 		else:
-			f.write("\nqct-parse results summary:\n")
+			f.write("\nqct-parse profile results summary:\n")
 		if frameCount == 0:
 			percentOverString = "0"
 		else:
@@ -560,7 +560,15 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_
 			f.write("\n**************************")
 	return
 
-	
+def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
+	with open(qctools_check_output, 'a') as f:
+		f.write("**************************\n")
+		f.write("\nqct-parse color bars found:\n")
+		f.write(barsStartString)
+		f.write("\n")
+		f.write(barsEndString)
+		f.write("\n**************************")
+
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	"""
     Executes the qct-parse analysis on a given video file, exporting relevant data and thumbnails based on specified thresholds and profiles.
@@ -665,13 +673,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		if durationStart == "" and durationEnd == "":
 			logger.error("No color bars detected")
 		if barsStartString and barsEndString:
-			with open(qctools_check_output, 'a') as f:
-				f.write("**************************\n")
-				f.write("\nqct-parse color bars found:\n")
-				f.write(barsStartString)
-				f.write("\n")
-				f.write(barsEndString)
-				f.write("\n**************************")
+			print_bars_durations(qctools_check_output,barsStartString,barsEndString)
 
 	######## Iterate Through the XML for Bars Evaluation ########
 	if qct_parse['evaluateBars']:
@@ -690,7 +692,6 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 			kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 			printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
 			logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
-
 			
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
 	
