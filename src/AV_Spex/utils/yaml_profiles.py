@@ -3,14 +3,11 @@ import sys
 from ruamel.yaml import YAML
 from ruamel.yaml.compat import StringIO
 import argparse
-from ..utils.find_config import config_path, command_config
+from ..utils.find_config import config_path, command_config, yaml
 from ..utils.log_setup import logger
 
 # Function to apply profile changes
 def apply_profile(command_config, selected_profile):
-    yaml = YAML()
-    yaml.preserve_quotes = True
-
     with open(command_config.command_yml, "r") as f:
         command_dict = yaml.load(f)
 
@@ -30,9 +27,6 @@ def apply_profile(command_config, selected_profile):
     logger.info(f'command_config.yaml updated to match selected tool profile')
 
 def update_config(config_path, nested_key, value_dict):
-    yaml = YAML()
-    yaml.preserve_quotes = True
-
     with open(config_path.config_yml, "r") as f:
         config_dict = yaml.load(f)
     

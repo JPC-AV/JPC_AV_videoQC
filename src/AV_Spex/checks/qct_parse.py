@@ -17,7 +17,6 @@ import subprocess
 import math				
 import sys			
 import re
-import yaml
 import operator
 from statistics import median
 from ..utils.log_setup import logger

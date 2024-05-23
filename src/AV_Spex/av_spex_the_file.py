@@ -17,7 +17,7 @@ from datetime import datetime
 
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from .utils.find_config import config_path, command_config
+from .utils.find_config import config_path, command_config, yaml
 from .utils.yaml_profiles import apply_profile, update_config, profile_step1, profile_step2, JPC_AV_SVHS, bowser_filename, JPCAV_filename
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
