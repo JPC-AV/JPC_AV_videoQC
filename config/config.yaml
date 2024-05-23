@@ -1,8 +1,9 @@
 mediaconch_policy: JPC_AV_01709_mkv.xml
 filename_values:
-  Collection: JPC
-  MediaType: AV
-  ObjectID: \d{5}
+  Collection: '2012_79'
+  MediaType: '2'
+  ObjectID: \d{3}_\d{1}[a-zA-Z]
+  DigitalGeneration: PM
   FileExtension: mkv
 mediainfo_values:
   expected_general:
@@ -42,11 +43,11 @@ mediainfo_values:
     Bit depth: 24 bits
     Compression mode: Lossless
   expected_custom_fields:
-    Title: null
-    Encoded by: null
-    Description: null
-    Encoding settings: null
-    ORIGINAL MEDIA TYPE: null
+    Title:
+    Encoded by:
+    Description:
+    Encoding settings:
+    ORIGINAL MEDIA TYPE:
 exiftool_values:
   File Type: MKV
   File Type Extension: mkv
@@ -98,9 +99,17 @@ ffmpeg_values:
     format_name: matroska webm
     format_long_name: Matroska / WebM
     tags:
-      creation_time: null
-      ENCODER: null
-      TITLE: null
+      creation_time:
+      ENCODER:
+      TITLE:
+  ##  Re: ENCODER_SETTINGS 'device fields' below:
+  ##  Source VTR, TBC, Framesync, ADC, Capture Device, and Computer are required fields
+  ##  Subfields under these devices should be in this format:
+   #    Source VTR:
+   #    - model name
+   #    - serial number 
+   #    - video signal type (Composite, SDI, etc.) 
+   #    - audio connector type (XLR, RCA, etc.)
       ENCODER_SETTINGS:
         Source VTR:
         - SVO5800
@@ -128,9 +137,9 @@ ffmpeg_values:
         - OS 14.4
         - vrecord (2024.01.01)
         - ffmpeg
-      DESCRIPTION: null
-      ORIGINAL MEDIA TYPE: null
-      ENCODED_BY: null
+      DESCRIPTION:
+      ORIGINAL MEDIA TYPE:
+      ENCODED_BY:
 qct-parse:
   content:
     silence:
@@ -201,41 +210,41 @@ qct-parse:
       TOUT: 0.009
       VREP: 0.03
   fullTagList:
-    YMIN: null
-    YLOW: null
-    YAVG: null
-    YHIGH: null
-    YMAX: null
-    UMIN: null
-    ULOW: null
-    UAVG: null
-    UHIGH: null
-    UMAX: null
-    VMIN: null
-    VLOW: null
-    VAVG: null
-    VHIGH: null
-    VMAX: null
-    SATMIN: null
-    SATLOW: null
-    SATAVG: null
-    SATHIGH: null
-    SATMAX: null
-    HUEMED: null
-    HUEAVG: null
-    YDIF: null
-    UDIF: null
-    VDIF: null
-    TOUT: null
-    VREP: null
-    BRNG: null
-    mse_y: null
-    mse_u: null
-    mse_v: null
-    mse_avg: null
-    psnr_y: null
-    psnr_u: null
-    psnr_v: null
-    psnr_avg: null
-    Overall_Min_level: null
-    Overall_Max_level: null
+    YMIN:
+    YLOW:
+    YAVG:
+    YHIGH:
+    YMAX:
+    UMIN:
+    ULOW:
+    UAVG:
+    UHIGH:
+    UMAX:
+    VMIN:
+    VLOW:
+    VAVG:
+    VHIGH:
+    VMAX:
+    SATMIN:
+    SATLOW:
+    SATAVG:
+    SATHIGH:
+    SATMAX:
+    HUEMED:
+    HUEAVG:
+    YDIF:
+    UDIF:
+    VDIF:
+    TOUT:
+    VREP:
+    BRNG:
+    mse_y:
+    mse_u:
+    mse_v:
+    mse_avg:
+    psnr_y:
+    psnr_u:
+    psnr_v:
+    psnr_avg:
+    Overall_Min_level:
+    Overall_Max_level:
