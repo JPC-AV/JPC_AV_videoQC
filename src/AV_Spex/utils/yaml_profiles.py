@@ -56,6 +56,22 @@ def update_config(config_path, nested_key, value_dict):
             yaml.dump(config_dict, y)
             logger.info(f'config.yaml updated to match profile {last_key}')
 
+# Function to save the current state of the command_config.yaml to a dictionary (profile)
+def save_current_profile(command_config):
+    with open(command_config.command_yml, 'r') as f:
+        current_profile = yaml.load(f)
+    return current_profile
+
+# Function to save the current profile to a new YAML file
+def save_profile_to_file(command_config, new_file_path):
+    current_profile = save_current_profile(command_config)
+    if current_profile:
+        with open(new_file_path, 'w') as f:
+            yaml.dump(current_profile, f)
+        logger.info(f'Profile saved to {new_file_path}')
+    else:
+        logger.critical(f'Unable to save command profile!')
+
 profile_step1 = {
     "tools": {
         "qctools": {

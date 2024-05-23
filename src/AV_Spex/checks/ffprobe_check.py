@@ -58,7 +58,6 @@ def parse_ffprobe(file_path):
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
                 ffprobe_differences.append(f"Metadata field {expected_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
                 # append this string to the list "ffprobe_differences"
-
     
     for expected_key, expected_value in expected_format_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"

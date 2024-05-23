@@ -18,7 +18,7 @@ from datetime import datetime
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
-from .utils.yaml_profiles import apply_profile, update_config, profile_step1, profile_step2, JPC_AV_SVHS, bowser_filename, JPCAV_filename
+from .utils.yaml_profiles import *
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
 from .checks.mediainfo_check import parse_mediainfo
@@ -164,6 +164,7 @@ def parse_arguments():
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
     parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS"], help="Select signal flow config type (JPC_AV_SVHS)")
     parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
+    parser.add_argument("-sp","--saveprofile", action="store_true", help="Flag to write current command_config settings to new yaml file, for re-use or reference.")
     parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
     parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
 
@@ -214,7 +215,9 @@ def parse_arguments():
 
     dry_run_only = args.dryrun
 
-    return source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only
+    save_profile = args.saveprofile
+
+    return source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_profile
 
 def main():
     '''
@@ -227,7 +230,7 @@ def main():
     print(f'\n{avspex_icon}\n\n')
     time.sleep(1)
     
-    source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only = parse_arguments()
+    source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_profile = parse_arguments()
 
     check_py_version()
     
@@ -244,6 +247,11 @@ def main():
 
     if fn_config_changes:
         update_config(config_path, 'filename_values', fn_config_changes)
+
+    if save_profile:
+        config_dir = command_config.config_dir
+        user_profile_config = os.path.join(config_dir, f"command_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
+        save_profile_to_file(command_config, user_profile_config)
 
     if dry_run_only:
         logger.critical(f"Dry run selected. Exiting now.\n\n")
