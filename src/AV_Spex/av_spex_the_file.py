@@ -6,7 +6,8 @@ import subprocess
 import sys
 import re
 import logging
-import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.compat import StringIO
 import csv
 import shutil
 import argparse

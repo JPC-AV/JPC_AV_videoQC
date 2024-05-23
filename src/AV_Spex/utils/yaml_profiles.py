@@ -1,45 +1,48 @@
 import os
 import sys
-import yaml
+from ruamel.yaml import YAML
+from ruamel.yaml.compat import StringIO
 import argparse
 from ..utils.find_config import config_path, command_config
 from ..utils.log_setup import logger
 
-def represent_string(dumper, data):
-    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
-
-# Add represent function to add quotes around string values
-yaml.add_representer(str, represent_string)
-
 # Function to apply profile changes
 def apply_profile(command_config, selected_profile):
+    yaml = YAML()
+    yaml.preserve_quotes = True
+
+    with open(command_config.command_yml, "r") as f:
+        command_dict = yaml.load(f)
+
     for output, output_settings in selected_profile["outputs"].items():
-        if output == "difference_csv":
-            command_config.command_dict["outputs"][output] = output_settings  # Assign the value directly
-        elif output == "access_file":
-            command_config.command_dict["outputs"][output] = output_settings  # Assign the value directly
-        elif output in command_config.command_dict["outputs"]:
+        if output in command_dict["outputs"]:
             if isinstance(output_settings, dict):
-                if output in command_config.command_dict["outputs"]:
-                    command_config.command_dict["outputs"][output].update(output_settings)
+                command_dict["outputs"][output].update(output_settings)
+            else:
+                command_dict["outputs"][output] = output_settings
+
     for tool, updates in selected_profile["tools"].items():
-        if tool in command_config.command_dict["tools"]:
-            command_config.command_dict["tools"][tool].update(updates)
-    
-    # Optionally, write back to the YAML file
+        if tool in command_dict["tools"]:
+            command_dict["tools"][tool].update(updates)
+
     with open(command_config.command_yml, "w") as f:
-        f.write("---\n")
-        yaml.safe_dump(command_config.command_dict, f, sort_keys=False)
-        logger.info(f'command_config.yaml updated to match selected tool profile')
+        yaml.dump(command_dict, f)
+    logger.info(f'command_config.yaml updated to match selected tool profile')
 
 def update_config(config_path, nested_key, value_dict):
+    yaml = YAML()
+    yaml.preserve_quotes = True
+
+    with open(config_path.config_yml, "r") as f:
+        config_dict = yaml.load(f)
+    
     keys = nested_key.split('.')                # creates a list of keys from the input, for example 'ffmpeg_values.format.tags.ENCODER_SETTINGS'
-    current_dict = config_path.config_dict      # initializes current_dict as config.yaml, this var will be reset in the for loop below
-    for key in keys[:-1]:                   # Iterating through the keys (except the last one)
+    current_dict = config_dict                  # initializes current_dict as config.yaml, this var will be reset in the for loop below
+    for key in keys[:-1]:                       # Iterating through the keys (except the last one)
         if key in current_dict:             
             current_dict = current_dict[key]
         else:
-            return                          # If the current key is in the current_dict, move loop "in" to nested dict
+            return                              # If the current key is in the current_dict, move loop "in" to nested dict
     last_key = keys[-1]
     # The code block above should get us to the nested dictionary we want to update 
     if last_key in current_dict:
@@ -56,7 +59,7 @@ def update_config(config_path, nested_key, value_dict):
         current_dict[last_key].update(ordered_dict)
         
         with open(config_path.config_yml, 'w') as y:
-            yaml.safe_dump(config_path.config_dict, y, sort_keys=False, default_flow_style=False)
+            yaml.dump(config_dict, y)
             logger.info(f'config.yaml updated to match profile {last_key}')
 
 profile_step1 = {
