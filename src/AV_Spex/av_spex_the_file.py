@@ -164,7 +164,7 @@ def parse_arguments():
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
     parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS"], help="Select signal flow config type (JPC_AV_SVHS)")
     parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
-    parser.add_argument("-sp","--saveprofile", action="store_true", help="Flag to write current command_config settings to new yaml file, for re-use or reference.")
+    parser.add_argument("-sp","--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference. Select config or command: --saveprofile command")
     parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
     parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
 
@@ -215,9 +215,19 @@ def parse_arguments():
 
     dry_run_only = args.dryrun
 
-    save_profile = args.saveprofile
+    save_config_type = None
+    user_profile_config = None
+    if args.saveprofile:
+        if args.saveprofile == 'config':
+            save_config_type = config_path 
+            config_dir = config_path.config_dir
+            user_profile_config = os.path.join(config_dir, f"config_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
+        elif args.saveprofile == 'command':
+            save_config_type = command_config
+            config_dir = command_config.config_dir
+            user_profile_config = os.path.join(config_dir, f"command_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
 
-    return source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_profile
+    return source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config
 
 def main():
     '''
@@ -230,7 +240,7 @@ def main():
     print(f'\n{avspex_icon}\n\n')
     time.sleep(1)
     
-    source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_profile = parse_arguments()
+    source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config = parse_arguments()
 
     check_py_version()
     
@@ -248,10 +258,8 @@ def main():
     if fn_config_changes:
         update_config(config_path, 'filename_values', fn_config_changes)
 
-    if save_profile:
-        config_dir = command_config.config_dir
-        user_profile_config = os.path.join(config_dir, f"command_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
-        save_profile_to_file(command_config, user_profile_config)
+    if save_config_type:
+        save_profile_to_file(save_config_type, user_profile_config)
 
     if dry_run_only:
         logger.critical(f"Dry run selected. Exiting now.\n\n")
