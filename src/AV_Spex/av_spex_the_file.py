@@ -398,12 +398,11 @@ def main():
             parse_mediainfo(mediainfo_output_path)
             # Run parse functions defined in the '_check.py' scripts
             
-       # mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.txt')
+        mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
-            mediatrace_output = run_mediatrace_command("mediainfo --Details=1 --Output=XML", video_path)
-            mediatrace_xml = mediatrace_output.stdout.decode('utf-8')
-            parse_mediatrace(mediatrace_xml)
+            run_command("mediainfo --Details=1 --Output=XML", video_path, '>', mediatrace_output_path)
+            parse_mediatrace(mediatrace_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
         ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')

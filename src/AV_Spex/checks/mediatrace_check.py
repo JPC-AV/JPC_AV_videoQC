@@ -9,12 +9,13 @@ import xml.etree.ElementTree as ET
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
-def parse_mediatrace(xml_content):
+def parse_mediatrace(xml_file):
     expected_mediatrace = config_path.config_dict['mediatrace']
     expected_mt_keys = expected_mediatrace.keys()
 
-    # Parse the XML content
-    root = ET.fromstring(xml_content)
+    # Parse the XML file
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
 
     # Define the namespace
     ns = {'mt': 'https://mediaarea.net/mediatrace'}
