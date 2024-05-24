@@ -3,8 +3,8 @@ outputs:
   access_file: 'no'
   difference_csv: 'no'
   fixity:
-    check_fixity: 'yes'
-    check_stream_fixity: 'yes'
+    check_fixity: 'no'
+    check_stream_fixity: 'no'
     embed_stream_fixity: 'no'
     output_fixity: 'no'
     overwrite_stream_fixity: 'no'
@@ -23,15 +23,15 @@ tools:
 ##  mediaconch policy file name from any xml file in the config directory
     mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
 ##  'yes' or 'no'
-    run_mediaconch: 'yes'
+    run_mediaconch: 'no'
   mediainfo:
 ##  'yes' or 'no'
     check_mediainfo: 'yes'
-    run_mediainfo: 'no'
+    run_mediainfo: 'yes'
   qctools:
 ##  'yes' or 'no'
     check_qctools: 'no'
-    run_qctools: 'yes'
+    run_qctools: 'no'
   qct-parse:
 ##  barsDetection can be true, null, or left empty
     barsDetection: true
