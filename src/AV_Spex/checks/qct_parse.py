@@ -167,7 +167,12 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
         tuple: Returns a tuple containing the start and end timestamps of detected bars.
     """
 
+	# initialize vars
 	frame_count = 0
+	barsStartString = None
+	barsEndString = None
+
+	# iterate through frames of the qct xml
 	with gzip.open(startObj) as xml:
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
 			if elem.attrib['media_type'] == "video": # get just the video frames
@@ -193,6 +198,7 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 							barsEndString = "Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")"
 							break
 			elem.clear() # we're done with that element so let's get it outta memory
+		
 	return durationStart, durationEnd, barsStartString, barsEndString
 
 def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
@@ -578,7 +584,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
         qctools_check_output (str): Path where the summary of the qct-parse results will be written.
 
     """
-	logger.info("Starting qct-parse\n")
+	logger.info("\nStarting qct-parse\n")
 	
 	###### Initialize variables ######
 	qct_parse = command_config.command_dict['tools']['qct-parse']
@@ -670,27 +676,33 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
 		durationStart, durationEnd, barsStartString, barsEndString = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
 		if durationStart == "" and durationEnd == "":
-			logger.error("No color bars detected")
+			logger.error("No color bars detected\n")
 		if barsStartString and barsEndString:
 			print_bars_durations(qctools_check_output,barsStartString,barsEndString)
 
 	######## Iterate Through the XML for Bars Evaluation ########
 	if qct_parse['evaluateBars']:
-		evalBars(startObj,pkt,durationStart,durationEnd,framesList)
-		# Define the keys for which you want to calculate the average
-		keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
-		# Initialize a dictionary to store the average values
-		average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
-		if average_dict is None:
-			logger.critical(f"\nCannot run evaluate color bars\n")
+		# if bars detection was run but durationStart and durationEnd remain unassigned
+		if qct_parse['barsDetection'] and durationStart == "" and durationEnd == "":
+			logger.critical(f"Cannot run color bars evaluation - no color bars found.")
+		elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
+			evalBars(startObj,pkt,durationStart,durationEnd,framesList)
+			# Define the keys for which you want to calculate the average
+			keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
+			# Initialize a dictionary to store the average values
+			average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
+			if average_dict is None:
+				logger.critical(f"\nSomething went wrong - Cannot run evaluate color bars\n")
+			else:
+				logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
+				durationStart = 0
+				durationEnd = 99999999
+				profile = average_dict
+				kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
+				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
 		else:
-			logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
-			durationStart = 0
-			durationEnd = 99999999
-			profile = average_dict
-			kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-			printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
-			logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
+			logger.critical(f"Cannot run color bars evaluation without running Bars Detection.")
 			
 	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
 	
