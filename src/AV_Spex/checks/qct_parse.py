@@ -382,7 +382,6 @@ def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,fra
 						if comp_op(float(frameDict[tag]), float(thresh)) :
 							timeStampString = dts2ts(frame_pkt_dts_time)
 							content_over[tag].append(timeStampString)
-				#thumbDelay = thumbDelay + 1
 		elem.clear() # we're done with that element so let's get it outta memory
 		common_durations = find_common_durations(content_over)
 		if common_durations:
@@ -608,11 +607,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	
 	startObj = qctools_output_path
 	
-	# Set thumbExport delay
-	if qct_parse['thumbExportDelay']:
-		thumbDelay = int(qct_parse['thumbExportDelay'])	# get a seconds number for the delay in the original file btw exporting tags
-	else:
-		thumbDelay = 9000
+	# Initialize thumbExport delay, will be updated per use case
+	thumbDelay = 9000
 	thumbExportDelay = thumbDelay
 	
 	# Set parentDir and baseName
@@ -635,13 +631,11 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	# set the path for the thumbnail export
 	metadata_dir = os.path.dirname(qctools_output_path)
 	thumbPath = os.path.join(metadata_dir, "ThumbExports")
-	
-	if qct_parse['thumbExport']:
-		if not os.path.exists(thumbPath):
-			os.makedirs(thumbPath)
-		else:
-			thumbPath = uniquify(thumbPath) 
-			os.makedirs(thumbPath)
+	if not os.path.exists(thumbPath):
+		os.makedirs(thumbPath)
+	else:
+		thumbPath = uniquify(thumbPath) 
+		os.makedirs(thumbPath)
 	
 	profile = {} # init a dictionary where we'll store reference values from config.yaml file
 	
@@ -677,12 +671,18 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				if t in config_path.config_dict['qct-parse']['profiles'][template]:
 					profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
 		logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
+		# set thumbExportDelay for profile check
+		thumbExportDelay = 9000
+		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 	if qct_parse['tagname']:
 		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
+		# set profile and thumbExportDelay for ad hoc tag check
 		profile = config_path.config_dict['qct-parse']['fullTagList']
+		thumbExportDelay = 9000
+		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
@@ -718,10 +718,12 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				logger.critical(f"\nSomething went wrong - Cannot run evaluate color bars\n")
 			else:
 				logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
+				# set durationStart/End, profile, and  thumbExportDelay for bars evaluation check
 				durationStart = 0
 				durationEnd = 99999999
 				profile = average_dict
 				thumbExportDelay = 50000
+				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 				kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
 				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
