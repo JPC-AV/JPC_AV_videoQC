@@ -574,6 +574,23 @@ def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
 		f.write(barsEndString)
 		f.write("\n**************************")
 
+# blatant copy paste from https://stackoverflow.com/questions/13852700/create-file-but-if-name-exists-add-number
+def uniquify(path):
+    if os.path.isdir(path):
+        original_path = path.rstrip(os.sep)  # Remove trailing separator if it exists
+        counter = 1
+        while os.path.exists(path):
+            path = original_path + " (" + str(counter) + ")"
+            counter += 1
+        return path
+    else:
+        filename, extension = os.path.splitext(path)
+        counter = 1
+        while os.path.exists(path):
+            path = filename + " (" + str(counter) + ")" + extension
+            counter += 1
+        return path
+
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	"""
     Executes the qct-parse analysis on a given video file, exporting relevant data and thumbnails based on specified thresholds and profiles.
@@ -621,6 +638,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	
 	if qct_parse['thumbExport']:
 		if not os.path.exists(thumbPath):
+			os.makedirs(thumbPath)
+		else:
+			thumbPath = uniquify(thumbPath) 
 			os.makedirs(thumbPath)
 	
 	profile = {} # init a dictionary where we'll store reference values from config.yaml file
@@ -678,7 +698,10 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		if durationStart == "" and durationEnd == "":
 			logger.error("No color bars detected\n")
 		if barsStartString and barsEndString:
-			print_bars_durations(qctools_check_output,barsStartString,barsEndString)
+			print_bars_durations(qctools_check_output,thumbPath,barsEndString)
+			if qct_parse['thumbExport']:
+				barsStampString = dts2ts(durationStart)
+				printThumb(video_path,"color_bars",startObj,thumbPath,"first_frame",barsStampString)
 
 	######## Iterate Through the XML for Bars Evaluation ########
 	if qct_parse['evaluateBars']:
@@ -698,6 +721,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				durationStart = 0
 				durationEnd = 99999999
 				profile = average_dict
+				thumbExportDelay = 50000
 				kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
 				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
