@@ -159,8 +159,8 @@ def find_mkv(source_directory):
     return video_path
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description=f"%(prog)s {version_string} \nAV Spex is a python application designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications")
     version_string = importlib.metadata.version('AV_Spex')
+    parser = argparse.ArgumentParser(description=f"%(prog)s {version_string} \nAV Spex is a python application designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications")
     parser.add_argument('--version', action='version', version=f'%(prog)s {version_string}')
     parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("-dr","--dryrun", action="store_true", help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
