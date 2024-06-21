@@ -711,7 +711,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 			evalBars(startObj,pkt,durationStart,durationEnd,framesList)
 			# Define the keys for which you want to calculate the average
 			keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
-			# Initialize a dictionary to store the average values
+			# Create a dictionary of the median values of each of the keys from the frameDict created in the evalBars function
 			average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
 			if average_dict is None:
 				logger.critical(f"\nSomething went wrong - Cannot run evaluate color bars\n")
