@@ -332,7 +332,7 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,framesList):
+def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList):
 	"""
     Checks values against thresholds of multiple values
 
@@ -346,7 +346,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,fra
 	
 	content_over = {}
 
-	for tag, settings in config_path.config_dict['qct-parse']['content'][contentFilter_name].items():
+	for tag, settings in contentFilter_dict.items():
 		content_over[tag] = []
 
 	with gzip.open(startObj) as xml:	
@@ -373,7 +373,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,fra
 							keyName = '.'.join(keySplit[-2:])						# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']						# add each attribute to the frame dictionary
 				framesList.append(frameDict)
-				for tag, config_value in config_path.config_dict['qct-parse']['content'][contentFilter_name].items():
+				for tag, config_value in contentFilter_dict.items():
 					tag_threshold, op_string = config_value.split(", ")
 					thresh = float(tag_threshold)
 					comp_op = operator_mapping[op_string]
@@ -400,9 +400,9 @@ def getCompFromConfig(qct_parse,profile,tag):
 				comp_op = operator.gt
 	if set(profile.keys()) == set(color_bar_keys):
 		if "MIN" in tag:
-			comp_op = operator.gt
-		else:
 			comp_op = operator.lt
+		else:
+			comp_op = operator.gt
 	return comp_op
 
 
@@ -430,6 +430,7 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
         tuple: A tuple containing a dictionary of tags with the count of their exceedances, total frame count, and count of overall frame failures.
     """
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
+	fail_stamps = [] # init a list for timestamps of frames w/ a fail
 	fots = "" # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count for qct_parse['profile'] or qct_parse['evaluateBars']
 	if profile == config_path.config_dict['qct-parse']['fullTagList']:
 		for each_tag, tag_operator, tag_thresh in qct_parse['tagname']:
@@ -476,6 +477,8 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 									if not frame_pkt_dts_time in fots: 				# make sure that we only count each over frame once
 										overallFrameFail = overallFrameFail + 1
 										fots = frame_pkt_dts_time 					# set it again so we don't dupe
+										timeStampString = dts2ts(frame_pkt_dts_time)
+										fail_stamps.append(timeStampString)
 					else: # if we're using a profile
 						for k,v in profile.items():
 							if v is not None:
@@ -489,13 +492,15 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 									if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
 										overallFrameFail = overallFrameFail + 1
 										fots = frame_pkt_dts_time # set it again so we don't dupe
+										timeStampString = dts2ts(frame_pkt_dts_time)
+										fail_stamps.append(timeStampString)
 					thumbDelay = thumbDelay + 1				
 			elem.clear() # we're done with that element so let's get it outta memory
-	return kbeyond, frameCount, overallFrameFail
+	return kbeyond, frameCount, overallFrameFail, fail_stamps
 
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
-def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output):
+def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stamps,qctools_check_output):
 	"""
     Writes the analyzeIt results into a summary file, detailing the count and percentage of frames that exceeded the thresholds.
 
@@ -558,9 +563,15 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_
 				f.write("\n")
 			f.write("\n\nOverall:")
 			if set(profile.keys()) == set(color_bar_keys):
-				f.write("\nFrames Within MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
+				f.write("\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
+				f.write("\n\nTimes stamps of frames with at least one fail\n")
+				for time_stamp in fail_stamps:
+					f.write(time_stamp + '\n')
 			else:
 				f.write("\nFrames With At Least One Fail:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
+				f.write("\n\nTimes stamps of frames with at least one fail")
+				for time_stamp in fail_stamps:
+					f.write(time_stamp + '\n')
 			f.write("\n**************************")
 	return
 
@@ -658,7 +669,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {qct_parse['contentFilter']}\n")
 		duration_str = get_duration(video_path)
 		contentFilter_name = qct_parse['contentFilter']
-		detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,framesList)
+		contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
+		detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList)
 	elif qct_parse['contentFilter'] == None:
 		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
@@ -674,8 +686,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		# set thumbExportDelay for profile check
 		thumbExportDelay = 9000
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stamps,qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 	if qct_parse['tagname']:
 		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
@@ -683,8 +695,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		profile = config_path.config_dict['qct-parse']['fullTagList']
 		thumbExportDelay = 9000
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stamps,qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 	
 	######## Iterate Through the XML for Bars detection ########
@@ -724,8 +736,16 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				profile = average_dict
 				thumbExportDelay = 50000
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-				kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
+				kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+				if overallFrameFail > 1:
+					colorbar_filter = {}
+					for key, value in average_dict.items():
+						if 'MAX' in key:
+							colorbar_filter[key] = f'{value}, gt'
+						elif 'MIN' in key:
+							colorbar_filter[key] = f'{value}, lt'
+					detectContentFilter(startObj,pkt,"Color Bars",colorbar_filter,qctools_check_output,framesList)
+				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stamps,qctools_check_output)
 				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
 		else:
 			logger.critical(f"Cannot run color bars evaluation without running Bars Detection.")
