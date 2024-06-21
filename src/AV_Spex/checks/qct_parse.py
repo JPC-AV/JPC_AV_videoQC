@@ -400,9 +400,9 @@ def getCompFromConfig(qct_parse,profile,tag):
 				comp_op = operator.gt
 	if set(profile.keys()) == set(color_bar_keys):
 		if "MIN" in tag:
-			comp_op = operator.gt
-		else:
 			comp_op = operator.lt
+		else:
+			comp_op = operator.gt
 	return comp_op
 
 
@@ -558,7 +558,7 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_
 				f.write("\n")
 			f.write("\n\nOverall:")
 			if set(profile.keys()) == set(color_bar_keys):
-				f.write("\nFrames Within MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
+				f.write("\nFrames With MAX and MIN of YUV and/or SAT beyond Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
 			else:
 				f.write("\nFrames With At Least One Fail:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
 			f.write("\n**************************")
@@ -659,8 +659,6 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		duration_str = get_duration(video_path)
 		contentFilter_name = qct_parse['contentFilter']
 		detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,framesList)
-	elif qct_parse['contentFilter'] == None:
-		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
 
 	######## Iterate Through the XML for General Analysis ########
 	if qct_parse['profile']:
