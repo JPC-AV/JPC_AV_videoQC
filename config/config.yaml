@@ -41,12 +41,6 @@ mediainfo_values:
     Sampling rate: 48.0 kHz
     Bit depth: 24 bits
     Compression mode: Lossless
-  expected_custom_fields:
-    Title:
-    Encoded by:
-    Description:
-    Encoding settings:
-    ORIGINAL MEDIA TYPE:
 exiftool_values:
   File Type: MKV
   File Type Extension: mkv
@@ -140,10 +134,18 @@ ffmpeg_values:
       ORIGINAL MEDIA TYPE:
       ENCODED_BY:
 mediatrace:
+  COLLECTION:
   TITLE:
+  CATALOG_NUMBER:
   DESCRIPTION:
-  ORIGINAL MEDIA TYPE:
+  DATE_DIGITIZED:
+  ENCODING_SETTINGS:
   ENCODED_BY:
+  ORIGINAL_MEDIA_TYPE:
+  DATE_TAGGED:
+  TERMS_OF_USE:
+  _TECHNICAL_NOTES:
+  _ORIGINAL_FPS:
 qct-parse:
   content:
     silence:
