@@ -11,6 +11,7 @@ from ruamel.yaml.compat import StringIO
 import csv
 import shutil
 import argparse
+import importlib.metadata
 import time
 from art import *
 from datetime import datetime
@@ -30,13 +31,10 @@ from .checks.make_access import make_access_file
 from .checks.qct_parse import run_qctparse
 
 def check_directory(source_directory, video_id):
-    
     # Assuming DigitalGeneration is always prefixed with an underscore and is the last part before the file extension
     base_video_id = video_id.rsplit('_', 1)[0]  # Splits off the DigitalGeneration part
-
     directory_name = os.path.basename(source_directory)
-    
- # Check if the directory name starts with the base_video_id string
+    # Check if the directory name starts with the base_video_id string
     if directory_name.startswith(base_video_id):
         logger.info(f'\nDirectory name "{directory_name}" correctly starts with "{base_video_id}".\n')
     else:
@@ -175,7 +173,17 @@ def find_mkv(source_directory):
     return video_path
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description="Process video file with optional settings")
+    version_string = importlib.metadata.version('AV_Spex')
+    parser = argparse.ArgumentParser(
+        description=f"""\
+%(prog)s {version_string}
+
+AV Spex is a python application designed to help process digital audio and video media created from analog sources.
+The scripts will confirm that the digital files conform to predetermined specifications.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument('--version', action='version', version=f'%(prog)s {version_string}')
     parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("-dr","--dryrun", action="store_true", help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
@@ -288,6 +296,10 @@ def main():
     
     for source_directory in source_directories:
         dir_start_time = time.time()
+
+        source_directory = os.path.normpath(source_directory)
+        # sanitize user input directory path
+        
         video_path = find_mkv(source_directory)
 
         tape_icon = art('cassette1')
