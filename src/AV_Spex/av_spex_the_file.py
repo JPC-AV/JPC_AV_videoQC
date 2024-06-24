@@ -400,6 +400,7 @@ def main():
             
         mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
+            logger.info(f"\nCreating MediaTrace XML file to check custom MKV Tag metadata fields:")
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             run_command("mediainfo --Details=1 --Output=XML", video_path, '>', mediatrace_output_path)
             parse_mediatrace(mediatrace_output_path)
