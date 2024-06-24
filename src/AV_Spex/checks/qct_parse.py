@@ -19,6 +19,7 @@ import sys
 import re
 import operator
 from statistics import median
+from datetime import datetime, timedelta
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config			
 
@@ -405,6 +406,34 @@ def getCompFromConfig(qct_parse,profile,tag):
 			comp_op = operator.gt
 	return comp_op
 
+def summarize_timestamps(timestamps):
+	if timestamps:
+		# Convert string timestamps to datetime objects
+		timestamp_objects = [datetime.strptime(ts, "%H:%M:%S.%f") for ts in timestamps]
+
+		# Initialize the list to hold summarized timestamps
+		summarized_timestamps = []
+		start_time = timestamp_objects[0]
+		end_time = timestamp_objects[0]
+
+		for i in range(1, len(timestamp_objects)):
+			current_time = timestamp_objects[i]
+			if current_time - end_time < timedelta(seconds=1):
+				end_time = current_time
+			else:
+				# Add the summarized range to the list
+				summarized_timestamps.append((start_time, end_time))
+				# Reset the start and end time
+				start_time = current_time
+				end_time = current_time
+
+		# Add the last range to the list
+		summarized_timestamps.append((start_time, end_time))
+	else:
+		summarized_timestamps = None
+
+	return summarized_timestamps
+
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	"""
@@ -500,7 +529,7 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
-def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stamps,qctools_check_output):
+def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output):
 	"""
     Writes the analyzeIt results into a summary file, detailing the count and percentage of frames that exceeded the thresholds.
 
@@ -564,15 +593,26 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stam
 			f.write("\n\nOverall:")
 			if set(profile.keys()) == set(color_bar_keys):
 				f.write("\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
-				f.write("\n\nTimes stamps of frames with at least one fail\n")
-				for time_stamp in fail_stamps:
-					f.write(time_stamp + '\n')
+				if summarized_timestamps:
+					f.write("\n\nTimes stamps of frames with at least one fail")
+					# Format the output
+					for start, end in summarized_timestamps:
+						if start == end:
+							print(start.strftime("%H:%M:%S.%f")[:-3])
+						else:
+							print(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
+							f.write("\n**************************")
 			else:
 				f.write("\nFrames With At Least One Fail:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
-				f.write("\n\nTimes stamps of frames with at least one fail")
-				for time_stamp in fail_stamps:
-					f.write(time_stamp + '\n')
-			f.write("\n**************************")
+				if summarized_timestamps:
+					f.write("\n\nTimes stamps of frames with at least one fail")
+					# Format the output
+					for start, end in summarized_timestamps:
+						if start == end:
+							print(start.strftime("%H:%M:%S.%f")[:-3])
+						else:
+							print(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
+							f.write("\n**************************")
 	return
 
 def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
@@ -687,7 +727,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		thumbExportDelay = 9000
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stamps,qctools_check_output)
+		summarized_timestamps = summarize_timestamps(fail_stamps)
+		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 	if qct_parse['tagname']:
 		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
@@ -696,7 +737,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		thumbExportDelay = 9000
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stamps,qctools_check_output)
+		summarized_timestamps = summarize_timestamps(fail_stamps)
+		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 	
 	######## Iterate Through the XML for Bars detection ########
@@ -745,7 +787,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 						elif 'MIN' in key:
 							colorbar_filter[key] = f'{value}, lt'
 					detectContentFilter(startObj,pkt,"Color Bars",colorbar_filter,qctools_check_output,framesList)
-				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,fail_stamps,qctools_check_output)
+				summarized_timestamps = summarize_timestamps(fail_stamps)
+				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
 				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
 		else:
 			logger.critical(f"Cannot run color bars evaluation without running Bars Detection.")
