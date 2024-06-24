@@ -19,6 +19,7 @@ import sys
 import re
 import operator
 from statistics import median
+from datetime import datetime, timedelta
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config			
 
@@ -220,6 +221,28 @@ def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
 
+def find_peak_values(framesList, keys_to_check):
+	# Initialize a dictionary to store the highest values for each key
+	highest_values = {key_being_checked: 0 for key_being_checked in keys_to_check}
+
+	# Iterate over each frame in the list
+	for frameDict in framesList:
+		for key in keys_to_check:
+			if key in frameDict:
+				if "MAX" in key:
+					# Convert the value to float and compare it with the current highest value
+					value = float(frameDict[key])
+					if value > highest_values[key]:
+						highest_values[key] = value
+				elif "MIN" in key:
+					if value < highest_values[key]:
+						highest_values[key] = value
+
+	# Convert highest values to integer
+	highest_values = {key: int(value) for key, value in highest_values.items()}
+
+	return highest_values
+
 def get_duration(video_path):
 	"""
     Retrieves the duration of a video file using ffprobe.
@@ -332,7 +355,7 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,framesList):
+def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList):
 	"""
     Checks values against thresholds of multiple values
 
@@ -346,7 +369,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,fra
 	
 	content_over = {}
 
-	for tag, settings in config_path.config_dict['qct-parse']['content'][contentFilter_name].items():
+	for tag, settings in contentFilter_dict.items():
 		content_over[tag] = []
 
 	with gzip.open(startObj) as xml:	
@@ -373,7 +396,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,fra
 							keyName = '.'.join(keySplit[-2:])						# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']						# add each attribute to the frame dictionary
 				framesList.append(frameDict)
-				for tag, config_value in config_path.config_dict['qct-parse']['content'][contentFilter_name].items():
+				for tag, config_value in contentFilter_dict.items():
 					tag_threshold, op_string = config_value.split(", ")
 					thresh = float(tag_threshold)
 					comp_op = operator_mapping[op_string]
@@ -405,6 +428,34 @@ def getCompFromConfig(qct_parse,profile,tag):
 			comp_op = operator.gt
 	return comp_op
 
+def summarize_timestamps(timestamps):
+	if timestamps:
+		# Convert string timestamps to datetime objects
+		timestamp_objects = [datetime.strptime(ts, "%H:%M:%S.%f") for ts in timestamps]
+
+		# Initialize the list to hold summarized timestamps
+		summarized_timestamps = []
+		start_time = timestamp_objects[0]
+		end_time = timestamp_objects[0]
+
+		for i in range(1, len(timestamp_objects)):
+			current_time = timestamp_objects[i]
+			if current_time - end_time < timedelta(seconds=2):
+				end_time = current_time
+			else:
+				# Add the summarized range to the list
+				summarized_timestamps.append((start_time, end_time))
+				# Reset the start and end time
+				start_time = current_time
+				end_time = current_time
+
+		# Add the last range to the list
+		summarized_timestamps.append((start_time, end_time))
+	else:
+		summarized_timestamps = None
+
+	return summarized_timestamps
+
 
 def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList,frameCount=0,overallFrameFail=0):
 	"""
@@ -430,6 +481,7 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
         tuple: A tuple containing a dictionary of tags with the count of their exceedances, total frame count, and count of overall frame failures.
     """
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
+	fail_stamps = [] # init a list for timestamps of frames w/ a fail
 	fots = "" # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count for qct_parse['profile'] or qct_parse['evaluateBars']
 	if profile == config_path.config_dict['qct-parse']['fullTagList']:
 		for each_tag, tag_operator, tag_thresh in qct_parse['tagname']:
@@ -476,6 +528,8 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 									if not frame_pkt_dts_time in fots: 				# make sure that we only count each over frame once
 										overallFrameFail = overallFrameFail + 1
 										fots = frame_pkt_dts_time 					# set it again so we don't dupe
+										timeStampString = dts2ts(frame_pkt_dts_time)
+										fail_stamps.append(timeStampString)
 					else: # if we're using a profile
 						for k,v in profile.items():
 							if v is not None:
@@ -489,13 +543,15 @@ def analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEn
 									if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
 										overallFrameFail = overallFrameFail + 1
 										fots = frame_pkt_dts_time # set it again so we don't dupe
+										timeStampString = dts2ts(frame_pkt_dts_time)
+										fail_stamps.append(timeStampString)
 					thumbDelay = thumbDelay + 1				
 			elem.clear() # we're done with that element so let's get it outta memory
-	return kbeyond, frameCount, overallFrameFail
+	return kbeyond, frameCount, overallFrameFail, fail_stamps
 
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
-def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output):
+def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output):
 	"""
     Writes the analyzeIt results into a summary file, detailing the count and percentage of frames that exceeded the thresholds.
 
@@ -558,10 +614,31 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_
 				f.write("\n")
 			f.write("\n\nOverall:")
 			if set(profile.keys()) == set(color_bar_keys):
-				f.write("\nFrames With MAX and MIN of YUV and/or SAT beyond Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
+				f.write("\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
+				if summarized_timestamps:
+					f.write("\n\nTimes stamps of frames with at least one fail\n")
+					# Format the output
+					for start, end in summarized_timestamps:
+						if start == end:
+							f.write(start.strftime("%H:%M:%S.%f")[:-3])
+							f.write(f"\n")
+						else:
+							f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
+							f.write(f"\n")
+				f.write("\n**************************")
 			else:
 				f.write("\nFrames With At Least One Fail:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
-			f.write("\n**************************")
+				if summarized_timestamps:
+					f.write("\n\nTimes stamps of frames with at least one fail\n")
+					# Format the output
+					for start, end in summarized_timestamps:
+						if start == end:
+							f.write(start.strftime("%H:%M:%S.%f")[:-3])
+							f.write(f"\n")
+						else:
+							f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
+							f.write(f"\n")
+				f.write("\n**************************")
 	return
 
 def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
@@ -673,8 +750,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		# set thumbExportDelay for profile check
 		thumbExportDelay = 9000
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		summarized_timestamps = summarize_timestamps(fail_stamps)
+		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 	if qct_parse['tagname']:
 		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
@@ -682,14 +760,15 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		profile = config_path.config_dict['qct-parse']['fullTagList']
 		thumbExportDelay = 9000
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
+		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		summarized_timestamps = summarize_timestamps(fail_stamps)
+		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
 	
 	######## Iterate Through the XML for Bars detection ########
 	if qct_parse['barsDetection']:
-		durationStart = ""						# if bar detection is turned on then we have to calculate this
-		durationEnd = ""						# if bar detection is turned on then we have to calculate this
+		durationStart = ""							# if bar detection is turned on then we have to calculate this
+		durationEnd = ""							# if bar detection is turned on then we have to calculate this
 		duration_str = get_duration(video_path)
 		ffprobe_duration = float(duration_str)
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
@@ -710,21 +789,22 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
 			evalBars(startObj,pkt,durationStart,durationEnd,framesList)
 			# Define the keys for which you want to calculate the average
-			keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
-			# Create a dictionary of the median values of each of the keys from the frameDict created in the evalBars function
-			average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
-			if average_dict is None:
+			keys_to_check = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
+			# Initialize a dictionary to store the average values
+			maxBarsDict = find_peak_values(framesList, keys_to_check)
+			if maxBarsDict is None:
 				logger.critical(f"\nSomething went wrong - Cannot run evaluate color bars\n")
 			else:
 				logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
 				# set durationStart/End, profile, and  thumbExportDelay for bars evaluation check
 				durationStart = 0
 				durationEnd = 99999999
-				profile = average_dict
+				profile = maxBarsDict
 				thumbExportDelay = 50000
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-				kbeyond, frameCount, overallFrameFail = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail, qctools_check_output)
+				kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+				summarized_timestamps = summarize_timestamps(fail_stamps)
+				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
 				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
 		else:
 			logger.critical(f"Cannot run color bars evaluation without running Bars Detection.")
