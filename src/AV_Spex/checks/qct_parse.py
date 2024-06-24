@@ -440,7 +440,7 @@ def summarize_timestamps(timestamps):
 
 		for i in range(1, len(timestamp_objects)):
 			current_time = timestamp_objects[i]
-			if current_time - end_time < timedelta(seconds=1):
+			if current_time - end_time < timedelta(seconds=2):
 				end_time = current_time
 			else:
 				# Add the summarized range to the list
