@@ -23,6 +23,7 @@ from .utils.yaml_profiles import *
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
 from .checks.mediainfo_check import parse_mediainfo
+from .checks.mediatrace_check import parse_mediatrace
 from .checks.exiftool_check import parse_exiftool
 from .checks.ffprobe_check import parse_ffprobe
 from .checks.embed_fixity import extract_tags, extract_hashes, embed_fixity, validate_embedded_md5
@@ -66,6 +67,22 @@ def run_command(command, input_path, output_type, output_path):
 
     logger.debug(f'\nRunning command: {full_command}')
     subprocess.run(full_command, shell=True, env=env)
+
+def run_mediatrace_command(command, input_path):
+    '''
+    Run a shell command with 4 variables: command name, path to the input file, output type (often '>'), path to the output file
+    '''
+
+    # Get the current PATH environment variable
+    env = os.environ.copy()
+    env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
+
+    full_command = f"{command} \"{input_path}\" "
+
+    logger.debug(f'\nRunning mediainfo to generate MediaTrace XML: {full_command}')
+    output = subprocess.run(full_command, shell=True, capture_output=True)
+
+    return output
 
 # Mediaconch needs its own function, because the command's flags and multiple inputs don't conform to the simple 3 part structure of the other commands
 def run_mediaconch_command(command, input_path, output_type, output_path):
@@ -391,6 +408,14 @@ def main():
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             parse_mediainfo(mediainfo_output_path)
+            # Run parse functions defined in the '_check.py' scripts
+            
+        mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
+        if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
+            logger.info(f"\nCreating MediaTrace XML file to check custom MKV Tag metadata fields:")
+            # If check_mediainfo is set to 'yes' in command_config.yaml then
+            run_command("mediainfo --Details=1 --Output=XML", video_path, '>', mediatrace_output_path)
+            parse_mediatrace(mediatrace_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
         ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')

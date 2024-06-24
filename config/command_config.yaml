@@ -23,7 +23,7 @@ tools:
 ##  mediaconch policy file name from any xml file in the config directory
     mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
 ##  'yes' or 'no'
-    run_mediaconch: 'yes'
+    run_mediaconch: 'no'
   mediainfo:
 ##  'yes' or 'no'
     check_mediainfo: 'yes'

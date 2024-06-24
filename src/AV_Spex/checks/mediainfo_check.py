@@ -13,7 +13,6 @@ def parse_mediainfo(file_path):
     expected_general = config_path.config_dict['mediainfo_values']['expected_general']
     expected_video = config_path.config_dict['mediainfo_values']['expected_video']
     expected_audio = config_path.config_dict['mediainfo_values']['expected_audio']
-    expected_custom_fields = config_path.config_dict['mediainfo_values']['expected_custom_fields']
 
     section_data = {}
     # creates empty dictionary "section_data"
@@ -114,32 +113,15 @@ def parse_mediainfo(file_path):
             if actual_value not in expected_value:
                 mediainfo_differences.append(f"Metadata field in Audio: {expected_key} has a value of {actual_value}\nThe expected value is: {expected_value}")
                 # append this string to the list "mediainfo_differences"
-
-    custom_mediainfo_differences = []
-    for expected_key, expected_value in expected_custom_fields.items():
-    # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"
-        if expected_key not in (section_data["General"]):
-            custom_mediainfo_differences.append(f"metadata field in General: {expected_key} does not exist") 
-        elif len(section_data["General"][expected_key]) == 0:
-        # count the values in the nested dictionary "General" with 'len', if the values are zero, then:
-            custom_mediainfo_differences.append(f"General: {expected_key} is empty")
-            # append this string to the list "mediainfo_differences"
     
-    if not mediainfo_differences and not custom_mediainfo_differences:
+    if not mediainfo_differences:
     # if the list "mediainfo_differences" is empty, then
         logger.info("\nAll specified fields and values found in the MediaInfo output.")
-    elif not mediainfo_differences:
-        logger.info("\nAll specified metadata fields and values found in the MediaInfo output, but some custom embedded fields are missing or don't match.")
     else:
     # if the list "mediainfo_differences" is not empty, then
         logger.critical(f"\nSome specified MediaInfo fields or values are missing or don't match:")
         for diff in mediainfo_differences:
             logger.critical(f'{diff}')
-    
-    if custom_mediainfo_differences:
-        logger.critical("\nThe specified MediaInfo fields or values for embedded metadata are below:")
-        for custom_diff in custom_mediainfo_differences:
-            logger.critical(f'{custom_diff}')
 
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":
