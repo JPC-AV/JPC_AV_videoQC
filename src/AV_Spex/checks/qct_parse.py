@@ -779,14 +779,6 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				thumbExportDelay = 50000
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 				kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-				if overallFrameFail > 1:
-					colorbar_filter = {}
-					for key, value in average_dict.items():
-						if 'MAX' in key:
-							colorbar_filter[key] = f'{value}, gt'
-						elif 'MIN' in key:
-							colorbar_filter[key] = f'{value}, lt'
-					detectContentFilter(startObj,pkt,"Color Bars",colorbar_filter,qctools_check_output,framesList)
 				summarized_timestamps = summarize_timestamps(fail_stamps)
 				printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
 				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_check_output}\n")
