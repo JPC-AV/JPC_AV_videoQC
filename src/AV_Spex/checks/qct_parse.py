@@ -221,6 +221,28 @@ def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
 
+def find_peak_values(framesList, keys_to_check):
+	# Initialize a dictionary to store the highest values for each key
+	highest_values = {key_being_checked: 0 for key_being_checked in keys_to_check}
+
+	# Iterate over each frame in the list
+	for frameDict in framesList:
+		for key in keys_to_check:
+			if key in frameDict:
+				if "MAX" in key:
+					# Convert the value to float and compare it with the current highest value
+					value = float(frameDict[key])
+					if value > highest_values[key]:
+						highest_values[key] = value
+				elif "MIN" in key:
+					if value < highest_values[key]:
+						highest_values[key] = value
+
+	# Convert highest values to integer
+	highest_values = {key: int(value) for key, value in highest_values.items()}
+
+	return highest_values
+
 def get_duration(video_path):
 	"""
     Retrieves the duration of a video file using ffprobe.
@@ -594,25 +616,29 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarize
 			if set(profile.keys()) == set(color_bar_keys):
 				f.write("\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
 				if summarized_timestamps:
-					f.write("\n\nTimes stamps of frames with at least one fail")
+					f.write("\n\nTimes stamps of frames with at least one fail\n")
 					# Format the output
 					for start, end in summarized_timestamps:
 						if start == end:
-							print(start.strftime("%H:%M:%S.%f")[:-3])
+							f.write(start.strftime("%H:%M:%S.%f")[:-3])
+							f.write(f"\n")
 						else:
-							print(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
-							f.write("\n**************************")
+							f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
+							f.write(f"\n")
+				f.write("\n**************************")
 			else:
 				f.write("\nFrames With At Least One Fail:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
 				if summarized_timestamps:
-					f.write("\n\nTimes stamps of frames with at least one fail")
+					f.write("\n\nTimes stamps of frames with at least one fail\n")
 					# Format the output
 					for start, end in summarized_timestamps:
 						if start == end:
-							print(start.strftime("%H:%M:%S.%f")[:-3])
+							f.write(start.strftime("%H:%M:%S.%f")[:-3])
+							f.write(f"\n")
 						else:
-							print(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
-							f.write("\n**************************")
+							f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
+							f.write(f"\n")
+				f.write("\n**************************")
 	return
 
 def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
@@ -743,8 +769,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	
 	######## Iterate Through the XML for Bars detection ########
 	if qct_parse['barsDetection']:
-		durationStart = ""						# if bar detection is turned on then we have to calculate this
-		durationEnd = ""						# if bar detection is turned on then we have to calculate this
+		durationStart = ""							# if bar detection is turned on then we have to calculate this
+		durationEnd = ""							# if bar detection is turned on then we have to calculate this
 		duration_str = get_duration(video_path)
 		ffprobe_duration = float(duration_str)
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
@@ -765,17 +791,17 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
 			evalBars(startObj,pkt,durationStart,durationEnd,framesList)
 			# Define the keys for which you want to calculate the average
-			keys_to_average = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
+			keys_to_check = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
 			# Initialize a dictionary to store the average values
-			average_dict = {key: median([float(frameDict[key]) for frameDict in framesList if key in frameDict]) for key in keys_to_average}
-			if average_dict is None:
+			maxBarsDict = find_peak_values(framesList, keys_to_check)
+			if maxBarsDict is None:
 				logger.critical(f"\nSomething went wrong - Cannot run evaluate color bars\n")
 			else:
 				logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
 				# set durationStart/End, profile, and  thumbExportDelay for bars evaluation check
 				durationStart = 0
 				durationEnd = 99999999
-				profile = average_dict
+				profile = maxBarsDict
 				thumbExportDelay = 50000
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 				kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
