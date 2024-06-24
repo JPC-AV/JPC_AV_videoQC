@@ -708,11 +708,12 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	# set the path for the thumbnail export
 	metadata_dir = os.path.dirname(qctools_output_path)
 	thumbPath = os.path.join(metadata_dir, "ThumbExports")
-	if not os.path.exists(thumbPath):
-		os.makedirs(thumbPath)
-	else:
-		thumbPath = uniquify(thumbPath) 
-		os.makedirs(thumbPath)
+	if qct_parse['thumbExport']:
+		if not os.path.exists(thumbPath):
+			os.makedirs(thumbPath)
+		else:
+			thumbPath = uniquify(thumbPath) 
+			os.makedirs(thumbPath)
 	
 	profile = {} # init a dictionary where we'll store reference values from config.yaml file
 	
@@ -731,14 +732,11 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 					break
 
 	######## Iterate Through the XML for content detection ########
-	if qct_parse['contentFilter'] != None:
+	if qct_parse['contentFilter']:
 		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {qct_parse['contentFilter']}\n")
 		duration_str = get_duration(video_path)
 		contentFilter_name = qct_parse['contentFilter']
-		contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
-		detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList)
-	elif qct_parse['contentFilter'] == None:
-		logger.error(f"Cannot run detectContent, no content filter specified in config.yaml\n")
+		detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,framesList)
 
 	######## Iterate Through the XML for General Analysis ########
 	if qct_parse['profile']:
@@ -778,7 +776,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		if durationStart == "" and durationEnd == "":
 			logger.error("No color bars detected\n")
 		if barsStartString and barsEndString:
-			print_bars_durations(qctools_check_output,thumbPath,barsEndString)
+			print_bars_durations(qctools_check_output,barsStartString,barsEndString)
 			if qct_parse['thumbExport']:
 				barsStampString = dts2ts(durationStart)
 				printThumb(video_path,"color_bars",startObj,thumbPath,"first_frame",barsStampString)
