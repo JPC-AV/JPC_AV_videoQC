@@ -18,6 +18,8 @@ import math
 import sys			
 import re
 import operator
+from ruamel.yaml import YAML
+from ruamel.yaml.compat import StringIO
 from statistics import median
 from datetime import datetime, timedelta
 from ..utils.log_setup import logger
@@ -203,6 +205,17 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 	return durationStart, durationEnd, barsStartString, barsEndString
 
 def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
+	# Define the keys for which you want to calculate the average
+	keys_to_check = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMAX', 'SATMIN']
+	# Initialize a dictionary to store the highest values for each key
+	maxBarsDict = {}
+	# adds the list keys_to_check as keys to a dictionary
+	for key_being_checked in keys_to_check:
+		# assign 'dummy' threshold to be overwritten
+		if "MAX" in key_being_checked:
+			maxBarsDict[key_being_checked] = 0
+		elif "MIN" in key_being_checked:
+			maxBarsDict[key_being_checked] = 1023
 	with gzip.open(startObj) as xml:	
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
 			if elem.attrib['media_type'] == "video": 	# get just the video frames
@@ -220,28 +233,24 @@ def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
 							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
 						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
 					framesList.append(frameDict)					# add this dict to our circular buffer
-
-def find_peak_values(framesList, keys_to_check):
-	# Initialize a dictionary to store the highest values for each key
-	highest_values = {key_being_checked: 0 for key_being_checked in keys_to_check}
-
-	# Iterate over each frame in the list
-	for frameDict in framesList:
-		for key in keys_to_check:
-			if key in frameDict:
-				if "MAX" in key:
-					# Convert the value to float and compare it with the current highest value
-					value = float(frameDict[key])
-					if value > highest_values[key]:
-						highest_values[key] = value
-				elif "MIN" in key:
-					if value < highest_values[key]:
-						highest_values[key] = value
-
-	# Convert highest values to integer
-	highest_values = {key: int(value) for key, value in highest_values.items()}
-
-	return highest_values
+					# Now we can parse the frame data from the buffer!
+					for colorbar_key in keys_to_check:
+						if colorbar_key in frameDict:
+							if "MAX" in colorbar_key:
+								# Convert the value to float and compare it with the current highest value
+								value = float(frameDict[colorbar_key])
+								if value > maxBarsDict[colorbar_key]:
+									maxBarsDict[colorbar_key] = value
+							elif "MIN" in colorbar_key:
+								# Convert the value to float and compare it with the current highest value
+								value = float(frameDict[colorbar_key])
+								if value < maxBarsDict[colorbar_key]:
+									maxBarsDict[colorbar_key] = value
+							# Convert highest values to integer
+							maxBarsDict = {colorbar_key: int(value) for colorbar_key, value in maxBarsDict.items()}
+			elem.clear() # we're done with that element so let's get it outta memory
+		
+		return maxBarsDict
 
 def get_duration(video_path):
 	"""
@@ -565,6 +574,10 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarize
         None
     """
 	color_bar_keys = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
+
+	yaml = YAML()
+	stream = StringIO()
+	yaml.dump(profile, stream)
 	
 	with open(qctools_check_output, 'a') as f:
 		f.write("**************************\n")
@@ -614,7 +627,9 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarize
 				f.write("\n")
 			f.write("\n\nOverall:")
 			if set(profile.keys()) == set(color_bar_keys):
-				f.write("\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
+				f.write("\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames\n")
+				f.write("\nThe thresholds defined by the peak values of QCTools filters in the identified color bars are:\n")
+				f.write(stream.getvalue())
 				if summarized_timestamps:
 					f.write("\n\nTimes stamps of frames with at least one fail\n")
 					# Format the output
@@ -666,6 +681,13 @@ def uniquify(path):
             path = filename + " (" + str(counter) + ")" + extension
             counter += 1
         return path
+	
+def count_top_level_dictionaries(lst):
+    count = 0
+    for item in lst:
+        if isinstance(item, dict):
+            count += 1
+    return count
 
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	"""
@@ -787,11 +809,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		if qct_parse['barsDetection'] and durationStart == "" and durationEnd == "":
 			logger.critical(f"Cannot run color bars evaluation - no color bars found.")
 		elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
-			evalBars(startObj,pkt,durationStart,durationEnd,framesList)
-			# Define the keys for which you want to calculate the average
-			keys_to_check = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
-			# Initialize a dictionary to store the average values
-			maxBarsDict = find_peak_values(framesList, keys_to_check)
+			maxBarsDict = evalBars(startObj,pkt,durationStart,durationEnd,framesList)
 			if maxBarsDict is None:
 				logger.critical(f"\nSomething went wrong - Cannot run evaluate color bars\n")
 			else:
