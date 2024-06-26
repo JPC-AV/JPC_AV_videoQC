@@ -460,6 +460,40 @@ def summarize_timestamps(timestamps):
 
 		# Add the last range to the list
 		summarized_timestamps.append((start_time, end_time))
+
+		if len(summarized_timestamps) > 10:
+			summarized_timestamps = []
+			start_time = timestamp_objects[0]
+			for i in range(1, len(timestamp_objects)):
+				current_time = timestamp_objects[i]
+				if current_time - end_time < timedelta(seconds=10):
+					end_time = current_time
+				else:
+					# Add the summarized range to the list
+					summarized_timestamps.append((start_time, end_time))
+					# Reset the start and end time
+					start_time = current_time
+					end_time = current_time
+
+			# Add the last range to the list
+			summarized_timestamps.append((start_time, end_time))
+
+			if len(summarized_timestamps) > 10:
+				summarized_timestamps = []
+				start_time = timestamp_objects[0]
+				for i in range(1, len(timestamp_objects)):
+					current_time = timestamp_objects[i]
+					if current_time - end_time < timedelta(seconds=30):
+						end_time = current_time
+					else:
+						# Add the summarized range to the list
+						summarized_timestamps.append((start_time, end_time))
+						# Reset the start and end time
+						start_time = current_time
+						end_time = current_time
+
+				# Add the last range to the list
+				summarized_timestamps.append((start_time, end_time))
 	else:
 		summarized_timestamps = None
 
