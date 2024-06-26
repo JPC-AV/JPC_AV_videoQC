@@ -715,13 +715,6 @@ def uniquify(path):
             path = filename + " (" + str(counter) + ")" + extension
             counter += 1
         return path
-	
-def count_top_level_dictionaries(lst):
-    count = 0
-    for item in lst:
-        if isinstance(item, dict):
-            count += 1
-    return count
 
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	"""
