@@ -39,15 +39,14 @@ def parse_mediatrace(xml_file):
         #if not found:
          #       mediatrace_output[mt_key] = None
     
-    mediatrace_differences = []
+    mediatrace_differences = {}
     for expected_key, expected_value in expected_mediatrace.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_mediatrace"
-        if expected_key not in mediatrace_output:
-            mediatrace_differences.append(f"MediaTrace metadata field {expected_key} does not exist") 
+        if expected_key not in mediatrace_output: 
+            mediatrace_differences[expected_key] = ['metadata field not found', '']
         elif len(mediatrace_output[expected_key]) == 0:
         # count the values in the dictionary "mediatrace_output" with 'len', if the values are zero, then:
-            mediatrace_differences.append(f"MediaTrace: {expected_key} is empty")
-            # append this string to the list "mediatrace_differences"
+             mediatrace_differences[expected_key] =  ['no metadata value found', '']
 
     if not mediatrace_differences:
         # if the list "mediatrace_differences" is empty, then
@@ -55,5 +54,8 @@ def parse_mediatrace(xml_file):
 
     if mediatrace_differences:
         logger.critical("\nSome specified MediaTrace fields or values are missing or don't match:")
-        for diff in mediatrace_differences:
-            logger.critical(f"{diff}")
+        for mediatrace_key, values in mediatrace_differences.items():
+            actual_value, expected_value = values
+            logger.critical(f"{mediatrace_key} {actual_value}")
+    
+    return mediatrace_differences

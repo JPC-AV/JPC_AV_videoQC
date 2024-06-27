@@ -33,7 +33,7 @@ def parse_ffprobe(file_path):
     ffmpeg_output['ffmpeg_audio'] = ffmpeg_data['streams'][1]
     ffmpeg_output['format'] = ffmpeg_data['format']
 
-    ffprobe_differences = []
+    ffprobe_differences = {}
     # Create empty list, "ffprobe_differences"
     for expected_key, expected_value in expected_video_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
@@ -44,8 +44,7 @@ def parse_ffprobe(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
-                ffprobe_differences.append(f"Metadata field {expected_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
-                # append this string to the list "ffprobe_differences"
+                ffprobe_differences[expected_key] = [actual_value, expected_value]
     
     for expected_key, expected_value in expected_audio_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
@@ -56,24 +55,20 @@ def parse_ffprobe(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
-                ffprobe_differences.append(f"Metadata field {expected_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
-                # append this string to the list "ffprobe_differences"
+                ffprobe_differences[expected_key] = [actual_value, expected_value]
     
     for expected_key, expected_value in expected_format_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"
         if expected_key not in (ffmpeg_output['format']):
-            ffprobe_differences.append(f"metadata field: {expected_key} does not exist") 
+            ffprobe_differences[expected_key] = ['metadata field not found', '']
         elif len(ffmpeg_output['format'][expected_key]) == 0:
-        # count the values in the nested dictionary "General" with 'len', if the values are zero, then:
-            ffprobe_differences.append(f"General: {expected_key} is empty")
-            # append this string to the list "ffprobe_differences"
+        # count the values in the nested dictionary "format" with 'len', if the values are zero, then:
+            ffprobe_differences[expected_key] = ['no metadata value found', '']
         
     if expected_format_values['format_name'] not in str(ffmpeg_output['format']['format_name']).replace(',', ' '):
-        ffprobe_differences.append(f"Encoder setting 'format_name' has a value of: {ffmpeg_output['format']['format_name']}\nThe expected value is: {expected_format_values['format_name']}")
-        # append this string to the list "ffprobe_differences"
+        ffprobe_differences["Encoder setting 'format_name'"] = [ffmpeg_output['format']['format_name'], expected_format_values['format_name']]
     if expected_format_values['format_long_name'] not in ffmpeg_output['format']['format_long_name']:
-        ffprobe_differences.append(f"Encoder setting 'format_long_name' has a value of: {ffmpeg_output['format']['format_long_name']}\nThe expected value is: {expected_format_values['format_long_name']}")
-        # append this string to the list "ffprobe_differences"
+        ffprobe_differences["Encoder setting 'format_long_name'"] = [ffmpeg_output['format']['format_long_name'], expected_format_values['format_long_name']]
         
     if 'ENCODER_SETTINGS' in ffmpeg_output['format']['tags']:
         # initialize variables
@@ -91,19 +86,18 @@ def parse_ffprobe(file_path):
             # defines variables "expected_key" and "expected_value" to the dictionary "expected_settings_values"
                 if expected_key not in encoder_settings_dict:
                     # append this string to the list "ffprobe_differences"
-                    ffprobe_differences.append(f"Encoder setting field {expected_key} was not found\n")
+                    ffprobe_differences[f"Encoder setting field {expected_key}"] = ['metadata field not found', '']
                 elif len(encoder_settings_dict[expected_key]) != float(expected_values_count[expected_key]):
-                    ffprobe_differences.append(f"Encoder setting field '{expected_key}' has {len(encoder_settings_dict[expected_key])} subfields, expected {expected_values_count[expected_key]}")
+                    ffprobe_differences[f"Encoder setting field {expected_key}"] = [f"{len(encoder_settings_dict[expected_key])} subfields", expected_values_count[expected_key]]
                 else:
                     encoder_settings_pass = 'yes'
         if encoder_settings_pass:
             for field, subfields in encoder_settings_dict.items():
                 has_serial_number = any(any(sn_format.lower() in subfield.lower() for sn_format in sn_strings) for subfield in subfields)
                 if not has_serial_number:
-                    ffprobe_differences.append(f"Encoder Settings field '{field}' does not contain a recognized serial number format (starting with 'SN ', 'SN-', 'SN##' - not case sensitive)")
-                    ffprobe_differences.append(f"Encoder Settings field '{field}' has the following subfields and values: {subfields}")
+                    ffprobe_differences[f"Encoder Settings field '{field}'"] = ["does not contain a recognized serial number format (starting with 'SN ', 'SN-', 'SN##' - not case sensitive)", ""]
     else:
-        ffprobe_differences.append(f"\nNo 'encoder settings' in ffprobe output\n")
+        ffprobe_differences["Encoder Settings"] = ['metadata field not found', '']
 
     if not ffprobe_differences:
         # if the list "ffprobe_differences" is empty, then
@@ -111,8 +105,14 @@ def parse_ffprobe(file_path):
     else:
         # if the list "ffprobe_differences" is not empty, then
         logger.critical(f"\nSome specified ffprobe fields or values are missing or don't match:")
-        for diff in ffprobe_differences:
-            logger.critical(f'{diff}')
+        for ffprobe_key, values in ffprobe_differences.items():
+            actual_value, expected_value = values
+            if expected_value == "":
+                logger.critical(f"{ffprobe_key} {actual_value}")
+            else:    
+                logger.critical(f"Metadata field {ffprobe_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
+    
+    return ffprobe_differences
 
 
 # Only execute if this file is run directly, not imported

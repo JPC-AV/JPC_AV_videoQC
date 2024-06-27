@@ -172,6 +172,16 @@ def find_mkv(source_directory):
     
     return video_path
 
+def write_to_csv(diff_dict, tool_name, writer):
+     for key, values in diff_dict.items():
+        actual_value, expected_value = values
+        writer.writerow({
+            'Metadata Tool': tool_name,
+            'Metadata Field': key,
+            'Expected Value': expected_value,
+            'Actual Value': actual_value
+        })
+
 def parse_arguments():
     version_string = importlib.metadata.version('AV_Spex')
     parser = argparse.ArgumentParser(
@@ -398,7 +408,7 @@ def main():
 
         if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
             # If check_exfitool is set to 'yes' in command_config.yaml then
-            parse_exiftool(exiftool_output_path)
+            exiftool_differences = parse_exiftool(exiftool_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
@@ -407,7 +417,7 @@ def main():
         
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
-            parse_mediainfo(mediainfo_output_path)
+            mediainfo_differences = parse_mediainfo(mediainfo_output_path)
             # Run parse functions defined in the '_check.py' scripts
             
         mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
@@ -415,7 +425,7 @@ def main():
             logger.info(f"\nCreating MediaTrace XML file to check custom MKV Tag metadata fields:")
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             run_command("mediainfo --Details=1 --Output=XML", video_path, '>', mediatrace_output_path)
-            parse_mediatrace(mediatrace_output_path)
+            mediatrace_differences = parse_mediatrace(mediatrace_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
         ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
@@ -424,8 +434,37 @@ def main():
 
         if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
             # If check_exfitool is set to 'yes' in command_config.yaml then
-            parse_ffprobe(ffprobe_output_path)
+            ffprobe_differences = parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
+        
+        if command_config.command_dict['outputs']['difference_csv']: 
+            if exiftool_differences and mediainfo_differences and ffprobe_differences and mediatrace_differences is None:
+                logger.info(f"All specified metadata fields and values found, no CSV report written")
+            else:
+                # Create CSV for storing differences between expected metadata values and actual values
+                csv_name = video_id + '_' + 'metadata_difference'
+                csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
+                if os.path.exists(csv_path):
+                    # if CSV file already exists, append a timestamp to the new csv_name
+                    timestamp = datetime.now().strftime("%Y%m%d_%H-%M-%S")
+                    csv_name += '_' + timestamp
+                    csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
+
+                # Open CSV file in write mode
+                with open(csv_path, 'w', newline='') as diffs_csv:
+                    # Define CSV header
+                    fieldnames = ['Metadata Tool', 'Metadata Field', 'Expected Value', 'Actual Value']
+                    writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
+                    # Write header to CSV file
+                    writer.writeheader()
+                    if exiftool_differences:
+                        write_to_csv(exiftool_differences, 'exiftool', writer)
+                    if mediainfo_differences:
+                        write_to_csv(mediainfo_differences, 'mediainfo', writer)
+                    if mediatrace_differences:
+                        write_to_csv(mediatrace_differences, 'mediatrace', writer)  
+                    if ffprobe_differences:
+                        write_to_csv(ffprobe_differences, 'ffprobe', writer)
 
         qctools_ext = command_config.command_dict['outputs']['qctools_ext']
         qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
