@@ -107,7 +107,11 @@ def parse_ffprobe(file_path):
         logger.critical(f"\nSome specified ffprobe fields or values are missing or don't match:")
         for ffprobe_key, values in ffprobe_differences.items():
             actual_value, expected_value = values
-            if expected_value == "":
+            if ffprobe_key == 'ENCODER_SETTINGS':
+            # This exception is for if there are no encoder settings embedded (cleaner output)
+                logger.critical(f"{actual_value}")
+            elif expected_value == "":
+             # This exception is for if there are missing subfields inside encoder settings (cleaner output)
                 logger.critical(f"{ffprobe_key} {actual_value}")
             else:    
                 logger.critical(f"Metadata field {ffprobe_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
