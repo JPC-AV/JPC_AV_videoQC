@@ -97,7 +97,7 @@ def parse_ffprobe(file_path):
                 if not has_serial_number:
                     ffprobe_differences[f"Encoder Settings field '{field}'"] = ["does not contain a recognized serial number format (starting with 'SN ', 'SN-', 'SN##' - not case sensitive)", ""]
     else:
-        ffprobe_differences["Encoder Settings"] = ['metadata field not found', '']
+        ffprobe_differences["Encoder Settings"] = ['No Encoder Settings found, No Signal Flow data embedded', '']
 
     if not ffprobe_differences:
         # if the list "ffprobe_differences" is empty, then
