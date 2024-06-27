@@ -401,6 +401,12 @@ def main():
                         # Print the field and value for the failed entry
                         logger.critical(f"{mc_field}: {mc_value}")
 
+        # Initiate dictionaries for storing differences between actual values and expected values
+        exiftool_differences = None
+        mediainfo_differences = None
+        mediatrace_differences = None
+        ffprobe_differences = None
+        
         # Run exiftool, mediainfo and ffprobe using the 'run_command' function
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
         if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
