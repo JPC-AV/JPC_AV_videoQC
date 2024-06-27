@@ -42,7 +42,7 @@ def parse_exiftool(file_path):
     # the variable "actual_value" is used to define the value of the key matching the "expected_key" in the expected_exif_values dictionary (defined above)
     # if the actual_value variable and the expected_value variable don't match, then a string stating both values is append to a list called "exiftool_differences"
 
-    exiftool_differences = []
+    exiftool_differences = {}
     # Create empty list, "exiftool_differences"
     for expected_key, expected_value in expected_exif_values.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
@@ -53,8 +53,7 @@ def parse_exiftool(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
-                exiftool_differences.append(f"Metadata field {expected_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
-                # append this string to the list "exiftool_differences"
+                exiftool_differences[expected_key] = [actual_value, expected_value]
 
     if not exiftool_differences:
     # if the list "exiftool_differences" is empty, then
@@ -62,8 +61,9 @@ def parse_exiftool(file_path):
     else:
     # if the list "exiftool_differences" is not empty, then
         logger.critical("\nSome specified Exiftool fields or values are missing or don't match:")
-        for diff in exiftool_differences:
-            logger.critical(f'{diff}')
+        for exif_key, values in exiftool_differences.items():
+            actual_value, expected_value = values
+            logger.critical(f"Metadata field {exif_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
 
     return exiftool_differences
 

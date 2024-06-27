@@ -22,9 +22,9 @@ def parse_mediainfo(file_path):
     section_data["Video"] = {}
     # nested dicitonary for storing data from "Video" section
     section_data["Audio"] = {}
-    # nested dicitonary for storing data from "Audio" section
+    # nested dictionary for storing data from "Audio" section
 
-    ## Explination of for loop below:
+    ## Explanation of for loop below:
     # the mediainfo field and value are then assigned to the current section's dictionary, which is stored within the section_data dictionary
     
     if not os.path.exists(file_path):
@@ -72,12 +72,12 @@ def parse_mediainfo(file_path):
                 section_data["Audio"][key] = value
                 # add key: value pair to nested dictionary
 
-    ## Explination of the loops below:
+    ## Explanation of the loops below:
     # The loops below assign the variables "expected_key" and "expected_value" to the key:value pairs in the "expected" dictionaries defined at the beginning of the function
     # the variable "actual_value" is used to define the value to the key that matches 'expected_key' in the section_data nested dictionaries (defined in the loop above)
-    # if the actual_value variable and the expected_value variable don't match, then a string stating both values is appened to a list called "mediainfo_differences"
+    # if the actual_value variable and the expected_value variable don't match, then a string stating both values is append to a list called "mediainfo_differences"
 
-    mediainfo_differences = []
+    mediainfo_differences = {}
     # Create empty list, "mediainfo_differences"
     for expected_key, expected_value in expected_general.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
@@ -88,8 +88,7 @@ def parse_mediainfo(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
-                mediainfo_differences.append(f"Metadata field in General: {expected_key} has a value of {actual_value}\nThe expected value is: {expected_value}")
-                # append this string to the list "mediainfo_differences"
+                mediainfo_differences[expected_key] = [actual_value, expected_value]
     
     for expected_key, expected_value in expected_video.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
@@ -100,8 +99,7 @@ def parse_mediainfo(file_path):
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
             # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
-                mediainfo_differences.append(f"Metadata field in Video: {expected_key} has a value of {actual_value}\nThe expected value is: {expected_value}")
-                # append this string to the list "mediainfo_differences"
+                 mediainfo_differences[expected_key] = [actual_value, expected_value]
 
     for expected_key, expected_value in expected_audio.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"
@@ -111,8 +109,7 @@ def parse_mediainfo(file_path):
             # assigns the variable "actual_value" to the value that matches the key in the dictionary "Audio"
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
-                mediainfo_differences.append(f"Metadata field in Audio: {expected_key} has a value of {actual_value}\nThe expected value is: {expected_value}")
-                # append this string to the list "mediainfo_differences"
+                mediainfo_differences[expected_key] = [actual_value, expected_value]
     
     if not mediainfo_differences:
     # if the list "mediainfo_differences" is empty, then
@@ -120,8 +117,11 @@ def parse_mediainfo(file_path):
     else:
     # if the list "mediainfo_differences" is not empty, then
         logger.critical(f"\nSome specified MediaInfo fields or values are missing or don't match:")
-        for diff in mediainfo_differences:
-            logger.critical(f'{diff}')
+        for mi_key, values in mediainfo_differences.items():
+            actual_value, expected_value = values
+            logger.critical(f"Metadata field {mi_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
+    
+    return mediainfo_differences
 
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":
