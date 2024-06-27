@@ -490,7 +490,10 @@ def main():
         
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':
-            make_access_file(video_path, access_output_path)
+            if os.path.isfile(access_output_path):
+                logger.critical(f"Access file already exists, not running ffmpeg")
+            else:
+                make_access_file(video_path, access_output_path)
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
