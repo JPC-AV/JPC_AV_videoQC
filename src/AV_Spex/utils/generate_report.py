@@ -46,6 +46,7 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
                 font-family: Arial, sans-serif;
                 background-color: #f5e9e3;
                 color: #011054;
+                margin: 30px;
             }}
             h1 {{
                 font-size: 24px;
@@ -55,8 +56,10 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
             }}
             h2 {{
                 font-size: 20px;
+                font-weight: bold;
                 margin-top: 30px;
-                color: #d79eaf;
+                color: #0a5f1c;
+                text-decoration: underline;
             }}
             h3 {{
                 font-size: 18px;
@@ -67,17 +70,17 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
                 width: 100%;
                 border-collapse: collapse;
                 margin-top: 10px;
-                border: 1px solid #4d2b12;
+                margin-bottom: 20px;
+                border: 2px solid #4d2b12;
             }}
             th, td {{
-                border: 1px solid #4d2b12;
+                border: 1.5px solid #4d2b12;
                 padding: 8px;
                 text-align: left;
             }}
             th {{
-                background-color: #eee2dc;
+                background-color: #fbe4eb;
                 font-weight: bold;
-                color: #4d2b12;
             }}
         </style>
     </head>
