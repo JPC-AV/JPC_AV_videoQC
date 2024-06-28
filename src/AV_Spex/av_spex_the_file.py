@@ -20,6 +20,7 @@ from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
 from .utils.yaml_profiles import *
+from .utils.generate_report import write_html_report
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
 from .checks.mediainfo_check import parse_mediainfo
@@ -378,6 +379,8 @@ def main():
             check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
         
         # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
+        mediaconch_output_path = None
+        # need to initialize path for report
         if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
             mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
             run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
@@ -443,23 +446,25 @@ def main():
             ffprobe_differences = parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
         
-        if command_config.command_dict['outputs']['difference_csv']: 
+        diff_csv_path = None
+        # need to initialize path for report
+        if command_config.command_dict['outputs']['difference_csv'] == 'yes': 
             if exiftool_differences and mediainfo_differences and ffprobe_differences and mediatrace_differences is None:
                 logger.info(f"All specified metadata fields and values found, no CSV report written")
             else:
                 # Create CSV for storing differences between expected metadata values and actual values
                 csv_name = video_id + '_' + 'metadata_difference'
-                csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
-                if os.path.exists(csv_path):
+                diff_csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
+                if os.path.exists(diff_csv_path):
                     # if CSV file already exists, append a timestamp to the new csv_name
                     timestamp = datetime.now().strftime("%Y%m%d_%H-%M-%S")
                     csv_name += '_' + timestamp
-                    csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
+                    diff_csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
 
                 # Open CSV file in write mode
-                with open(csv_path, 'w', newline='') as diffs_csv:
+                with open(diff_csv_path, 'w', newline='') as diffs_csv:
                     # Write title row
-                    diffs_csv.write(f'AV Spex CSV Report: {video_id} Metadata Differences\n')
+                    diffs_csv.write(f'{video_id} Metadata Differences\n')
                     # Define CSV header
                     fieldnames = ['Metadata Tool', 'Metadata Field', 'Expected Value', 'Actual Value']
                     writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
@@ -494,6 +499,12 @@ def main():
                 logger.critical(f"Access file already exists, not running ffmpeg")
             else:
                 make_access_file(video_path, access_output_path)
+        
+        if mediaconch_output_path and diff_csv_path:
+            html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
+            write_html_report(video_id,mediaconch_output_path,diff_csv_path,html_report_path)
+        else:
+            logger.critical(f"\nNot creating html report, no input csv files")
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
