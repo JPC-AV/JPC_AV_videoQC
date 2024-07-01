@@ -39,7 +39,7 @@ def exiftool_to_csv(exiftool_output_path,exiftool_csv_path):
     
 
 # Read CSV files and convert them to HTML tables
-def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ffbaba"):
+def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999", check_fail=False):
     with open(csv_file, newline='') as f:
         reader = csv.reader(f)
         rows = list(reader)
@@ -54,7 +54,9 @@ def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ffbaba"
     for row in rows[1:]:
         table_html += '  <tr>\n'
         for i, cell in enumerate(row):
-            if style_mismatched and i == 1 and row[2] != 'N/A' and row[1] != row[2]:
+            if check_fail and cell.lower() == "fail":
+                table_html += f'    <td style="background-color: {mismatch_color};">{cell}</td>\n'
+            elif style_mismatched and i == 1 and row[2] != 'N/A' and row[1] != row[2]:
                 table_html += f'    <td style="background-color: {mismatch_color};">{cell}</td>\n'
             elif style_mismatched and i == 2 and row[2] != 'N/A' and row[1] != row[2]:
                 table_html += f'    <td style="background-color: {mismatch_color};">{cell}</td>\n'
@@ -75,7 +77,7 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_csv_path,h
 
     # Read and convert mediaconch_csv if it exists
     if mediaconch_csv:
-        mc_csv_html = csv_to_html_table(mediaconch_csv)
+        mc_csv_html = csv_to_html_table(mediaconch_csv, style_mismatched=False, mismatch_color="#ffbaba", check_fail=True) 
         mediaconch_csv_filename = os.path.basename(mediaconch_csv)
 
     # Read and convert difference_csv if it exists
