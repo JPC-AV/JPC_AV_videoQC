@@ -3,13 +3,14 @@
 
 import os
 import sys
+import csv
 import logging
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
-def parse_mediainfo(file_path):
+def parse_mediainfo(file_path, mediainfo_csv_path):
     expected_general = config_path.config_dict['mediainfo_values']['expected_general']
     expected_video = config_path.config_dict['mediainfo_values']['expected_video']
     expected_audio = config_path.config_dict['mediainfo_values']['expected_audio']
@@ -120,6 +121,29 @@ def parse_mediainfo(file_path):
         for mi_key, values in mediainfo_differences.items():
             actual_value, expected_value = values
             logger.critical(f"Metadata field {mi_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
+
+    # Write to a CSV file
+    with open(mediainfo_csv_path, 'w', newline='') as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(['MediaInfo Field', 'Actual MediaInfo Data Value', 'Expected Value'])
+        
+        csv_writer.writerow(['General'])
+        for key in section_data["General"]:
+            mi_general_value = section_data["General"][key]
+            expected_value = expected_general.get(key, 'N/A')
+            csv_writer.writerow([key, mi_general_value, expected_value])
+        
+        csv_writer.writerow(['Video'])
+        for key in section_data["Video"]:
+            mi_video_value = section_data["Video"][key]
+            expected_value = expected_video.get(key, 'N/A')
+            csv_writer.writerow([key, mi_video_value, expected_value])
+        
+        csv_writer.writerow(['Audio'])
+        for key in section_data["Audio"]:
+            mi_audio_value = section_data["Audio"][key]
+            expected_value = expected_audio.get(key, 'N/A')
+            csv_writer.writerow([key, mi_audio_value, expected_value])
     
     return mediainfo_differences
 

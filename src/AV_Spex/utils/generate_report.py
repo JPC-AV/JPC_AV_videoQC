@@ -6,38 +6,6 @@ import os
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
-def exiftool_to_csv(exiftool_output_path,exiftool_csv_path):
-    # creates a dictionary of expected keys and values
-    expected_exif_values = config_path.config_dict['exiftool_values']
-    
-    with open(exiftool_output_path, 'r') as file:
-    # open exiftool text file as variable "file"
-        lines = file.readlines()
-        # define variable 'lines' as all individual lines in file (to be parsed in next "for loop")
-    
-    exif_data = {}
-    
-    for line in lines:
-    # for each line in exiftool text file
-        line = line.strip()
-        # strips line of blank space with python function strip()
-        key, value = [x.strip() for x in line.split(":", 1)]
-        #assign variable "key" to string before ":" and variable "value" to string after ":"
-        exif_data[key] = value
-        # value is matched to the key, in a key:value pair
-
-    # Writing to a CSV file
-    with open(exiftool_csv_path, 'w', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(['Exif Field', 'Actual Exif Data Value', 'Expected Value'])
-        
-        for key in exif_data:
-            exif_value = exif_data[key]
-            expected_value = expected_exif_values.get(key, 'N/A')
-            csv_writer.writerow([key, exif_value, expected_value])
-
-    
-
 # Read CSV files and convert them to HTML tables
 def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999", check_fail=False):
     with open(csv_file, newline='') as f:
@@ -66,14 +34,19 @@ def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999"
     table_html += '</table>\n'
     return table_html
 
-def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_csv_path,html_report_path):
+def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_csv_path,mediainfo_csv_path,ffprobe_csv_path,html_report_path):
     # Initialize the HTML sections for the CSV tables
     mc_csv_html = ''
     diff_csv_html = ''
     exif_html = ''
+    mediainfo_html = ''
+    ffprobe_html = ''
     mediaconch_csv_filename = ''
     difference_csv_filename = ''
     exiftool_csv_filename = ''
+    mediainfo_csv_filename = ''
+    ffprobe_csv_filename = ''
+
 
     # Read and convert mediaconch_csv if it exists
     if mediaconch_csv:
@@ -85,10 +58,20 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_csv_path,h
         diff_csv_html = csv_to_html_table(difference_csv)
         difference_csv_filename = os.path.basename(difference_csv)
 
-     # Read and convert exiftool_csv if it exists
+    # Read and convert exiftool_csv if it exists
     if exiftool_csv_path:
         exif_html = csv_to_html_table(exiftool_csv_path, style_mismatched=True, mismatch_color="#ffbaba")
         exiftool_csv_filename = os.path.basename(exiftool_csv_path)
+
+    # Read and convert mediainfo_csv if it exists
+    if mediainfo_csv_path:
+        mediainfo_html = csv_to_html_table(mediainfo_csv_path, style_mismatched=True, mismatch_color="#ffbaba")
+        mediainfo_csv_filename = os.path.basename(mediainfo_csv_path)
+
+    # Read and convert ffprobe_csv if it exists
+    if ffprobe_csv_path:
+        ffprobe_html = csv_to_html_table(ffprobe_csv_path, style_mismatched=True, mismatch_color="#ffbaba")
+        ffprobe_csv_filename = os.path.basename(ffprobe_csv_path)
     
     # HTML template
     html_template = f"""
@@ -162,6 +145,18 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_csv_path,h
         html_template += f"""
         <h3>{exiftool_csv_filename}</h3>
         {exif_html}
+        """
+
+    if mediainfo_html:
+        html_template += f"""
+        <h3>{mediainfo_csv_filename}</h3>
+        {mediainfo_html}
+        """
+
+    if ffprobe_html:
+        html_template += f"""
+        <h3>{ffprobe_csv_filename}</h3>
+        {ffprobe_html}
         """
 
     html_template += """

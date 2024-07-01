@@ -20,7 +20,7 @@ from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
 from .utils.yaml_profiles import *
-from .utils.generate_report import write_html_report, exiftool_to_csv
+from .utils.generate_report import write_html_report
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
 from .checks.mediainfo_check import parse_mediainfo
@@ -46,7 +46,7 @@ def make_qc_output_dir(source_directory, video_id):
     Creates output directory for metadata files
     '''
 
-    destination_directory = os.path.join(source_directory, f'{video_id}_qc_metadata')
+    destination_directory = os.path.join(source_directory, f'{video_id}_report_csvs')
 
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
@@ -54,6 +54,20 @@ def make_qc_output_dir(source_directory, video_id):
     logger.debug(f'Metadata files will be written to {destination_directory}')
 
     return destination_directory
+
+def make_report_dir(source_directory, video_id):
+    '''
+    Creates output directory for metadata files
+    '''
+
+    report_directory = os.path.join(source_directory, f'{video_id}_report_csvs')
+
+    if not os.path.exists(report_directory):
+        os.makedirs(report_directory)
+    
+    logger.debug(f'Report files will be written to {report_directory}')
+
+    return report_directory
 
 def run_command(command, input_path, output_type, output_path):
     '''
@@ -328,6 +342,9 @@ def main():
         # Create 'destination directory' for qc outputs
         destination_directory = make_qc_output_dir(source_directory, video_id)
 
+        # Create 'report directory' for csv files in html report
+        report_directory = make_report_dir(source_directory, video_id)
+
         # Moves vrecord files to subdirectory  
         move_vrec_files(source_directory, video_id)
 
@@ -415,18 +432,20 @@ def main():
         if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
             run_command('exiftool', video_path, '>', exiftool_output_path)
 
+        exiftool_csv_path = os.path.join(report_directory, f'{video_id}_exiftool.csv')
         if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
             # If check_exfitool is set to 'yes' in command_config.yaml then
-            exiftool_differences = parse_exiftool(exiftool_output_path)
+            exiftool_differences = parse_exiftool(exiftool_output_path, exiftool_csv_path)
             # Run parse functions defined in the '_check.py' scripts
 
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
         if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
             run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
         
+        mediainfo_csv_path = os.path.join(report_directory, f'{video_id}_mediainfo.csv')
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
-            mediainfo_differences = parse_mediainfo(mediainfo_output_path)
+            mediainfo_differences = parse_mediainfo(mediainfo_output_path, mediainfo_csv_path)
             # Run parse functions defined in the '_check.py' scripts
             
         mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
@@ -441,9 +460,10 @@ def main():
         if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
             run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
 
+        ffprobe_csv_path = os.path.join(report_directory, f'{video_id}_ffprobe.csv')
         if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
-            # If check_exfitool is set to 'yes' in command_config.yaml then
-            ffprobe_differences = parse_ffprobe(ffprobe_output_path)
+            # If check_ffprobe is set to 'yes' in command_config.yaml then
+            ffprobe_differences = parse_ffprobe(ffprobe_output_path, ffprobe_csv_path)
             # Run parse functions defined in the '_check.py' scripts
         
         diff_csv_path = None
@@ -501,11 +521,8 @@ def main():
                 make_access_file(video_path, access_output_path)
         
         if command_config.command_dict['outputs']['report'] == 'yes':
-            exiftool_csv_path = os.path.join(source_directory, f'{video_id}_exiftool.csv')
-            if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
-                exiftool_to_csv(exiftool_output_path,exiftool_csv_path)
             html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
-            write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_csv_path,html_report_path)
+            write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_csv_path,mediainfo_csv_path,ffprobe_csv_path,html_report_path)
         else:
             logger.critical(f"\nNot creating html report, no input csv files")
             
