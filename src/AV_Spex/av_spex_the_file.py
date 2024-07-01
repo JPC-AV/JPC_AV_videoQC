@@ -20,7 +20,7 @@ from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
 from .utils.yaml_profiles import *
-from .utils.generate_report import write_html_report
+from .utils.generate_report import write_html_report, exiftool_to_csv
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
 from .checks.mediainfo_check import parse_mediainfo
@@ -500,9 +500,12 @@ def main():
             else:
                 make_access_file(video_path, access_output_path)
         
-        if mediaconch_output_path and diff_csv_path:
+        if command_config.command_dict['outputs']['report'] == 'yes':
+            exiftool_csv_path = os.path.join(source_directory, f'{video_id}_exiftool.csv')
+            if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
+                exiftool_to_csv(exiftool_output_path,exiftool_csv_path)
             html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
-            write_html_report(video_id,mediaconch_output_path,diff_csv_path,html_report_path)
+            write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_csv_path,html_report_path)
         else:
             logger.critical(f"\nNot creating html report, no input csv files")
             
