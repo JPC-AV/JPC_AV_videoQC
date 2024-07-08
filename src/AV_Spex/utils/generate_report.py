@@ -26,9 +26,9 @@ def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999"
                 table_html += f'    <td style="background-color: {mismatch_color};">{cell}</td>\n'
             elif check_fail and cell.lower() == "pass":
                 table_html += f'    <td style="background-color: {match_color};">{cell}</td>\n'
-            elif style_mismatched and i == 1 and row[2] != 'N/A' and row[1] != row[2]:
-                table_html += f'    <td style="background-color: {mismatch_color};">{cell}</td>\n'
-            elif style_mismatched and i == 2 and row[2] != 'N/A' and row[1] != row[2]:
+            elif style_mismatched and i == 2 and row[2] != '' and row[1] != row[2]:
+                table_html += f'    <td style="background-color: {match_color};">{cell}</td>\n'
+            elif style_mismatched and i == 3 and row[2] != '' and row[1] != row[2]:
                 table_html += f'    <td style="background-color: {mismatch_color};">{cell}</td>\n'
             else:
                 table_html += f'    <td>{cell}</td>\n'
@@ -51,7 +51,7 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
 
     # Read and convert difference_csv if it exists
     if difference_csv:
-        diff_csv_html = csv_to_html_table(difference_csv)
+        diff_csv_html = csv_to_html_table(difference_csv, style_mismatched=True, mismatch_color="#ffbaba", match_color="#aaffdd", check_fail=False)
         difference_csv_filename = os.path.basename(difference_csv)
     
     # HTML template

@@ -480,8 +480,6 @@ def main():
 
                 # Open CSV file in write mode
                 with open(diff_csv_path, 'w', newline='') as diffs_csv:
-                    # Write title row
-                    diffs_csv.write(f'{video_id} Metadata Differences\n')
                     # Define CSV header
                     fieldnames = ['Metadata Tool', 'Metadata Field', 'Expected Value', 'Actual Value']
                     writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
