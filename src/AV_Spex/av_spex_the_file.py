@@ -46,7 +46,7 @@ def make_qc_output_dir(source_directory, video_id):
     Creates output directory for metadata files
     '''
 
-    destination_directory = os.path.join(source_directory, f'{video_id}_report_csvs')
+    destination_directory = os.path.join(source_directory, f'{video_id}_qc_metadata')
 
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
