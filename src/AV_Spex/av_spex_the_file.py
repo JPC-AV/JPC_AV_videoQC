@@ -432,20 +432,18 @@ def main():
         if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
             run_command('exiftool', video_path, '>', exiftool_output_path)
 
-        exiftool_csv_path = os.path.join(report_directory, f'{video_id}_exiftool.csv')
         if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
             # If check_exfitool is set to 'yes' in command_config.yaml then
-            exiftool_differences = parse_exiftool(exiftool_output_path, exiftool_csv_path)
+            exiftool_differences = parse_exiftool(exiftool_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
         if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
             run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
         
-        mediainfo_csv_path = os.path.join(report_directory, f'{video_id}_mediainfo.csv')
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
-            mediainfo_differences = parse_mediainfo(mediainfo_output_path, mediainfo_csv_path)
+            mediainfo_differences = parse_mediainfo(mediainfo_output_path)
             # Run parse functions defined in the '_check.py' scripts
             
         mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
@@ -460,10 +458,9 @@ def main():
         if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
             run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
 
-        ffprobe_csv_path = os.path.join(report_directory, f'{video_id}_ffprobe.csv')
         if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
             # If check_ffprobe is set to 'yes' in command_config.yaml then
-            ffprobe_differences = parse_ffprobe(ffprobe_output_path, ffprobe_csv_path)
+            ffprobe_differences = parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
         
         diff_csv_path = None
@@ -522,7 +519,7 @@ def main():
         
         if command_config.command_dict['outputs']['report'] == 'yes':
             html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
-            write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_csv_path,mediainfo_csv_path,ffprobe_csv_path,html_report_path)
+            write_html_report(video_id,mediaconch_output_path,diff_csv_path,html_report_path)
         else:
             logger.critical(f"\nNot creating html report, no input csv files")
             

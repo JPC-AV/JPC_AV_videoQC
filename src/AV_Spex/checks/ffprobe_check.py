@@ -6,13 +6,12 @@ import re
 import sys
 import logging
 import json
-import csv
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
 ## creates the function 'parse_exiftool' which takes the argument 'file_path' 
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
-def parse_ffprobe(file_path, ffprobe_csv_path):
+def parse_ffprobe(file_path):
     # creates a dictionary of expected keys and values
     expected_video_values = config_path.config_dict['ffmpeg_values']['video_stream']
     expected_audio_values = config_path.config_dict['ffmpeg_values']['audio_stream']
@@ -115,31 +114,6 @@ def parse_ffprobe(file_path, ffprobe_csv_path):
                 logger.critical(f"{ffprobe_key} {actual_value}")
             else:    
                 logger.critical(f"Metadata field {ffprobe_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
-
-    # Write to a CSV file
-    with open(ffprobe_csv_path, 'w', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(['ffprobe Field', 'Actual ffprobe Data Value', 'Expected Value'])
-        
-        csv_writer.writerow(['Video'])
-        for key in ffmpeg_output['ffmpeg_video']:
-            ffprobe_video_value = ffmpeg_output['ffmpeg_video'][key]
-            expected_value = expected_video_values.get(key, 'N/A')
-            csv_writer.writerow([key, ffprobe_video_value, expected_value])
-        
-        csv_writer.writerow(['Audio'])
-        for key in ffmpeg_output['ffmpeg_audio']:
-            ffprobe_audio_value = ffmpeg_output['ffmpeg_audio'][key]
-            expected_value = expected_audio_values.get(key, 'N/A')
-            csv_writer.writerow([key, ffprobe_audio_value, expected_value])
-        
-        csv_writer.writerow(['Format'])
-        for key in ffmpeg_output['format']:
-            mi_audio_value = ffmpeg_output['format'][key]
-            expected_value = expected_format_values.get(key, 'N/A')
-            csv_writer.writerow([key, mi_audio_value, expected_value])
-    
-    return ffprobe_differences
 
 
 # Only execute if this file is run directly, not imported

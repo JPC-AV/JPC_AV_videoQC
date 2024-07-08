@@ -36,18 +36,12 @@ def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999"
     table_html += '</table>\n'
     return table_html
 
-def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_csv_path,mediainfo_csv_path,ffprobe_csv_path,html_report_path):
+def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
     # Initialize the HTML sections for the CSV tables
     mc_csv_html = ''
     diff_csv_html = ''
-    exif_html = ''
-    mediainfo_html = ''
-    ffprobe_html = ''
     mediaconch_csv_filename = ''
     difference_csv_filename = ''
-    exiftool_csv_filename = ''
-    mediainfo_csv_filename = ''
-    ffprobe_csv_filename = ''
 
 
     # Read and convert mediaconch_csv if it exists
@@ -59,21 +53,6 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_csv_path,m
     if difference_csv:
         diff_csv_html = csv_to_html_table(difference_csv)
         difference_csv_filename = os.path.basename(difference_csv)
-
-    # Read and convert exiftool_csv if it exists
-    if exiftool_csv_path:
-        exif_html = csv_to_html_table(exiftool_csv_path, style_mismatched=True, mismatch_color="#ffbaba")
-        exiftool_csv_filename = os.path.basename(exiftool_csv_path)
-
-    # Read and convert mediainfo_csv if it exists
-    if mediainfo_csv_path:
-        mediainfo_html = csv_to_html_table(mediainfo_csv_path, style_mismatched=True, mismatch_color="#ffbaba")
-        mediainfo_csv_filename = os.path.basename(mediainfo_csv_path)
-
-    # Read and convert ffprobe_csv if it exists
-    if ffprobe_csv_path:
-        ffprobe_html = csv_to_html_table(ffprobe_csv_path, style_mismatched=True, mismatch_color="#ffbaba")
-        ffprobe_csv_filename = os.path.basename(ffprobe_csv_path)
     
     # HTML template
     html_template = f"""
@@ -141,24 +120,6 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_csv_path,m
         html_template += f"""
         <h3>{difference_csv_filename}</h3>
         {diff_csv_html}
-        """
-
-    if exif_html:
-        html_template += f"""
-        <h3>{exiftool_csv_filename}</h3>
-        {exif_html}
-        """
-
-    if mediainfo_html:
-        html_template += f"""
-        <h3>{mediainfo_csv_filename}</h3>
-        {mediainfo_html}
-        """
-
-    if ffprobe_html:
-        html_template += f"""
-        <h3>{ffprobe_csv_filename}</h3>
-        {ffprobe_html}
         """
 
     html_template += """

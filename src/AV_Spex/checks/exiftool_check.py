@@ -3,12 +3,11 @@
 
 import os
 import sys
-import csv
 import logging
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
-def parse_exiftool(file_path, exiftool_csv_path):
+def parse_exiftool(file_path):
     '''
     This function uses a dictionary (key:value pairs) defined in config/config.yaml 
     to check the values of an exiftool output against expected values.
@@ -65,16 +64,6 @@ def parse_exiftool(file_path, exiftool_csv_path):
         for exif_key, values in exiftool_differences.items():
             actual_value, expected_value = values
             logger.critical(f"Metadata field {exif_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
-
-    # Write to a CSV file
-    with open(exiftool_csv_path, 'w', newline='') as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(['Exif Field', 'Actual Exif Data Value', 'Expected Value'])
-        
-        for key in exif_data:
-            exif_value = exif_data[key]
-            expected_value = expected_exif_values.get(key, 'N/A')
-            csv_writer.writerow([key, exif_value, expected_value])
 
     return exiftool_differences
 
