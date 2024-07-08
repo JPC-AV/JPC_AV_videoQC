@@ -7,7 +7,7 @@ from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
 # Read CSV files and convert them to HTML tables
-def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999", match_color="#aaffdd", check_fail=False):
+def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999", match_color="#d2ffed", check_fail=False):
     with open(csv_file, newline='') as f:
         reader = csv.reader(f)
         rows = list(reader)
@@ -46,13 +46,20 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
 
     # Read and convert mediaconch_csv if it exists
     if mediaconch_csv:
-        mc_csv_html = csv_to_html_table(mediaconch_csv, style_mismatched=False, mismatch_color="#ffbaba", match_color="#aaffdd", check_fail=True) 
+        mc_csv_html = csv_to_html_table(mediaconch_csv, style_mismatched=False, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=True) 
         mediaconch_csv_filename = os.path.basename(mediaconch_csv)
 
     # Read and convert difference_csv if it exists
     if difference_csv:
-        diff_csv_html = csv_to_html_table(difference_csv, style_mismatched=True, mismatch_color="#ffbaba", match_color="#aaffdd", check_fail=False)
+        diff_csv_html = csv_to_html_table(difference_csv, style_mismatched=True, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=False)
         difference_csv_filename = os.path.basename(difference_csv)
+    
+    # Get the absolute path of the script file
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    # Determine the  path to the image file
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
+    logo_image_path = os.path.join(root_dir, 'av_spex_the_logo.png')
+    eq_image_path = os.path.join(root_dir, 'germfree_eq.png')
     
     # HTML template
     html_template = f"""
@@ -65,7 +72,7 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
         <style>
             body {{
                 font-family: Arial, sans-serif;
-                background-color: #fff3ee;
+                background-color: #fcfdff;
                 color: #011054;
                 margin: 30px;
             }}
@@ -104,10 +111,12 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
                 font-weight: bold;
             }}
         </style>
+        <img src="{logo_image_path}" alt="AV Spex Logo" style="display: block; margin-left: auto; margin-right: auto; width: 25%; margin-top: 20px;">
     </head>
     <body>
         <h1>AV Spex Report</h1>
         <h2>{video_id}</h2>
+        <img src="{eq_image_path}" alt="AV Spex Graphic EQ Logo" style="width: 10%;">
     """
 
     if mediaconch_csv:
