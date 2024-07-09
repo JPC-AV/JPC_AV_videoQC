@@ -13,7 +13,7 @@ This repository stores python scripts designed to help process digital audio and
 - Python 3.10 or higher is required.
 
 ### Installation
-While an automated installation script is in development, users currently need to manually manage dependencies. Below are the instructions for setting up a compatible Python environment using Conda, although Conda is optional - any Python 3.10+ environment should be compatible.
+Below are the instructions for setting up a compatible Python environment using Conda, although Conda is optional - any Python 3.10+ environment should be compatible.
 
 #### Setting Up Conda
 1. **Install Conda:**
@@ -25,6 +25,7 @@ While an automated installation script is in development, users currently need t
    - For Homebrew installations:
      - ARM architecture: `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
      - x86 architecture: `export PATH="/usr/local/anaconda3/bin:$PATH"`
+     - If you are unsure which of these paths to use, you can check by running `brew --prefix`
 
 3. **Initialize Conda:**
    - For Bash: `conda init`
@@ -66,6 +67,7 @@ av-spex --help
 ```
 
 ## Usage
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 
 Execute the scripts with:
 ```bash
