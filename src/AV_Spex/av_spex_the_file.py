@@ -443,6 +443,9 @@ def main():
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
         if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
             run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
+        else:
+            mediainfo_output_path = None
+            # reset variable if no output is created, so that it won't print in the report
         
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
@@ -460,6 +463,9 @@ def main():
         ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
         if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
             run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
+        else:
+            ffprobe_output_path = None
+            # reset variable if no output is created, so that it won't print in the report
 
         if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
             # If check_ffprobe is set to 'yes' in command_config.yaml then
