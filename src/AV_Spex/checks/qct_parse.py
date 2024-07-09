@@ -372,6 +372,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
         startObj (qctools.xml.gz): A gzip-compressed XML file containing frame attributes.
         pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
         contentFilter_name (str): The name of the content filter configuration to apply.
+		contentFilter_dict (dict): Dictionary of content filter values from qct-parse[content] section of config.yaml 
         qctools_check_output (str): The file path where segments meeting the content filter criteria are written.
     	framesList: List of frameDict dictionaries
     """
@@ -785,7 +786,8 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {qct_parse['contentFilter']}\n")
 		duration_str = get_duration(video_path)
 		contentFilter_name = qct_parse['contentFilter']
-		detectContentFilter(startObj,pkt,contentFilter_name,qctools_check_output,framesList)
+		contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
+		detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList)
 
 	######## Iterate Through the XML for General Analysis ########
 	if qct_parse['profile']:
