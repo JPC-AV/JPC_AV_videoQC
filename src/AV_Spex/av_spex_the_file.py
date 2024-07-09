@@ -395,14 +395,14 @@ def main():
         if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
             check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
         
-        # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
+        # Run mediaconch on the video file and save the output to a csv file
         mediaconch_output_path = None
         # need to initialize path for report
         if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
             mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
             run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
 
-            # open the mediaconch csv ouput and check for the word 'fail'
+            # open the mediaconch csv output and check for the word 'fail'
             with open(mediaconch_output_path, 'r', newline='') as mc_file:
                 reader = csv.reader(mc_file)
                 mc_header = next(reader)  # Get the header row
@@ -465,18 +465,18 @@ def main():
         
         diff_csv_path = None
         # need to initialize path for report
-        if command_config.command_dict['outputs']['difference_csv'] == 'yes': 
+        if command_config.command_dict['outputs']['report'] == 'yes': 
             if exiftool_differences and mediainfo_differences and ffprobe_differences and mediatrace_differences is None:
                 logger.info(f"All specified metadata fields and values found, no CSV report written")
             else:
                 # Create CSV for storing differences between expected metadata values and actual values
                 csv_name = video_id + '_' + 'metadata_difference'
-                diff_csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
+                diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
                 if os.path.exists(diff_csv_path):
                     # if CSV file already exists, append a timestamp to the new csv_name
                     timestamp = datetime.now().strftime("%Y%m%d_%H-%M-%S")
                     csv_name += '_' + timestamp
-                    diff_csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
+                    diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
 
                 # Open CSV file in write mode
                 with open(diff_csv_path, 'w', newline='') as diffs_csv:
