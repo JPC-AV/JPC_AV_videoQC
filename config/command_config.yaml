@@ -1,7 +1,6 @@
 outputs:
 ##  'yes' or 'no'
   access_file: 'no'
-  difference_csv: 'yes'
   report: 'yes'
   fixity:
     check_fixity: 'no'
