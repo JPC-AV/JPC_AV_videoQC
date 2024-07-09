@@ -6,7 +6,6 @@ import re
 import sys
 import logging
 import json
-import csv
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
@@ -115,8 +114,6 @@ def parse_ffprobe(file_path):
                 logger.critical(f"{ffprobe_key} {actual_value}")
             else:    
                 logger.critical(f"Metadata field {ffprobe_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
-    
-    return ffprobe_differences
 
 
 # Only execute if this file is run directly, not imported

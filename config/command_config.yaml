@@ -1,12 +1,12 @@
 outputs:
 ##  'yes' or 'no'
-  access_file: 'yes'
-  difference_csv: 'yes'
+  access_file: 'no'
+  report: 'yes'
   fixity:
     check_fixity: 'no'
     check_stream_fixity: 'no'
-    embed_stream_fixity: 'yes'
-    output_fixity: 'yes'
+    embed_stream_fixity: 'no'
+    output_fixity: 'no'
     overwrite_stream_fixity: 'no'
 # preferred qctools extension. qct-parse requires qctools.xml.gz
   qctools_ext: qctools.xml.gz
@@ -17,13 +17,13 @@ tools:
     run_exiftool: 'yes'
   ffprobe:
 ##  'yes' or 'no'
-    check_ffprobe: 'no'
+    check_ffprobe: 'yes'
     run_ffprobe: 'yes'
   mediaconch:
 ##  mediaconch policy file name from any xml file in the config directory
     mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
 ##  'yes' or 'no'
-    run_mediaconch: 'no'
+    run_mediaconch: 'yes'
   mediainfo:
 ##  'yes' or 'no'
     check_mediainfo: 'yes'

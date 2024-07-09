@@ -20,6 +20,7 @@ from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
 from .utils.yaml_profiles import *
+from .utils.generate_report import write_html_report
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
 from .checks.mediainfo_check import parse_mediainfo
@@ -53,6 +54,20 @@ def make_qc_output_dir(source_directory, video_id):
     logger.debug(f'Metadata files will be written to {destination_directory}')
 
     return destination_directory
+
+def make_report_dir(source_directory, video_id):
+    '''
+    Creates output directory for metadata files
+    '''
+
+    report_directory = os.path.join(source_directory, f'{video_id}_report_csvs')
+
+    if not os.path.exists(report_directory):
+        os.makedirs(report_directory)
+    
+    logger.debug(f'Report files will be written to {report_directory}')
+
+    return report_directory
 
 def run_command(command, input_path, output_type, output_path):
     '''
@@ -327,6 +342,9 @@ def main():
         # Create 'destination directory' for qc outputs
         destination_directory = make_qc_output_dir(source_directory, video_id)
 
+        # Create 'report directory' for csv files in html report
+        report_directory = make_report_dir(source_directory, video_id)
+
         # Moves vrecord files to subdirectory  
         move_vrec_files(source_directory, video_id)
 
@@ -377,12 +395,14 @@ def main():
         if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
             check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
         
-        # Run exiftool, mediainfo, and ffprobe on the video file and save the output to text files
+        # Run mediaconch on the video file and save the output to a csv file
+        mediaconch_output_path = None
+        # need to initialize path for report
         if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
             mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
             run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
 
-            # open the mediaconch csv ouput and check for the word 'fail'
+            # open the mediaconch csv output and check for the word 'fail'
             with open(mediaconch_output_path, 'r', newline='') as mc_file:
                 reader = csv.reader(mc_file)
                 mc_header = next(reader)  # Get the header row
@@ -411,6 +431,9 @@ def main():
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
         if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
             run_command('exiftool', video_path, '>', exiftool_output_path)
+        else:
+            exiftool_output_path = None
+            # reset variable if no output is created, so that it won't print in the report
 
         if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
             # If check_exfitool is set to 'yes' in command_config.yaml then
@@ -420,6 +443,9 @@ def main():
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
         if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
             run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
+        else:
+            mediainfo_output_path = None
+            # reset variable if no output is created, so that it won't print in the report
         
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
@@ -437,29 +463,32 @@ def main():
         ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
         if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
             run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
+        else:
+            ffprobe_output_path = None
+            # reset variable if no output is created, so that it won't print in the report
 
         if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
-            # If check_exfitool is set to 'yes' in command_config.yaml then
+            # If check_ffprobe is set to 'yes' in command_config.yaml then
             ffprobe_differences = parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
         
-        if command_config.command_dict['outputs']['difference_csv']: 
+        diff_csv_path = None
+        # need to initialize path for report
+        if command_config.command_dict['outputs']['report'] == 'yes': 
             if exiftool_differences and mediainfo_differences and ffprobe_differences and mediatrace_differences is None:
                 logger.info(f"All specified metadata fields and values found, no CSV report written")
             else:
                 # Create CSV for storing differences between expected metadata values and actual values
                 csv_name = video_id + '_' + 'metadata_difference'
-                csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
-                if os.path.exists(csv_path):
+                diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
+                if os.path.exists(diff_csv_path):
                     # if CSV file already exists, append a timestamp to the new csv_name
                     timestamp = datetime.now().strftime("%Y%m%d_%H-%M-%S")
                     csv_name += '_' + timestamp
-                    csv_path = os.path.join(destination_directory, f'{csv_name}.csv')
+                    diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
 
                 # Open CSV file in write mode
-                with open(csv_path, 'w', newline='') as diffs_csv:
-                    # Write title row
-                    diffs_csv.write(f'AV Spex CSV Report: {video_id} Metadata Differences\n')
+                with open(diff_csv_path, 'w', newline='') as diffs_csv:
                     # Define CSV header
                     fieldnames = ['Metadata Tool', 'Metadata Field', 'Expected Value', 'Actual Value']
                     writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
@@ -494,6 +523,12 @@ def main():
                 logger.critical(f"Access file already exists, not running ffmpeg")
             else:
                 make_access_file(video_path, access_output_path)
+        
+        if command_config.command_dict['outputs']['report'] == 'yes':
+            html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
+            write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
+        else:
+            logger.critical(f"\nNot creating html report, no input csv files")
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
