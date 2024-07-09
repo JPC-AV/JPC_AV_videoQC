@@ -516,6 +516,8 @@ def main():
                 logger.critical(f"Unable to check qctools report. No file found at this path: {qctools_output_path}.")
             else:
                 run_qctparse(video_path, qctools_output_path, qctools_check_output)
+        else:
+            qctools_check_output = None
         
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':
@@ -526,7 +528,7 @@ def main():
         
         if command_config.command_dict['outputs']['report'] == 'yes':
             html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
-            write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
+            write_html_report(video_id,destination_directory,mediaconch_output_path,diff_csv_path,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
         else:
             logger.critical(f"\nNot creating html report, no input csv files")
             
