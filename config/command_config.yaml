@@ -1,12 +1,12 @@
 outputs:
 ##  'yes' or 'no'
-  access_file: 'no'
-  report: 'yes'
+  access_file: 'yes'
+  report: 'no'
   fixity:
     check_fixity: 'no'
     check_stream_fixity: 'no'
-    embed_stream_fixity: 'no'
-    output_fixity: 'no'
+    embed_stream_fixity: 'yes'
+    output_fixity: 'yes'
     overwrite_stream_fixity: 'no'
 # preferred qctools extension. qct-parse requires qctools.xml.gz
   qctools_ext: qctools.xml.gz
@@ -17,7 +17,7 @@ tools:
     run_exiftool: 'yes'
   ffprobe:
 ##  'yes' or 'no'
-    check_ffprobe: 'yes'
+    check_ffprobe: 'no'
     run_ffprobe: 'yes'
   mediaconch:
 ##  mediaconch policy file name from any xml file in the config directory
