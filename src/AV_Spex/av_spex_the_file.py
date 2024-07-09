@@ -431,6 +431,9 @@ def main():
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
         if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
             run_command('exiftool', video_path, '>', exiftool_output_path)
+        else:
+            exiftool_output_path = None
+            # reset variable if no output is created, so that it won't print in the report
 
         if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
             # If check_exfitool is set to 'yes' in command_config.yaml then
@@ -517,7 +520,7 @@ def main():
         
         if command_config.command_dict['outputs']['report'] == 'yes':
             html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
-            write_html_report(video_id,mediaconch_output_path,diff_csv_path,html_report_path)
+            write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
         else:
             logger.critical(f"\nNot creating html report, no input csv files")
             

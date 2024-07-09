@@ -36,12 +36,24 @@ def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999"
     table_html += '</table>\n'
     return table_html
 
-def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
+def read_text_file(text_file_path):
+    with open(text_file_path, 'r') as file:
+        return file.read()
+    
+
+
+def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path):
     # Initialize the HTML sections for the CSV tables
     mc_csv_html = ''
     diff_csv_html = ''
+    exif_file_content = ''
+    mi_file_content = ''
+    ffprobe_file_content = ''
     mediaconch_csv_filename = ''
     difference_csv_filename = ''
+    exif_file_filename = ''
+    mi_file_filename = ''
+    ffprobe_file_filename = ''
 
 
     # Read and convert mediaconch_csv if it exists
@@ -53,6 +65,18 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
     if difference_csv:
         diff_csv_html = csv_to_html_table(difference_csv, style_mismatched=True, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=False)
         difference_csv_filename = os.path.basename(difference_csv)
+
+    if exiftool_output_path:
+        exif_file_content = read_text_file(exiftool_output_path)
+        exif_file_filename = os.path.basename(exiftool_output_path)
+    
+    if mediainfo_output_path:
+        mi_file_content = read_text_file(mediainfo_output_path)
+        mi_file_filename = os.path.basename(mediainfo_output_path)
+    
+    if ffprobe_output_path:
+        ffprobe_file_content = read_text_file(ffprobe_output_path)
+        ffprobe_file_filename = os.path.basename(ffprobe_output_path)
     
     # Get the absolute path of the script file
     script_path = os.path.dirname(os.path.abspath(__file__))
@@ -110,6 +134,13 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
                 background-color: #fbe4eb;
                 font-weight: bold;
             }}
+            pre {{
+                background-color: #f5e9e3;
+                border: 1px solid #4d2b12;
+                padding: 10px;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }}
         </style>
         <img src="{logo_image_path}" alt="AV Spex Logo" style="display: block; margin-left: auto; margin-right: auto; width: 25%; margin-top: 20px;">
     </head>
@@ -129,6 +160,24 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,html_report_path):
         html_template += f"""
         <h3>{difference_csv_filename}</h3>
         {diff_csv_html}
+        """
+
+    if exiftool_output_path:
+        html_template += f"""
+        <h3>{exif_file_filename}</h3>
+        <pre>{exif_file_content}</pre>
+        """
+    
+    if mediainfo_output_path:
+        html_template += f"""
+        <h3>{mi_file_filename}</h3>
+        <pre>{mi_file_content}</pre>
+        """
+
+    if ffprobe_output_path:
+        html_template += f"""
+        <h3>{ffprobe_file_filename}</h3>
+        <pre>{ffprobe_file_content}</pre>
         """
 
     html_template += """
