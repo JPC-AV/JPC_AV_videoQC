@@ -99,6 +99,7 @@ logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log
 - Toggle outputs and metadata validation checks on/off from the command_config.yaml
 - The 'qctools_check' uses the open source tool [qct-parse](https://github.com/amiaopensource/qct-parse) to check for individual tags, profiles, or specific content. The parameters of profilea and content filters are defined in the config.yaml
 
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 ---
 
 ## Contributing
