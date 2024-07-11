@@ -34,24 +34,29 @@ def make_access_file(video_path, output_path):
         '-c:a', 'aac', '-strict', '-2', '-b:a', '192k', '-f', 'mp4', output_path
     ]
     
-    ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    while True:
-        ff_output = ffmpeg_process.stdout.readline()
-        if not ff_output:
-            break
-        duration_prefix = 'out_time_ms='
-        # define prefix of ffmpeg microsecond progress output
-        duration = float(duration_str)
-        # Convert string integer
-        duration_ms = (duration * 1000000)
-        # Calculate the total duration in microseconds
-        for line in ff_output.split('\n'):
-            if line.startswith(duration_prefix):
-                current_frame_str = line.split(duration_prefix)[1]
-                current_frame_ms = float(current_frame_str)
-                percent_complete = (current_frame_ms / duration_ms) * 100
-                print(f"\rFFmpeg Access Copy Progress: {percent_complete:.2f}%", end='', flush=True)
-
+    try:
+        ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        while True:
+            ff_output = ffmpeg_process.stdout.readline()
+            if not ff_output:
+                break
+            duration_prefix = 'out_time_ms='
+            # define prefix of ffmpeg microsecond progress output
+            duration = float(duration_str)
+            # Convert string integer
+            duration_ms = (duration * 1000000)
+            # Calculate the total duration in microseconds
+            for line in ff_output.split('\n'):
+                if line.startswith(duration_prefix):
+                    current_frame_str = line.split(duration_prefix)[1]
+                    current_frame_ms = float(current_frame_str)
+                    percent_complete = (current_frame_ms / duration_ms) * 100
+                    print(f"\rFFmpeg Access Copy Progress: {percent_complete:.2f}%", end='', flush=True)
+        ffmpeg_stderr = ffmpeg_process.stderr.read()
+        if ffmpeg_stderr:
+            logger.error(f"ffmpeg stderr: {ffmpeg_stderr.strip()}")
+    except Exception as e:
+        logger.error(f"Error during ffmpeg process: {str(e)}")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
