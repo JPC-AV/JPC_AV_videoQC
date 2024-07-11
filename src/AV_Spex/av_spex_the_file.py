@@ -527,8 +527,6 @@ def main():
         if command_config.command_dict['outputs']['report'] == 'yes':
             html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
             write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
-        else:
-            logger.critical(f"\nNot creating html report, no input csv files")
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
