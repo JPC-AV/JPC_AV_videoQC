@@ -112,10 +112,6 @@ profile_step1 = {
 
 profile_step2 = {
     "tools": {
-        "qctools": {
-            "run_qctools": 'yes',
-            "check_qctools": 'no'
-        },
         "exiftool": {
             "check_exiftool": 'yes',
             "run_exiftool": 'no'
@@ -130,10 +126,20 @@ profile_step2 = {
         "mediainfo": {
             "check_mediainfo": 'yes',
             "run_mediainfo": 'no'
+        },
+        "qctools": {
+            "run_qctools": 'yes',
+            "check_qctools": 'yes'
+        },
+        "qct-parse": {
+            "barsDetection": True,
+            "evaluateBars": True,
+            "contentFilter": 'silence',
+            "thumbExport": True
         }
     },
     "outputs": {
-        "difference_csv": 'no',
+        "report": 'yes',
         "access_file": 'no',
         "fixity": {
             "output_fixity": 'no',
