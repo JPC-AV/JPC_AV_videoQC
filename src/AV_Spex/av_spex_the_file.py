@@ -513,9 +513,12 @@ def main():
             if os.path.isfile(qctools_check_output):
                     qctools_check_output = os.path.join(destination_directory, f"{video_id}_qct-parse_summary_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             if not os.path.isfile(qctools_output_path):
-                logger.critical(f"Unable to check qctools report. No file found at this path: {qctools_output_path}.")
+                logger.critical(f"\nUnable to check qctools report. No file found at this path: {qctools_output_path}.\n")
+                qctools_check_output = None
             else:
                 run_qctparse(video_path, qctools_output_path, qctools_check_output)
+        else:
+            qctools_check_output = None
         
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':

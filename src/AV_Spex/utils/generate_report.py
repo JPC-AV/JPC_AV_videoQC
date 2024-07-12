@@ -52,11 +52,24 @@ def prepare_file_section(file_path, process_function=None):
         file_name = ''
     return file_content, file_name
 
-def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path):
+def find_color_bars_thumb(destination_directory):
+    color_bars_thumb = None
+    thumb_exports_dir = os.path.join(destination_directory, 'ThumbExports')
+    
+    if os.path.isdir(thumb_exports_dir):
+        for root, dirs, files in os.walk(thumb_exports_dir):
+            for file in files:
+                if file.endswith('.png') and 'color_bars.first_frame' in file:
+                    color_bars_thumb = os.path.join(root, file)
+                    return color_bars_thumb
+    return color_bars_thumb
+
+def write_html_report(video_id,destination_directory,mediaconch_csv,difference_csv,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path):
     
     # Initialize and create html from 
     mc_csv_html, mediaconch_csv_filename = prepare_file_section(mediaconch_csv, lambda path: csv_to_html_table(path, style_mismatched=False, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=True))
     diff_csv_html, difference_csv_filename = prepare_file_section(difference_csv, lambda path: csv_to_html_table(path, style_mismatched=True, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=False))
+    qct_summary_content, qct_summary_filename = prepare_file_section(qctools_check_output)
     exif_file_content, exif_file_filename = prepare_file_section(exiftool_output_path)
     mi_file_content, mi_file_filename = prepare_file_section(mediainfo_output_path)
     ffprobe_file_content, ffprobe_file_filename = prepare_file_section(ffprobe_output_path)
@@ -67,7 +80,10 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_output_pat
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
     logo_image_path = os.path.join(root_dir, 'av_spex_the_logo.png')
     eq_image_path = os.path.join(root_dir, 'germfree_eq.png')
-    
+
+    # Get the color bars thumb if it exists
+    color_bars_thumb = find_color_bars_thumb(destination_directory)
+
     # HTML template
     html_template = f"""
     <!DOCTYPE html>
@@ -130,7 +146,7 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_output_pat
     <body>
         <h1>AV Spex Report</h1>
         <h2>{video_id}</h2>
-        <img src="{eq_image_path}" alt="AV Spex Graphic EQ Logo" style="width: 10%;">
+        <img src="{eq_image_path}" alt="AV Spex Graphic EQ Logo" style="width: 10%">
     """
 
     if mediaconch_csv:
@@ -145,6 +161,17 @@ def write_html_report(video_id,mediaconch_csv,difference_csv,exiftool_output_pat
         {diff_csv_html}
         """
 
+    if color_bars_thumb:
+        html_template += f"""
+        <img src="{color_bars_thumb}" alt="color bars from video file" style="width: 10%;">
+        """
+    
+    if qctools_check_output:
+        html_template += f"""
+        <h3>{qct_summary_filename}</h3>
+        <pre>{qct_summary_content}</pre>
+        """
+    
     if exiftool_output_path:
         html_template += f"""
         <h3>{exif_file_filename}</h3>

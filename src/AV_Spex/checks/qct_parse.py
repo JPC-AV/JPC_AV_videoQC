@@ -14,7 +14,8 @@ import logging
 import collections   
 import os      			
 import subprocess			
-import math				
+import math	
+import shutil			
 import sys			
 import re
 import operator
@@ -22,6 +23,7 @@ from ruamel.yaml import YAML
 from ruamel.yaml.compat import StringIO
 from statistics import median
 from datetime import datetime, timedelta
+import datetime as dt
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config			
 
@@ -222,7 +224,7 @@ def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
 				frame_pkt_dts_time = elem.attrib[pkt] 	# get the timestamps for the current frame we're looking at
 				if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time
 					if float(frame_pkt_dts_time) > durationEnd:		# only work on frames that are before the end time
-						logger.debug(f"qct-parse bars detection complete")
+						logger.debug(f"\nqct-parse bars detection complete")
 						break
 					frameDict = {}  								# start an empty dict for the new frame
 					frameDict[pkt] = frame_pkt_dts_time  			# make a key for the timestamp, which we have now
@@ -716,6 +718,56 @@ def uniquify(path):
             path = filename + " (" + str(counter) + ")" + extension
             counter += 1
         return path
+	
+def rename_file_with_uniquify(file_path):
+    unique_path = uniquify(file_path)
+    os.rename(file_path, unique_path)
+    return unique_path
+
+def archiveThumbs(thumbPath):
+	# Check if thumbPath contains any files
+	has_files = False
+	for entry in os.scandir(thumbPath):
+		if entry.is_file():
+			has_files = True
+			break
+	
+	# If thumbPath contains files, create the archive directory
+	if has_files:
+		# Get the creation time of the thumbPath directory
+		creation_time = os.path.getctime(thumbPath)
+		creation_date = dt.datetime.fromtimestamp(creation_time)
+
+		# Format the date as YYYY_MM_DD
+		date_str = creation_date.strftime('%Y_%m_%d')
+
+		# Create the new directory name
+		archive_dir = os.path.join(thumbPath, f'archivedThumbs_{date_str}')
+
+		if os.path.exists(archive_dir):
+			archive_dir = archive_dir
+		else:
+			# Create the archive directory
+			os.makedirs(archive_dir)
+
+		# Move all files from thumbPath to archive_dir
+		for entry in os.scandir(thumbPath):
+			# if an item in the ThumbExports directory is a file, and is no .DS_Store, then:
+			if entry.is_file() and entry.name != '.DS_Store':
+				# define the new path of the thumbnail, once it has been moved to archive_dir
+				entry_archive_path = os.path.join(archive_dir, os.path.basename(entry))
+				# But if the new path for that thumbnail is already taken:
+				if os.path.exists(entry_archive_path):
+					# Create a unique path for the archived thumb (original name plus sequential number in parentheses (1), (2), etc.)
+					unique_file_path = uniquify(entry_archive_path)
+					# Rename the existing thumb to match the unique path (also moves the file)
+					os.rename(entry, unique_file_path)
+				else:
+					shutil.move(entry, archive_dir)
+
+		return archive_dir
+	else:
+		return None
 
 def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	"""
@@ -762,8 +814,10 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		if not os.path.exists(thumbPath):
 			os.makedirs(thumbPath)
 		else:
-			thumbPath = uniquify(thumbPath) 
-			os.makedirs(thumbPath)
+			archive_result = archiveThumbs(thumbPath)
+			if archive_result:
+				logger.debug(f"Archived thumbnails to {archive_result}\n")
+			#os.makedirs(thumbPath)
 	
 	profile = {} # init a dictionary where we'll store reference values from config.yaml file
 	
