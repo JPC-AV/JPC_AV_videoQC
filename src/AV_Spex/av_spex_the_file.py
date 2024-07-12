@@ -513,7 +513,8 @@ def main():
             if os.path.isfile(qctools_check_output):
                     qctools_check_output = os.path.join(destination_directory, f"{video_id}_qct-parse_summary_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             if not os.path.isfile(qctools_output_path):
-                logger.critical(f"Unable to check qctools report. No file found at this path: {qctools_output_path}.")
+                logger.critical(f"\nUnable to check qctools report. No file found at this path: {qctools_output_path}.\n")
+                qctools_check_output = None
             else:
                 run_qctparse(video_path, qctools_output_path, qctools_check_output)
         else:
@@ -532,7 +533,7 @@ def main():
         else:
             logger.critical(f"\nNot creating html report, no input csv files")
             
-        logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
+        logger.debug(f'\n\nPlease note that anyUnable to check qctools report warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
         ascii_video_id = text2art(video_id, font='small')
 
