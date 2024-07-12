@@ -374,6 +374,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
         startObj (qctools.xml.gz): A gzip-compressed XML file containing frame attributes.
         pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
         contentFilter_name (str): The name of the content filter configuration to apply.
+		contentFilter_dict (dict): Dictionary of content filter values from qct-parse[content] section of config.yaml 
         qctools_check_output (str): The file path where segments meeting the content filter criteria are written.
     	framesList: List of frameDict dictionaries
     """
