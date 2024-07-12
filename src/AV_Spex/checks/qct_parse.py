@@ -751,13 +751,18 @@ def archiveThumbs(thumbPath):
 
 		# Move all files from thumbPath to archive_dir
 		for entry in os.scandir(thumbPath):
+			# if an item in the ThumbExports directory is a file, and is no .DS_Store, then:
 			if entry.is_file() and entry.name != '.DS_Store':
-				entry_new_path = os.path.join(archive_dir, os.path.basename(entry))
-				#print(f"debugging message: the entry_new_path var is {entry_new_path}")
-				if os.path.exists(entry_new_path):
-					unique_file_path = rename_file_with_uniquify(entry)
-					entry = unique_file_path
-				shutil.move(entry, archive_dir)
+				# define the new path of the thumbnail, once it has been moved to archive_dir
+				entry_archive_path = os.path.join(archive_dir, os.path.basename(entry))
+				# But if the new path for that thumbnail is already taken:
+				if os.path.exists(entry_archive_path):
+					# Create a unique path for the archived thumb (original name plus sequential number in parentheses (1), (2), etc.)
+					unique_file_path = uniquify(entry_archive_path)
+					# Rename the existing thumb to match the unique path (also moves the file)
+					os.rename(entry, unique_file_path)
+				else:
+					shutil.move(entry, archive_dir)
 
 		return archive_dir
 	else:
