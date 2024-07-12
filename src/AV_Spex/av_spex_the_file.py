@@ -315,6 +315,10 @@ def main():
         logger.critical(f"Dry run selected. Exiting now.\n\n")
         sys.exit(1)
 
+    # Reload the dictionaries if the profile has been applied
+    config_path.reload()
+    command_config.reload()
+    
     check_filenames(source_directories)
 
     overall_start_time = time.time()
