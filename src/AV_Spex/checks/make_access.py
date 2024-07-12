@@ -29,7 +29,7 @@ def make_access_file(video_path, output_path):
         '-n', '-vsync', '0',
         '-hide_banner', '-progress', 'pipe:1', '-nostats', '-loglevel', 'error',
         '-i', video_path,
-        '-movflags', 'faststart', '-map', '0:v', '-map', '0:a?', '-c:v', 'libx264', 
+        '-movflags', 'faststart', '-map', '0:v:0', '-map', '0:a?', '-c:v', 'libx264', 
         '-vf', 'yadif=1,format=yuv420p', '-crf', '18', '-preset', 'fast', '-maxrate', '1000k', '-bufsize', '1835k', 
         '-c:a', 'aac', '-strict', '-2', '-b:a', '192k', '-f', 'mp4', output_path
     ]
