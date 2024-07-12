@@ -17,6 +17,9 @@ class ConfigPath:
 
         # logger.debug(f'config.yaml sourced from {self.config_yml}')
         
+        self.reload()
+
+    def reload(self):
         with open(self.config_yml) as f:
             self.config_dict = yaml.load(f)
 
@@ -32,6 +35,9 @@ class CommandConfig:
 
         # logger.debug(f'command_config.yaml sourced from {self.command_yml}')
         
+        self.reload()
+
+    def reload(self):
         with open(self.command_yml) as f:
             self.command_dict = yaml.load(f)
 
