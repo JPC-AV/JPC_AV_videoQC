@@ -99,7 +99,7 @@ profile_step1 = {
         }
     },
     "outputs": {
-        "difference_csv": 'yes',
+        "report": 'no',
         "access_file": 'yes',
         "fixity": {
             "output_fixity": 'yes',
