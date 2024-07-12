@@ -533,7 +533,7 @@ def main():
         else:
             logger.critical(f"\nNot creating html report, no input csv files")
             
-        logger.debug(f'\n\nPlease note that anyUnable to check qctools report warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
+        logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
         ascii_video_id = text2art(video_id, font='small')
 
