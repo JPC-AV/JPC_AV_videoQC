@@ -117,7 +117,7 @@ profile_step2 = {
             "run_exiftool": 'no'
         },
         "ffprobe": {
-            "check_ffprobe": 'no',
+            "check_ffprobe": 'yes',
             "run_ffprobe": 'no'
         },
         "mediaconch": {

@@ -65,7 +65,7 @@ def make_report_dir(source_directory, video_id):
     if not os.path.exists(report_directory):
         os.makedirs(report_directory)
     
-    logger.debug(f'Report files will be written to {report_directory}')
+    logger.debug(f'\nReport files will be written to {report_directory}')
 
     return report_directory
 
