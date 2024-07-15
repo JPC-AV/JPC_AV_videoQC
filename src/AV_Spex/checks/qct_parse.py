@@ -901,7 +901,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				durationStart = 0
 				durationEnd = 99999999
 				profile = maxBarsDict
-				thumbExportDelay = 50000
+				thumbExportDelay = 9000
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 				kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 				summarized_timestamps = summarize_timestamps(fail_stamps)

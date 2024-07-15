@@ -52,17 +52,58 @@ def prepare_file_section(file_path, process_function=None):
         file_name = ''
     return file_content, file_name
 
-def find_color_bars_thumb(destination_directory):
-    color_bars_thumb = None
+import os
+
+def parse_timestamp(qct_thumb_name):
+    if qct_thumb_name.startswith('First frame of color bars'):
+        return (0, 0, 0, 0, 0)  # Return a placeholder tuple for color bars
+    else:
+        # Extract timestamp from qct_thumb_name
+        # Example: "Failed frame - QCTools tag: A Value: B at 0:00:00:00:0000"
+        timestamp_str = qct_thumb_name.split(' at ')[-1].strip()
+        # Convert timestamp to a tuple of integers
+        timestamp_tuple = tuple(map(int, timestamp_str.split(':')))
+        return timestamp_tuple
+
+def find_qct_thumbs(destination_directory):
+    thumbs_dict = {}
+    color_bars_entry = None
     thumb_exports_dir = os.path.join(destination_directory, 'ThumbExports')
     
     if os.path.isdir(thumb_exports_dir):
-        for root, dirs, files in os.walk(thumb_exports_dir):
-            for file in files:
+        for file in os.listdir(thumb_exports_dir):
+            file_path = os.path.join(thumb_exports_dir, file)
+            if os.path.isfile(file_path) and not file.startswith('.DS_Store'):
                 if file.endswith('.png') and 'color_bars.first_frame' in file:
-                    color_bars_thumb = os.path.join(root, file)
-                    return color_bars_thumb
-    return color_bars_thumb
+                    color_bars_thumb_path = file_path
+                    color_bars_name = 'First frame of color bars'
+                    color_bars_entry = (color_bars_name, color_bars_thumb_path)
+                else:
+                    qct_thumb_path = file_path
+                    filename_segments = file.split('.')
+                    if len(filename_segments) >= 4:
+                        tag_name = filename_segments[1]
+                        tag_value = filename_segments[2]
+                        timestamp_as_list = filename_segments[3:-1]
+                        timestamp_as_string = ':'.join(timestamp_as_list)
+                        qct_thumb_name = f'Failed frame - QCTools tag: {tag_name} Value: {tag_value} at {timestamp_as_string}'
+                        thumbs_dict[qct_thumb_name] = qct_thumb_path
+                    else:
+                        qct_thumb_name = ':'.join(filename_segments)
+                        thumbs_dict[qct_thumb_name] = qct_thumb_path
+
+    # Sort thumbs_dict by timestamp if possible
+    sorted_thumbs_dict = {}
+    if color_bars_entry:
+        color_bars_name, color_bars_thumb_path = color_bars_entry
+        sorted_thumbs_dict[color_bars_name] = color_bars_thumb_path
+
+    for key in sorted(thumbs_dict.keys(), key=lambda x: parse_timestamp(x)):
+        if key not in sorted_thumbs_dict:
+            sorted_thumbs_dict[key] = thumbs_dict[key]
+
+    return sorted_thumbs_dict
+
 
 def write_html_report(video_id,destination_directory,mediaconch_csv,difference_csv,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path):
     
@@ -81,8 +122,8 @@ def write_html_report(video_id,destination_directory,mediaconch_csv,difference_c
     logo_image_path = os.path.join(root_dir, 'av_spex_the_logo.png')
     eq_image_path = os.path.join(root_dir, 'germfree_eq.png')
 
-    # Get the color bars thumb if it exists
-    color_bars_thumb = find_color_bars_thumb(destination_directory)
+    # Get qct-parse thumbs if they exists
+    thumbs_dict = find_qct_thumbs(destination_directory)
 
     # HTML template
     html_template = f"""
@@ -161,10 +202,16 @@ def write_html_report(video_id,destination_directory,mediaconch_csv,difference_c
         {diff_csv_html}
         """
 
-    if color_bars_thumb:
-        html_template += f"""
-        <img src="{color_bars_thumb}" alt="color bars from video file" style="width: 10%;">
-        """
+    if thumbs_dict:
+        html_template += '<table><tr>'
+        for thumb_name, thumb_path in thumbs_dict.items():
+            html_template += f"""
+            <td style="text-align: center;">
+                <img src="{thumb_path}" alt="{thumb_name}" style="width: 100%;">
+                <p>{thumb_name}</p>
+            </td>
+            """
+        html_template += '</tr></table>'
     
     if qctools_check_output:
         html_template += f"""
