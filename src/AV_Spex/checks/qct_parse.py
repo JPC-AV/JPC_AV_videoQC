@@ -425,7 +425,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
 			logger.error(f"No segments found matching content filter: {contentFilter_name}")
 
 def getCompFromConfig(qct_parse,profile,tag):
-	color_bar_keys = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
+	color_bar_keys = qct_parse['color_bar_keys']
 	if qct_parse['profile']:
 		template = qct_parse['profile']
 		if set(profile.keys()) == set(config_path.config_dict['qct-parse']['profiles'][template].keys()):
@@ -610,7 +610,7 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarize
     Returns:
         None
     """
-	color_bar_keys = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMIN', 'SATMAX']
+	color_bar_keys = qct_parse['color_bar_keys']
 
 	yaml = YAML()
 	stream = StringIO()
