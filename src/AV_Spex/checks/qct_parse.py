@@ -855,7 +855,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		# set thumbExportDelay for profile check
 		thumbExportDelay = 9000
 		# set profile_name
-		profile_name = template
+		profile_name = f"threshold_profile_{template}"
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		summarized_timestamps = summarize_timestamps(fail_stamps)
@@ -888,7 +888,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 			print_bars_durations(qctools_check_output,barsStartString,barsEndString)
 			if qct_parse['thumbExport']:
 				barsStampString = dts2ts(durationStart)
-				printThumb(video_path,"color_bars_detection","bars_found",startObj,thumbPath,"first_frame",barsStampString)
+				printThumb(video_path,"bars_found","color_bars_detection",startObj,thumbPath,"first_frame",barsStampString)
 
 	######## Iterate Through the XML for Bars Evaluation ########
 	if qct_parse['evaluateBars']:
