@@ -146,7 +146,12 @@ def printThumb(video_path,tag,profile_name,startObj,thumbPath,tagValue,timeStamp
 		match = re.search(r"[A-Z]\.\/",ffoutputFramePath) # matches pattern R./ which should be R:/ on windows
 		if match:
 			ffoutputFramePath = ffoutputFramePath.replace(".",":",1) # replace first instance of "." in string ffoutputFramePath
-		ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+		if tag == "TOUT":
+			ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=tout:color=yellow -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+		elif tag == "VREP":
+			ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=vrep:color=pink -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+		else:
+			ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=brng:color=cyan -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
 		logger.warning(f"Exporting thumbnail image of {baseName} to {os.path.basename(ffoutputFramePath)}")
 		output = subprocess.Popen(ffmpegString,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 	else:
@@ -199,7 +204,7 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 						durationEnd = float(frameDict[pkt])
 					else:
 						if durationStart != "" and durationEnd != "" and durationEnd - durationStart > 2: 
-							logger.info("Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")
+							logger.info("Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")\n")
 							barsEndString = "Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")"
 							break
 			elem.clear() # we're done with that element so let's get it outta memory
@@ -851,7 +856,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 			for t in tagList:
 				if t in config_path.config_dict['qct-parse']['profiles'][template]:
 					profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
-		logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
+		logger.debug(f"\nStarting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
 		# set thumbExportDelay for profile check
 		thumbExportDelay = 9000
 		# set profile_name
