@@ -842,11 +842,12 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 
 	######## Iterate Through the XML for content detection ########
 	if qct_parse['contentFilter']:
-		logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {qct_parse['contentFilter']}\n")
-		duration_str = get_duration(video_path)
-		contentFilter_name = qct_parse['contentFilter']
-		contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
-		detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList)
+		for filter in qct_parse['contentFilter']:
+			logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {filter}\n")
+			duration_str = get_duration(video_path)
+			contentFilter_name = filter
+			contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
+			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList)
 
 	######## Iterate Through the XML for General Analysis ########
 	if qct_parse['profile']:

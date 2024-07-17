@@ -1,12 +1,12 @@
 outputs:
 ##  'yes' or 'no'
-  access_file: 'yes'
-  report: 'no'
+  access_file: 'no'
+  report: 'yes'
   fixity:
     check_fixity: 'no'
     check_stream_fixity: 'no'
-    embed_stream_fixity: 'yes'
-    output_fixity: 'yes'
+    embed_stream_fixity: 'no'
+    output_fixity: 'no'
     overwrite_stream_fixity: 'no'
 # preferred qctools extension. qct-parse requires qctools.xml.gz
   qctools_ext: qctools.xml.gz
@@ -14,11 +14,11 @@ tools:
   exiftool:
 ##  'yes' or 'no'
     check_exiftool: 'yes'
-    run_exiftool: 'yes'
+    run_exiftool: 'no'
   ffprobe:
 ##  'yes' or 'no'
     check_ffprobe: 'no'
-    run_ffprobe: 'yes'
+    run_ffprobe: 'no'
   mediaconch:
 ##  mediaconch policy file name from any xml file in the config directory
     mediaconch_policy: JPC_AV_NTSC_MKV_2023-11-21.xml
@@ -27,10 +27,10 @@ tools:
   mediainfo:
 ##  'yes' or 'no'
     check_mediainfo: 'yes'
-    run_mediainfo: 'yes'
+    run_mediainfo: 'no'
   qctools:
 ##  'yes' or 'no'
-    check_qctools: 'no'
+    check_qctools: 'yes'
     run_qctools: 'no'
   qct-parse:
 ##  barsDetection can be true or left empty (null)
@@ -38,10 +38,13 @@ tools:
 ##  evaluateBars can be true or left empty (null)
     evaluateBars: true
 ##  choose a profile from the list from config.yaml in the qct-parse[content] section
-    contentFilter: silence
+    contentFilter: 
+      - silence
+      - allBlack
 ##  choose a profile from the list from config.yaml in the qct-parse[profile] section
-    profile:
+    profile: highTolerance
     tagname:
 ## 'tagname' format:
 ##  - [YMIN, lt, 100] 
+    - [YMIN, lt, 100] 
     thumbExport: true
