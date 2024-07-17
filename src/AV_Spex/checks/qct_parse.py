@@ -355,7 +355,7 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 						f.write(f"{start_time} - {end_time}\n")
 					else:
 						logger.info(start_time)
-						f.write(start_time)
+						f.write(f"{start_time}\n")
 					start_time = current_time
 					end_time = current_time
 
@@ -366,7 +366,7 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 				f.write(f"{start_time} - {end_time}\n")
 			else:
 				logger.info(start_time)
-				f.write(start_time)
+				f.write(f"{start_time}\n")
 		f.write("\n**************************")
 
 

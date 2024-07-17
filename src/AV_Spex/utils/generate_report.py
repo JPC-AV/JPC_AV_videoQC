@@ -215,7 +215,7 @@ def write_html_report(video_id,destination_directory,mediaconch_csv,difference_c
             thumb_name_with_breaks = thumb_name.replace("\n", "<br>")
             html_template += f"""
             <td style="text-align: center;">
-                <img src="{thumb_path}" alt="{thumb_name}" style="max-width: 125px; max-height: 125px; object-fit: contain;">
+                <img src="{thumb_path}" alt="{thumb_name}" style="max-width: 175; max-height: 175px; object-fit: contain;">
                 <p>{thumb_name_with_breaks}</p>
             </td>
             """
