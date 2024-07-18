@@ -700,12 +700,17 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarize
 
 def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
 	with open(qctools_check_output, 'a') as f:
-		f.write("**************************\n")
-		f.write("\nqct-parse color bars found:\n")
-		f.write(barsStartString)
-		f.write("\n")
-		f.write(barsEndString)
-		f.write("\n**************************")
+		if barsStartString and barsEndString:
+			f.write("**************************\n")
+			f.write("\nqct-parse color bars found:\n")
+			f.write(barsStartString)
+			f.write("\n")
+			f.write(barsEndString)
+			f.write("\n**************************")
+		else:
+			f.write("**************************\n")
+			f.write("\nqct-parse found no color bars\n")
+			f.write("\n**************************")
 
 # blatant copy paste from https://stackoverflow.com/questions/13852700/create-file-but-if-name-exists-add-number
 def uniquify(path):
@@ -890,6 +895,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		durationStart, durationEnd, barsStartString, barsEndString = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
 		if durationStart == "" and durationEnd == "":
 			logger.error("No color bars detected\n")
+			print_bars_durations(qctools_check_output,barsStartString,barsEndString)
 		if barsStartString and barsEndString:
 			print_bars_durations(qctools_check_output,barsStartString,barsEndString)
 			if qct_parse['thumbExport']:
