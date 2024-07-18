@@ -134,7 +134,8 @@ profile_step2 = {
         "qct-parse": {
             "barsDetection": True,
             "evaluateBars": True,
-            "contentFilter": 'silence',
+            "contentFilter": None,
+            "profile": None,
             "thumbExport": True
         }
     },

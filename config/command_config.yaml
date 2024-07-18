@@ -3,8 +3,8 @@ outputs:
   access_file: 'no'
   report: 'yes'
   fixity:
-    check_fixity: 'no'
-    check_stream_fixity: 'no'
+    check_fixity: 'yes'
+    check_stream_fixity: 'yes'
     embed_stream_fixity: 'no'
     output_fixity: 'no'
     overwrite_stream_fixity: 'no'
@@ -17,7 +17,7 @@ tools:
     run_exiftool: 'no'
   ffprobe:
 ##  'yes' or 'no'
-    check_ffprobe: 'no'
+    check_ffprobe: 'yes'
     run_ffprobe: 'no'
   mediaconch:
 ##  mediaconch policy file name from any xml file in the config directory
@@ -31,20 +31,20 @@ tools:
   qctools:
 ##  'yes' or 'no'
     check_qctools: 'yes'
-    run_qctools: 'no'
+    run_qctools: 'yes'
   qct-parse:
 ##  barsDetection can be true or left empty (null)
     barsDetection: true
 ##  evaluateBars can be true or left empty (null)
     evaluateBars: true
 ##  choose a profile from the list from config.yaml in the qct-parse[content] section
-    contentFilter: 
-      - silence
-      - allBlack
-##  choose a profile from the list from config.yaml in the qct-parse[profile] section
-    profile: highTolerance
-    tagname:
+## 'contentFilter' format:
+##  - allBlack
+    contentFilter:
+##  choose a profile from the list from config.yaml in the qct-parse[profiles] section
+    profile:
+##  choose a tag from the list from config.yaml in the qct-parse[fullTagList] section
 ## 'tagname' format:
 ##  - [YMIN, lt, 100] 
-    - [YMIN, lt, 100] 
+    tagname:
     thumbExport: true
