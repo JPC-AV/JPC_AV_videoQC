@@ -534,7 +534,7 @@ def main():
                 make_access_file(video_path, access_output_path)
         
         if command_config.command_dict['outputs']['report'] == 'yes':
-            html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
+            html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
             write_html_report(video_id,destination_directory,mediaconch_output_path,diff_csv_path,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
