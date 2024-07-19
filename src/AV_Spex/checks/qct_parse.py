@@ -615,6 +615,18 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarize
     Returns:
         None
     """
+
+	def format_percentage(value):
+		percent = value * 100
+		if percent == 100:
+			return "100"
+		elif percent == 0:
+			return "0"
+		elif percent < 0.01:
+			return "<0.01"
+		else:
+			return f"{percent:.2f}"
+		
 	color_bar_keys = config_path.config_dict['qct-parse']['color_bar_keys'].keys()
 
 	yaml = YAML()
@@ -629,73 +641,35 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarize
 			f.write("\nqct-parse color bars evaluation summary:\n")
 		else:
 			f.write("\nqct-parse profile results summary:\n")
+
 		if frameCount == 0:
-			percentOverString = "0"
-		else:
-			f.write("\nTotalFrames:\t" + str(frameCount))
-			f.write("\nBy Tag:\n")
-			percentOverall = float(overallFrameFail) / float(frameCount)
-			if percentOverall == 1:
-				percentOverallString = "100"
-			elif percentOverall == 0:
-				percentOverallString = "0"
-			elif percentOverall < 0.0001:
-				percentOverallString = "<0.01"
-			else:
-				percentOverallString = str(percentOverall)
-				percentOverallString = percentOverallString[2:4] + "." + percentOverallString[4:]
-				if percentOverallString[0] == "0":
-					percentOverallString = percentOverallString[1:]
-					percentOverallString = percentOverallString[:4]
+			f.write("TotalFrames:\t0")
+			return
+
+		f.write(f"\nTotalFrames:\t{frameCount}\n")
+		f.write("By Tag:\n")
+		percentOverallString = format_percentage(overallFrameFail / frameCount)
+
+		for tag, count in kbeyond.items():
+			percentOverString = format_percentage(count / frameCount)
+			f.write(f"{tag}:\t{count}\t{percentOverString}\t% of the total # of frames\n")
+
+		f.write("\n\nOverall:")
+
+		if set(profile.keys()) == set(color_bar_keys):
+			f.write(f"\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t{overallFrameFail}\t{percentOverallString}\t% of the total # of frames\n")
+			f.write("\nThe thresholds defined by the peak values of QCTools filters in the identified color bars are:\n")
+			f.write(stream.getvalue())
+			
+		if summarized_timestamps:
+			f.write("\n\nTimes stamps of frames with at least one fail\n")
+			for start, end in summarized_timestamps:
+				if start == end:
+					f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]}\n")
 				else:
-					percentOverallString = percentOverallString[:5]	
-			for k,v in kbeyond.items():
-				percentOver = float(kbeyond[k]) / float(frameCount)
-				if percentOver == 1:
-					percentOverString = "100"
-				elif percentOver == 0:
-					percentOverString = "0"
-				elif percentOver < 0.0001:
-					percentOverString = "<0.01"
-				else:
-					percentOverString = str(percentOver)
-					percentOverString = percentOverString[2:4] + "." + percentOverString[4:]
-					if percentOverString[0] == "0":
-						percentOverString = percentOverString[1:]
-						percentOverString = percentOverString[:4]
-					else:
-						percentOverString = percentOverString[:5]
-				f.write(k + ":\t" + str(kbeyond[k]) + "\t" + percentOverString + "\t% of the total # of frames")
-				f.write("\n")
-			f.write("\n\nOverall:")
-			if set(profile.keys()) == set(color_bar_keys):
-				f.write("\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames\n")
-				f.write("\nThe thresholds defined by the peak values of QCTools filters in the identified color bars are:\n")
-				f.write(stream.getvalue())
-				if summarized_timestamps:
-					f.write("\n\nTimes stamps of frames with at least one fail\n")
-					# Format the output
-					for start, end in summarized_timestamps:
-						if start == end:
-							f.write(start.strftime("%H:%M:%S.%f")[:-3])
-							f.write(f"\n")
-						else:
-							f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
-							f.write(f"\n")
-				f.write("\n**************************")
-			else:
-				f.write("\nFrames With At Least One Fail:\t" + str(overallFrameFail) + "\t" + percentOverallString + "\t% of the total # of frames")
-				if summarized_timestamps:
-					f.write("\n\nTimes stamps of frames with at least one fail\n")
-					# Format the output
-					for start, end in summarized_timestamps:
-						if start == end:
-							f.write(start.strftime("%H:%M:%S.%f")[:-3])
-							f.write(f"\n")
-						else:
-							f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}")
-							f.write(f"\n")
-				f.write("\n**************************")
+					f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}\n")
+
+		f.write("\n**************************")
 	return
 
 def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
