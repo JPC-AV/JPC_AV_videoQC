@@ -52,17 +52,62 @@ def prepare_file_section(file_path, process_function=None):
         file_name = ''
     return file_content, file_name
 
-def find_color_bars_thumb(destination_directory):
-    color_bars_thumb = None
+import os
+
+def parse_timestamp(timestamp_str):
+    if not timestamp_str:
+        return (9999, 99, 99, 99, 9999)  # Return a placeholder tuple for non-timestamp entries
+    # Convert timestamp to a tuple of integers
+    timestamp_tuple = tuple(map(int, timestamp_str.split(':')))
+    return timestamp_tuple
+
+def parse_profile(profile_name):
+    # Define a custom order for the profile names
+    profile_order = {
+        "color_bars_detection": 0,
+        "color_bars_evaluation": 1,
+        "threshold_profile": 2,  # Assuming all threshold_profile_* come together
+        "tag_check": 3
+    }
+    
+    for key in profile_order:
+        if profile_name.startswith(key):
+            return profile_order[key]
+    return 99  # Default order if profile_name does not match any known profiles
+
+def find_qct_thumbs(destination_directory):
+    thumbs_dict = {}
+    color_bars_entry = None
     thumb_exports_dir = os.path.join(destination_directory, 'ThumbExports')
     
     if os.path.isdir(thumb_exports_dir):
-        for root, dirs, files in os.walk(thumb_exports_dir):
-            for file in files:
-                if file.endswith('.png') and 'color_bars.first_frame' in file:
-                    color_bars_thumb = os.path.join(root, file)
-                    return color_bars_thumb
-    return color_bars_thumb
+        for file in os.listdir(thumb_exports_dir):
+            file_path = os.path.join(thumb_exports_dir, file)
+            if os.path.isfile(file_path) and not file.startswith('.DS_Store'):
+                qct_thumb_path = file_path
+                filename_segments = file.split('.')
+                if len(filename_segments) >= 5:
+                    profile_name = filename_segments[1]
+                    tag_name = filename_segments[2]
+                    tag_value = filename_segments[3]
+                    timestamp_as_list = filename_segments[4:-1]
+                    timestamp_as_string = ':'.join(timestamp_as_list)
+                    if profile_name == 'color_bars_detection':
+                        qct_thumb_name = f'First frame of color bars\n\nAt timecode: {timestamp_as_string}'
+                    else:
+                        qct_thumb_name = f'Failed frame \n\nQCTools check: {profile_name} \n\nQCTools tag: {tag_name} \n\nValue: {tag_value} at {timestamp_as_string}'
+                    thumbs_dict[qct_thumb_name] = (qct_thumb_path, profile_name, timestamp_as_string)
+                else:
+                    qct_thumb_name = ':'.join(filename_segments)
+                    thumbs_dict[qct_thumb_name] = (qct_thumb_path, "", "")
+
+    # Sort thumbs_dict by timestamp if possible
+    sorted_thumbs_dict = {}
+    for key in sorted(thumbs_dict.keys(), key=lambda x: (parse_profile(thumbs_dict[x][1]), parse_timestamp(thumbs_dict[x][2]))):
+        sorted_thumbs_dict[key] = thumbs_dict[key][0]
+
+    return sorted_thumbs_dict
+
 
 def write_html_report(video_id,destination_directory,mediaconch_csv,difference_csv,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path):
     
@@ -81,8 +126,10 @@ def write_html_report(video_id,destination_directory,mediaconch_csv,difference_c
     logo_image_path = os.path.join(root_dir, 'av_spex_the_logo.png')
     eq_image_path = os.path.join(root_dir, 'germfree_eq.png')
 
-    # Get the color bars thumb if it exists
-    color_bars_thumb = find_color_bars_thumb(destination_directory)
+    # Get qct-parse thumbs if they exists
+    thumbs_dict = find_qct_thumbs(destination_directory)
+
+    #print(f"!!!!! debugging message!!!!! \n\n {thumbs_dict}")
 
     # HTML template
     html_template = f"""
@@ -161,10 +208,18 @@ def write_html_report(video_id,destination_directory,mediaconch_csv,difference_c
         {diff_csv_html}
         """
 
-    if color_bars_thumb:
-        html_template += f"""
-        <img src="{color_bars_thumb}" alt="color bars from video file" style="width: 10%;">
-        """
+    if thumbs_dict:
+        html_template += f"<h3>qct-parse thumbnails</h3>"
+        html_template += '<table><tr>'
+        for thumb_name, thumb_path in thumbs_dict.items():
+            thumb_name_with_breaks = thumb_name.replace("\n", "<br>")
+            html_template += f"""
+            <td style="text-align: center;">
+                <img src="{thumb_path}" alt="{thumb_name}" style="max-width: 175; max-height: 175px; object-fit: contain;">
+                <p>{thumb_name_with_breaks}</p>
+            </td>
+            """
+        html_template += '</tr></table>'
     
     if qctools_check_output:
         html_template += f"""

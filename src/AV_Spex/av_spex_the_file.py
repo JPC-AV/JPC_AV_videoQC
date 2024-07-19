@@ -65,7 +65,7 @@ def make_report_dir(source_directory, video_id):
     if not os.path.exists(report_directory):
         os.makedirs(report_directory)
     
-    logger.debug(f'Report files will be written to {report_directory}')
+    logger.debug(f'\nReport files will be written to {report_directory}')
 
     return report_directory
 
@@ -438,7 +438,7 @@ def main():
             exiftool_differences = parse_exiftool(exiftool_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
-        if command_config.command_dict['tools']['exiftool']['run_exiftool'] != 'yes' and command_config.command_dict['tools']['exiftool']['check_exiftool'] != 'yes':
+        if not os.path.isfile(exiftool_output_path):
             exiftool_output_path = None
             # reset variable if no output is created, so that it won't print in the report
 
@@ -451,7 +451,7 @@ def main():
             mediainfo_differences = parse_mediainfo(mediainfo_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
-        if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] != 'yes' and command_config.command_dict['tools']['mediainfo']['check_mediainfo'] != 'yes':
+        if not os.path.isfile(mediainfo_output_path):
             mediainfo_output_path = None
             # reset variable if no output is created, so that it won't print in the report
             
@@ -472,7 +472,7 @@ def main():
             ffprobe_differences = parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
-        if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] != 'yes' and command_config.command_dict['tools']['ffprobe']['check_ffprobe'] != 'yes':
+        if not os.path.isfile(ffprobe_output_path):
             ffprobe_output_path = None
             # reset variable if no output is created, so that it won't print in the report
         
@@ -534,8 +534,8 @@ def main():
                 make_access_file(video_path, access_output_path)
         
         if command_config.command_dict['outputs']['report'] == 'yes':
-            html_report_path = os.path.join(destination_directory, f'{video_id}_avspex_report.html')
-            write_html_report(video_id,mediaconch_output_path,diff_csv_path,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
+            html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
+            write_html_report(video_id,destination_directory,mediaconch_output_path,diff_csv_path,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         

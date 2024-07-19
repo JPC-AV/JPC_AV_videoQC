@@ -99,7 +99,7 @@ profile_step1 = {
         }
     },
     "outputs": {
-        "difference_csv": 'yes',
+        "report": 'no',
         "access_file": 'yes',
         "fixity": {
             "output_fixity": 'yes',
@@ -117,7 +117,7 @@ profile_step2 = {
             "run_exiftool": 'no'
         },
         "ffprobe": {
-            "check_ffprobe": 'no',
+            "check_ffprobe": 'yes',
             "run_ffprobe": 'no'
         },
         "mediaconch": {
@@ -134,7 +134,8 @@ profile_step2 = {
         "qct-parse": {
             "barsDetection": True,
             "evaluateBars": True,
-            "contentFilter": 'silence',
+            "contentFilter": None,
+            "profile": None,
             "thumbExport": True
         }
     },

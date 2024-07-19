@@ -254,3 +254,12 @@ qct-parse:
     psnr_avg:
     Overall_Min_level:
     Overall_Max_level:
+  color_bar_keys:
+    YMAX: 
+    YMIN:
+    UMIN:
+    UMAX:
+    VMIN: 
+    VMAX: 
+    SATMIN: 
+    SATMAX:
