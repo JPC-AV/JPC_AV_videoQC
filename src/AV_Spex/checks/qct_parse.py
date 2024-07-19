@@ -19,6 +19,7 @@ import shutil
 import sys			
 import re
 import operator
+import csv
 from ruamel.yaml import YAML
 from ruamel.yaml.compat import StringIO
 from statistics import median
@@ -628,49 +629,50 @@ def printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarize
 			return f"{percent:.2f}"
 		
 	color_bar_keys = config_path.config_dict['qct-parse']['color_bar_keys'].keys()
-
 	yaml = YAML()
 	stream = StringIO()
 	yaml.dump(profile, stream)
-	
-	with open(qctools_check_output, 'a') as f:
-		f.write("**************************\n")
+
+	with open(qctools_check_output, 'a', newline='') as csvfile:
+		writer = csv.writer(csvfile)
+
+		writer.writerow(["**************************"])
+
 		if profile == config_path.config_dict['qct-parse']['fullTagList']:
-			f.write("\nqct-parse evaluation of user specified tags summary:\n")
+			writer.writerow(["qct-parse evaluation of user specified tags summary"])
 		elif set(profile.keys()) == set(color_bar_keys):
-			f.write("\nqct-parse color bars evaluation summary:\n")
+			writer.writerow(["qct-parse color bars evaluation summary"])
 		else:
-			f.write("\nqct-parse profile results summary:\n")
+			writer.writerow(["qct-parse profile results summary"])
 
 		if frameCount == 0:
-			f.write("TotalFrames:\t0")
+			writer.writerow(["TotalFrames", "0"])
 			return
 
-		f.write(f"\nTotalFrames:\t{frameCount}\n")
-		f.write("By Tag:\n")
-		percentOverallString = format_percentage(overallFrameFail / frameCount)
+		writer.writerow(["TotalFrames", frameCount])
+		writer.writerow(["Tag", "Number of failed frames", "Percentage of failed frames"])
 
 		for tag, count in kbeyond.items():
 			percentOverString = format_percentage(count / frameCount)
-			f.write(f"{tag}:\t{count}\t{percentOverString}\t% of the total # of frames\n")
+			writer.writerow([tag, count, percentOverString])
 
-		f.write("\n\nOverall:")
+		percentOverallString = format_percentage(overallFrameFail / frameCount)
+		writer.writerow(["Total", overallFrameFail, percentOverallString])
 
 		if set(profile.keys()) == set(color_bar_keys):
-			f.write(f"\nFrames Outside MAX and MIN of YUV and SAT of Color Bars:\t{overallFrameFail}\t{percentOverallString}\t% of the total # of frames\n")
-			f.write("\nThe thresholds defined by the peak values of QCTools filters in the identified color bars are:\n")
-			f.write(stream.getvalue())
-			
+			writer.writerow(["The thresholds defined by the peak values of QCTools filters in the identified color bars are:"])
+			for key, value in profile.items():
+				writer.writerow([key, value])
+
 		if summarized_timestamps:
-			f.write("\n\nTimes stamps of frames with at least one fail\n")
+			writer.writerow(["Times stamps of frames with at least one fail"])
 			for start, end in summarized_timestamps:
 				if start == end:
-					f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]}\n")
+					writer.writerow([start.strftime("%H:%M:%S.%f")[:-3]])
 				else:
-					f.write(f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}\n")
+					writer.writerow([f"{start.strftime('%H:%M:%S.%f')[:-3]} - {end.strftime('%H:%M:%S.%f')[:-3]}"])
 
-		f.write("\n**************************")
-	return
+		writer.writerow(["**************************"])
 
 def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
 	with open(qctools_check_output, 'a') as f:
