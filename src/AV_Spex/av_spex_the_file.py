@@ -438,7 +438,7 @@ def main():
             exiftool_differences = parse_exiftool(exiftool_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
-        if command_config.command_dict['tools']['exiftool']['run_exiftool'] != 'yes' and command_config.command_dict['tools']['exiftool']['check_exiftool'] != 'yes':
+        if not os.path.isfile(exiftool_output_path):
             exiftool_output_path = None
             # reset variable if no output is created, so that it won't print in the report
 
@@ -451,7 +451,7 @@ def main():
             mediainfo_differences = parse_mediainfo(mediainfo_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
-        if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] != 'yes' and command_config.command_dict['tools']['mediainfo']['check_mediainfo'] != 'yes':
+        if not os.path.isfile(mediainfo_output_path):
             mediainfo_output_path = None
             # reset variable if no output is created, so that it won't print in the report
             
@@ -472,7 +472,7 @@ def main():
             ffprobe_differences = parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
-        if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] != 'yes' and command_config.command_dict['tools']['ffprobe']['check_ffprobe'] != 'yes':
+        if not os.path.isfile(ffprobe_output_path):
             ffprobe_output_path = None
             # reset variable if no output is created, so that it won't print in the report
         
