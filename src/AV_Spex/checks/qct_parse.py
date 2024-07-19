@@ -846,8 +846,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		summarized_timestamps = summarize_timestamps(fail_stamps)
-		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
-		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
+		qctools_profile_check_output = os.path.join(metadata_dir, "qct-parse_profile_summary.csv")
+		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_profile_check_output)
+		logger.debug(f"qct-parse summary written to {qctools_profile_check_output}\n")
 	if qct_parse['tagname']:
 		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
 		# set profile and thumbExportDelay for ad hoc tag check
@@ -858,8 +859,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		summarized_timestamps = summarize_timestamps(fail_stamps)
-		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_check_output)
-		logger.debug(f"qct-parse summary written to {qctools_check_output}\n")
+		qctools_tag_check_output = os.path.join(metadata_dir, "qct-parse_tags_summary.csv")
+		printresults(qct_parse,profile,kbeyond,frameCount,overallFrameFail,summarized_timestamps,qctools_tag_check_output)
+		logger.debug(f"qct-parse summary written to {qctools_tag_check_output}\n")
 	
 	######## Iterate Through the XML for Bars detection ########
 	if qct_parse['barsDetection']:
