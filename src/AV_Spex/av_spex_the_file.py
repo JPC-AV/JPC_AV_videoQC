@@ -529,7 +529,7 @@ def main():
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':
             if os.path.isfile(access_output_path):
-                logger.critical(f"\nAccess file already exists, not running ffmpeg")
+                logger.critical(f"Access file already exists, not running ffmpeg")
             else:
                 make_access_file(video_path, access_output_path)
         
