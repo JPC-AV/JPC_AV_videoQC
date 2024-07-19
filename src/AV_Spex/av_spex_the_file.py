@@ -476,11 +476,11 @@ def main():
             ffprobe_output_path = None
             # reset variable if no output is created, so that it won't print in the report
         
+        # Create 'report directory' for csv files in html report
+        report_directory = make_report_dir(source_directory, video_id) 
         diff_csv_path = None
         # need to initialize path for report
         if command_config.command_dict['outputs']['report'] == 'yes':
-            # Create 'report directory' for csv files in html report
-            report_directory = make_report_dir(source_directory, video_id) 
             if exiftool_differences and mediainfo_differences and ffprobe_differences and mediatrace_differences is None:
                 logger.info(f"All specified metadata fields and values found, no CSV report written")
             else:
@@ -515,14 +515,11 @@ def main():
             run_command('qcli -i', video_path, '-o', qctools_output_path)
 
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
-            qctools_check_output = os.path.join(destination_directory, f'{video_id}_qct-parse_summary.txt')
-            if os.path.isfile(qctools_check_output):
-                    qctools_check_output = os.path.join(destination_directory, f"{video_id}_qct-parse_summary_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             if not os.path.isfile(qctools_output_path):
                 logger.critical(f"\nUnable to check qctools report. No file found at this path: {qctools_output_path}.\n")
                 qctools_check_output = None
             else:
-                run_qctparse(video_path, qctools_output_path, qctools_check_output)
+                run_qctparse(video_path, qctools_output_path, report_directory)
         else:
             qctools_check_output = None
         

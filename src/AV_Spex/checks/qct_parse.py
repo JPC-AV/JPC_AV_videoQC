@@ -751,14 +751,13 @@ def archiveThumbs(thumbPath):
 	else:
 		return None
 
-def run_qctparse(video_path, qctools_output_path, qctools_check_output):
+def run_qctparse(video_path, qctools_output_path, report_directory):
 	"""
     Executes the qct-parse analysis on a given video file, exporting relevant data and thumbnails based on specified thresholds and profiles.
 
     Parameters:
         video_path (str): Path to the video file being analyzed.
         qctools_output_path (str): Path to the QCTools XML report output.
-        qctools_check_output (str): Path where the summary of the qct-parse results will be written.
 
     """
 	logger.info("\nStarting qct-parse\n")
@@ -790,8 +789,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 	bdFramesList = collections.deque(maxlen=buffSize) 	# init holding object for holding all frame data in a circular buffer. 
 
 	# set the path for the thumbnail export
-	metadata_dir = os.path.dirname(qctools_output_path)
-	thumbPath = os.path.join(metadata_dir, "ThumbExports")
+	thumbPath = os.path.join(report_directory, "ThumbExports")
 	if qct_parse['thumbExport']:
 		if not os.path.exists(thumbPath):
 			os.makedirs(thumbPath)
@@ -842,9 +840,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		summarized_timestamps = summarize_timestamps(fail_stamps)
-		tag_timestamp_output = os.path.join(metadata_dir, "qct-parse_profile_timestamps.csv")
+		tag_timestamp_output = os.path.join(report_directory, "qct-parse_profile_timestamps.csv")
 		print_timestamps(tag_timestamp_output,summarized_timestamps,'profile check')
-		qctools_profile_check_output = os.path.join(metadata_dir, "qct-parse_profile_summary.csv")
+		qctools_profile_check_output = os.path.join(report_directory, "qct-parse_profile_summary.csv")
 		printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_profile_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_profile_check_output}\n")
 	if qct_parse['tagname']:
@@ -857,9 +855,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		summarized_timestamps = summarize_timestamps(fail_stamps)
-		tag_timestamp_output = os.path.join(metadata_dir, "qct-parse_tags_timestamps.csv")
+		tag_timestamp_output = os.path.join(report_directory, "qct-parse_tags_timestamps.csv")
 		print_timestamps(tag_timestamp_output,summarized_timestamps,'tag check')
-		qctools_tag_check_output = os.path.join(metadata_dir, "qct-parse_tags_summary.csv")
+		qctools_tag_check_output = os.path.join(report_directory, "qct-parse_tags_summary.csv")
 		printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_tag_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_tag_check_output}\n")
 	
@@ -868,7 +866,7 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 		durationStart = ""							# if bar detection is turned on then we have to calculate this
 		durationEnd = ""							# if bar detection is turned on then we have to calculate this
 		logger.debug(f"\nStarting Bars Detection on {baseName}")
-		qctools_colorbars_duration_output = os.path.join(metadata_dir, "qct-parse_colorbars_durations.csv")
+		qctools_colorbars_duration_output = os.path.join(report_directory, "qct-parse_colorbars_durations.csv")
 		durationStart, durationEnd, barsStartString, barsEndString = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
 		if durationStart == "" and durationEnd == "":
 			logger.error("No color bars detected\n")
@@ -899,9 +897,9 @@ def run_qctparse(video_path, qctools_output_path, qctools_check_output):
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 				kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 				summarized_timestamps = summarize_timestamps(fail_stamps)
-				colorbars_eval_timestamp_output = os.path.join(metadata_dir, "qct-parse_colorbars_eval_timestamps.csv")
+				colorbars_eval_timestamp_output = os.path.join(report_directory, "qct-parse_colorbars_eval_timestamps.csv")
 				print_timestamps(colorbars_eval_timestamp_output,summarized_timestamps,'color bars evaluation')
-				qctools_bars_eval_check_output = os.path.join(metadata_dir, "qct-parse_colorbars_eval_summary.csv")
+				qctools_bars_eval_check_output = os.path.join(report_directory, "qct-parse_colorbars_eval_summary.csv")
 				printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_bars_eval_check_output)
 				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_bars_eval_check_output}\n")
 		else:
