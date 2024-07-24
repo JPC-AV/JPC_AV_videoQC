@@ -201,12 +201,12 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 						if durationStart == "":
 							durationStart = float(frameDict[pkt])
 							logger.info("Bars start at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")
-							barsStartString = "Bars start at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")"
+							barsStartString = str(dts2ts(frameDict[pkt]))
 						durationEnd = float(frameDict[pkt])
 					else:
 						if durationStart != "" and durationEnd != "" and durationEnd - durationStart > 2: 
 							logger.info("Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")\n")
-							barsEndString = "Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")"
+							barsEndString = str(dts2ts(frameDict[pkt]))
 							break
 			elem.clear() # we're done with that element so let's get it outta memory
 		
@@ -332,7 +332,7 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 	start_time = None
 	end_time = None
 
-	with open(qctools_check_output, 'a') as f:
+	with open(qctools_check_output, 'w') as f:
 		f.write("**************************\n")
 		f.write("\nqct-parse content detection summary:\n")
 		f.write(f"\nSegments found within thresholds of content filter {contentFilter_name}:\n")
@@ -601,6 +601,19 @@ def analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationSta
 			elem.clear() # we're done with that element so let's get it outta memory
 	return kbeyond, frameCount, overallFrameFail, fail_stamps
 
+# This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
+def print_color_bar_values(smpte_color_bars, maxBarsDict, colorbars_values_output):
+    with open(colorbars_values_output, 'w', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        
+        # Write the header
+        writer.writerow(["QCTools Fields", "SMPTE Color Bars", "Video File Color Bars"])
+        
+        # Write the data
+        for key in smpte_color_bars:
+            smpte_value = smpte_color_bars.get(key, "")
+            maxbars_value = maxBarsDict.get(key, "")
+            writer.writerow([key, smpte_value, maxbars_value])
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
 def printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_check_output):
@@ -675,14 +688,14 @@ def print_timestamps(qctools_timestamp_output,summarized_timestamps,descriptor):
 			else:
 				writer.writerow([f"{start.strftime('%H:%M:%S.%f')[:-3]}, {end.strftime('%H:%M:%S.%f')[:-3]}"])
 
-def print_bars_durations(qctools_check_output,barsStartString,barsEndString):
-	with open(qctools_check_output, 'w') as csvfile:
-		writer = csv.writer(csvfile)
-		if barsStartString and barsEndString:
-			writer.writerow("qct-parse color bars found:")
-			writer.writerow(barsStartString + "," + barsEndString)
-		else:
-			writer.writerow("qct-parse found no color bars")
+def print_bars_durations(qctools_check_output, barsStartString, barsEndString):
+    with open(qctools_check_output, 'w') as csvfile:
+        writer = csv.writer(csvfile)
+        if barsStartString and barsEndString:
+            writer.writerow(["qct-parse color bars found:"])
+            writer.writerow([barsStartString, barsEndString])
+        else:
+            writer.writerow(["qct-parse found no color bars"])
 
 # blatant copy paste from https://stackoverflow.com/questions/13852700/create-file-but-if-name-exists-add-number
 def uniquify(path):
@@ -822,7 +835,8 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 			duration_str = get_duration(video_path)
 			contentFilter_name = filter
 			contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
-			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList)
+			qctools_content_check_output = os.path.join(report_directory, "qct-parse_contentFilter_summary.csv")
+			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_content_check_output,framesList)
 
 	######## Iterate Through the XML for General Analysis ########
 	if qct_parse['profile']:
@@ -888,6 +902,10 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 				logger.critical(f"\nSomething went wrong - Cannot run evaluate color bars\n")
 			else:
 				logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
+				# make maxBars vs smpte bars csv
+				smpte_color_bars = config_path.config_dict['qct-parse']['smpte_color_bars']
+				colorbars_values_output = os.path.join(report_directory, "qct-parse_colorbars_values.csv")
+				print_color_bar_values(smpte_color_bars, maxBarsDict, colorbars_values_output)
 				# set durationStart/End, profile, profile name, and thumbExportDelay for bars evaluation check
 				durationStart = 0
 				durationEnd = 99999999
