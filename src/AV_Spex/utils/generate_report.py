@@ -160,7 +160,7 @@ def find_qc_metadata(destination_directory):
                     exiftool_output_path = file_path
                 if "_ffprobe_output" in file:
                     ffprobe_output_path = file_path
-                if "_mediinfo_output" in file:
+                if "_mediainfo_output" in file:
                     mediainfo_output_path = file_path
                 if "_mediaconch_output" in file:
                     mediaconch_csv = file_path
@@ -247,9 +247,9 @@ def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestam
 
     profile_summary_html = f'''
     <div>
-        <p>Times stamps of frames with at least one fail during qct-parse profile check</p>
-        <p>{formatted_timestamps_html}</p>
         {profile_piecharts_html}
+        <p>Times stamps of frames with at least one fail</p>
+        <p>{formatted_timestamps_html}</p>
     </div>
     '''
 
@@ -269,10 +269,16 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     ffprobe_file_content, ffprobe_file_filename = prepare_file_section(ffprobe_output_path)
 
     # Create graphs for all existing csv files
+    if qctools_bars_eval_check_output:
+        colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,qctools_bars_eval_timestamps)
+    else:
+        colorbars_eval_html = None
+
     if colorbars_values_output:
         colorbars_html = make_color_bars_graphs(video_id,qctools_colorbars_duration_output,colorbars_values_output)
     else:
          colorbars_html = None
+    
     if qctools_profile_check_output:
         profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps)
     else:
@@ -382,6 +388,12 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         html_template += f"""
         <h3>Colorbars comparison</h3>
         {colorbars_html}
+        """
+    
+    if colorbars_eval_html:
+        html_template += f"""
+        <h3>Values outside of colorbar's thresholds</h3>
+        {colorbars_eval_html}
         """
 
     if profile_summary_html:

@@ -333,7 +333,6 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 	end_time = None
 
 	with open(qctools_check_output, 'w') as f:
-		f.write("**************************\n")
 		f.write("\nqct-parse content detection summary:\n")
 		f.write(f"\nSegments found within thresholds of content filter {contentFilter_name}:\n")
 
@@ -368,8 +367,6 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 			else:
 				logger.info(start_time)
 				f.write(f"{start_time}\n")
-		f.write("\n**************************")
-
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
 def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList):
