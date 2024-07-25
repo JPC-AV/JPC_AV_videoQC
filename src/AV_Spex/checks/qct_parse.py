@@ -603,17 +603,18 @@ def analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationSta
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
 def print_color_bar_values(smpte_color_bars, maxBarsDict, colorbars_values_output):
-    with open(colorbars_values_output, 'w', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        
-        # Write the header
-        writer.writerow(["QCTools Fields", "SMPTE Color Bars", "Video File Color Bars"])
-        
-        # Write the data
-        for key in smpte_color_bars:
-            smpte_value = smpte_color_bars.get(key, "")
-            maxbars_value = maxBarsDict.get(key, "")
-            writer.writerow([key, smpte_value, maxbars_value])
+	print(f"****DEBUGGING writing colorbar values to {colorbars_values_output}")
+	with open(colorbars_values_output, 'w', newline='') as csvfile:
+		writer = csv.writer(csvfile)
+		
+		# Write the header
+		writer.writerow(["QCTools Fields", "SMPTE Color Bars", "Video File Color Bars"])
+		
+		# Write the data
+		for key in smpte_color_bars:
+			smpte_value = smpte_color_bars.get(key, "")
+			maxbars_value = maxBarsDict.get(key, "")
+			writer.writerow([key, smpte_value, maxbars_value])
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
 def printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_check_output):

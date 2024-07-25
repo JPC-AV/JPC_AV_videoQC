@@ -125,24 +125,23 @@ def find_report_csvs(report_directory):
         for file in os.listdir(report_directory):
             file_path = os.path.join(report_directory, file)
             if os.path.isfile(file_path) and not file.startswith('.DS_Store'):
-                csv_report_path = file_path
-                if csv_report_path.startswith("qct-parse_"):
-                    if "qct-parse_colorbars_durations" in csv_report_path:
-                        qctools_colorbars_duration_output = csv_report_path
-                    elif "qct-parse_colorbars_eval_summary" in csv_report_path:
-                        qctools_bars_eval_check_output = csv_report_path
-                    elif "qct-parse_colorbars_eval_timestamps" in csv_report_path:
-                        qctools_bars_eval_timestamps = csv_report_path
-                    elif "qct-parse_colorbars_values" in csv_report_path:
-                        colorbars_values_output = csv_report_path
-                    elif "qct-parse_contentFilter_summary" in csv_report_path:
-                        qctools_content_check_output = csv_report_path
-                    elif "qct-parse_profile_summary" in csv_report_path:
-                        qctools_profile_check_output = csv_report_path
-                    elif "qct-parse_profile_timestamps" in csv_report_path:
-                        qctools_profile_timestamps = csv_report_path
-                elif "metadata_difference" in csv_report_path:
-                    difference_csv = csv_report_path
+                if file.startswith("qct-parse_"):
+                    if "qct-parse_colorbars_durations" in file:
+                        qctools_colorbars_duration_output = file_path
+                    elif "qct-parse_colorbars_eval_summary" in file:
+                        qctools_bars_eval_check_output = file_path
+                    elif "qct-parse_colorbars_eval_timestamps" in file:
+                        qctools_bars_eval_timestamps = file_path
+                    elif "qct-parse_colorbars_values" in file:
+                        colorbars_values_output = file_path
+                    elif "qct-parse_contentFilter_summary" in file:
+                        qctools_content_check_output = file_path
+                    elif "qct-parse_profile_summary" in file:
+                        qctools_profile_check_output = file_path
+                    elif "qct-parse_profile_timestamps" in file:
+                        qctools_profile_timestamps = file_path
+                elif "metadata_difference" in file:
+                    difference_csv = file_path
 
     return qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, difference_csv
 
@@ -242,9 +241,6 @@ def write_html_report(video_id,report_directory,html_report_path):
         profile_summary_html = make_profile_piecharts(qctools_profile_check_output)
     else:
         profile_summary_html = None
-
-
-    print(f"DEBUGGING MESSAGE. THE VARIABLE colorbars_html is assigned to {colorbars_html}")
     
     # Get the absolute path of the script file
     script_path = os.path.dirname(os.path.abspath(__file__))
