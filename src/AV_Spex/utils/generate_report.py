@@ -200,7 +200,7 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
 
     return colorbars_html
     
-def make_profile_piecharts(qctools_profile_check_output):
+def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps):
 
     # Read the profile summary CSV, skipping the first two metadata lines
     profile_summary_df = pd.read_csv(qctools_profile_check_output, skiprows=3)
@@ -214,6 +214,16 @@ def make_profile_piecharts(qctools_profile_check_output):
     _, total_frames = total_frames_line.split(',')
     total_frames = int(total_frames)
 
+    # Read the timestamps CSV, skipping the header row
+    timestamps_df = pd.read_csv(qctools_profile_timestamps)
+    timestamps = timestamps_df.iloc[:, 0].tolist()  # Extract the first column as a list
+    
+    # Replace ',' with ' - ' for each timestamp
+    formatted_timestamps = [timestamp.replace(',', ' - ').strip().strip('"') for timestamp in timestamps]
+
+    # Format the timestamps for HTML
+    formatted_timestamps_html = '<br>'.join(formatted_timestamps)
+    
     # Create pie charts for the profile summary
     profile_summary_pie_charts = []
     for index, row in profile_summary_df.iterrows():
@@ -230,10 +240,18 @@ def make_profile_piecharts(qctools_profile_check_output):
             profile_summary_pie_charts.append(pie_fig.to_html(full_html=False, include_plotlyjs=False))
 
     # Arrange pie charts horizontally
-    profile_summary_html = ''.join(
+    profile_piecharts_html = ''.join(
         f'<div style="display:inline-block; margin-right: 10px;">{pie_chart}</div>'
         for pie_chart in profile_summary_pie_charts
     )
+
+    profile_summary_html = f'''
+    <div>
+        <p>Times stamps of frames with at least one fail during qct-parse profile check</p>
+        <p>{formatted_timestamps_html}</p>
+        {profile_piecharts_html}
+    </div>
+    '''
 
     return profile_summary_html
 
@@ -256,7 +274,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     else:
          colorbars_html = None
     if qctools_profile_check_output:
-        profile_summary_html = make_profile_piecharts(qctools_profile_check_output)
+        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps)
     else:
         profile_summary_html = None
     
