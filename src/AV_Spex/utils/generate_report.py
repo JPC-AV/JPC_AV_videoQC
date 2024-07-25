@@ -98,7 +98,7 @@ def find_qct_thumbs(report_directory):
                         qct_thumb_name = f'First frame of color bars\n\nAt timecode: {timestamp_as_string}'
                     else:
                         qct_thumb_name = f'Failed frame \n\nQCTools check: {profile_name} \n\nQCTools tag: {tag_name} \n\nValue: {tag_value} at {timestamp_as_string}'
-                    thumbs_dict[qct_thumb_name] = (qct_thumb_path, profile_name, timestamp_as_string)
+                    thumbs_dict[qct_thumb_name] = (qct_thumb_path, tag_name, timestamp_as_string)
                 else:
                     qct_thumb_name = ':'.join(filename_segments)
                     thumbs_dict[qct_thumb_name] = (qct_thumb_path, "", "")
@@ -106,7 +106,7 @@ def find_qct_thumbs(report_directory):
     # Sort thumbs_dict by timestamp if possible
     sorted_thumbs_dict = {}
     for key in sorted(thumbs_dict.keys(), key=lambda x: (parse_profile(thumbs_dict[x][1]), parse_timestamp(thumbs_dict[x][2]))):
-        sorted_thumbs_dict[key] = thumbs_dict[key][0]
+        sorted_thumbs_dict[key] = thumbs_dict[key]
 
     return sorted_thumbs_dict
 
@@ -185,7 +185,7 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
         go.Bar(name='SMPTE Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Colorbars'], marker=dict(color='#378d6a')),
         go.Bar(name=f'{video_id} Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df[f'{video_id} Colorbars'], marker=dict(color='#bf971b'))
     ])
-    colorbars_fig.update_layout(barmode='group', title=f'SMPTE Colorbars vs {video_id} Colorbars')
+    colorbars_fig.update_layout(barmode='group')
 
     # Save each chart as an HTML string
     colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
@@ -200,7 +200,7 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
 
     return colorbars_html
     
-def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps):
+def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,sorted_thumbs_dict):
 
     # Read the profile summary CSV, skipping the first two metadata lines
     profile_summary_df = pd.read_csv(qctools_profile_check_output, skiprows=3)
@@ -237,13 +237,25 @@ def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestam
                                             marker=dict(colors=['#ffbaba', '#d2ffed']))])
             pie_fig.update_layout(title=f"{tag} - {percentage:.2f}% ({failed_frames} frames)", height=400, width=400,
                                   paper_bgcolor='#f5e9e3')
-            profile_summary_pie_charts.append(pie_fig.to_html(full_html=False, include_plotlyjs=False))
+            pie_chart_html = pie_fig.to_html(full_html=False, include_plotlyjs=False)
+            thumbnail_html = ''
+            for thumb_name, (thumb_path, profile_name, timestamp) in sorted_thumbs_dict.items():
+                if profile_name == tag:
+                    thumb_name_with_breaks = thumb_name.replace("\n", "<br>")
+                    thumbnail_html = f'''
+                        <img src="{thumb_path}" alt="{thumb_name}" style="width:200px; height:auto;">
+                        <p>{thumb_name_with_breaks}</p>
+                    '''
+                    break
+            profile_summary_pie_charts.append(f'''
+                <div style="display:inline-block; margin-right: 10px;">
+                    {pie_chart_html}
+                    {thumbnail_html}
+                </div>
+            ''')
 
     # Arrange pie charts horizontally
-    profile_piecharts_html = ''.join(
-        f'<div style="display:inline-block; margin-right: 10px;">{pie_chart}</div>'
-        for pie_chart in profile_summary_pie_charts
-    )
+    profile_piecharts_html = ''.join(profile_summary_pie_charts)
 
     profile_summary_html = f'''
     <div>
@@ -268,9 +280,12 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     mi_file_content, mi_file_filename = prepare_file_section(mediainfo_output_path)
     ffprobe_file_content, ffprobe_file_filename = prepare_file_section(ffprobe_output_path)
 
+    # Get qct-parse thumbs if they exists
+    thumbs_dict = find_qct_thumbs(report_directory)
+    
     # Create graphs for all existing csv files
     if qctools_bars_eval_check_output:
-        colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,qctools_bars_eval_timestamps)
+        colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,qctools_bars_eval_timestamps,thumbs_dict)
     else:
         colorbars_eval_html = None
 
@@ -280,7 +295,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
          colorbars_html = None
     
     if qctools_profile_check_output:
-        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps)
+        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,thumbs_dict)
     else:
         profile_summary_html = None
     
@@ -290,9 +305,6 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
     logo_image_path = os.path.join(root_dir, 'av_spex_the_logo.png')
     eq_image_path = os.path.join(root_dir, 'germfree_eq.png')
-
-    # Get qct-parse thumbs if they exists
-    thumbs_dict = find_qct_thumbs(report_directory)
 
     # HTML template
     html_template = f"""
@@ -370,23 +382,10 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         <h3>{difference_csv_filename}</h3>
         {diff_csv_html}
         """
-
-    if thumbs_dict:
-        html_template += f"<h3>qct-parse thumbnails</h3>"
-        html_template += '<table><tr>'
-        for thumb_name, thumb_path in thumbs_dict.items():
-            thumb_name_with_breaks = thumb_name.replace("\n", "<br>")
-            html_template += f"""
-            <td style="text-align: center;">
-                <img src="{thumb_path}" alt="{thumb_name}" style="max-width: 175; max-height: 175px; object-fit: contain;">
-                <p>{thumb_name_with_breaks}</p>
-            </td>
-            """
-        html_template += '</tr></table>'
     
     if colorbars_html:
         html_template += f"""
-        <h3>Colorbars comparison</h3>
+        <h3>SMPTE Colorbars vs {video_id} Colorbars</h3>
         {colorbars_html}
         """
     
