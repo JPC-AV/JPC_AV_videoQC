@@ -602,13 +602,12 @@ def analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationSta
 	return kbeyond, frameCount, overallFrameFail, fail_stamps
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
-def print_color_bar_values(smpte_color_bars, maxBarsDict, colorbars_values_output):
-	print(f"****DEBUGGING writing colorbar values to {colorbars_values_output}")
+def print_color_bar_values(video_id, smpte_color_bars, maxBarsDict, colorbars_values_output):
 	with open(colorbars_values_output, 'w', newline='') as csvfile:
 		writer = csv.writer(csvfile)
 		
 		# Write the header
-		writer.writerow(["QCTools Fields", "SMPTE Color Bars", "Video File Color Bars"])
+		writer.writerow(["QCTools Fields", "SMPTE Colorbars", f"{video_id} Colorbars"])
 		
 		# Write the data
 		for key in smpte_color_bars:
@@ -906,7 +905,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 				# make maxBars vs smpte bars csv
 				smpte_color_bars = config_path.config_dict['qct-parse']['smpte_color_bars']
 				colorbars_values_output = os.path.join(report_directory, "qct-parse_colorbars_values.csv")
-				print_color_bar_values(smpte_color_bars, maxBarsDict, colorbars_values_output)
+				print_color_bar_values(baseName, smpte_color_bars, maxBarsDict, colorbars_values_output)
 				# set durationStart/End, profile, profile name, and thumbExportDelay for bars evaluation check
 				durationStart = 0
 				durationEnd = 99999999

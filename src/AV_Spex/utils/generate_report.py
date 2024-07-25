@@ -156,31 +156,47 @@ def find_qc_metadata(destination_directory):
         for file in os.listdir(destination_directory):
             file_path = os.path.join(destination_directory, file)
             if os.path.isfile(file_path) and not file.startswith('.DS_Store'):
-                if "_exiftool_output" in file_path:
+                if "_exiftool_output" in file:
                     exiftool_output_path = file_path
-                if "_ffprobe_output" in file_path:
+                if "_ffprobe_output" in file:
                     ffprobe_output_path = file_path
-                if "_mediinfo_output" in file_path:
+                if "_mediinfo_output" in file:
                     mediainfo_output_path = file_path
-                if "_mediaconch_output" in file_path:
+                if "_mediaconch_output" in file:
                     mediaconch_csv = file_path
 
     return exiftool_output_path,ffprobe_output_path,mediainfo_output_path,mediaconch_csv
 
-def make_color_bars_graphs(colorbars_values_output):
+def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbars_values_output):
 
     # Read the CSV files
     colorbars_df = pd.read_csv(colorbars_values_output)
 
+    # Read the colorbars duration CSV
+    with open(qctools_colorbars_duration_output, 'r') as file:
+        duration_lines = file.readlines()
+        duration_text = duration_lines[1].strip()  # The 2nd line contains the color bars duration
+        
+    duration_text = duration_text.replace(',',' - ')
+    duration_text = "Colorbars duration: " + duration_text
+
     # Create the bar chart for the colorbars values
     colorbars_fig = go.Figure(data=[
-        go.Bar(name='SMPTE Color Bars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Color Bars']),
-        go.Bar(name='Video File Color Bars', x=colorbars_df['QCTools Fields'], y=colorbars_df['Video File Color Bars'])
+        go.Bar(name='SMPTE Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Colorbars'], marker=dict(color='#378d6a')),
+        go.Bar(name=f'{video_id} Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df[f'{video_id} Colorbars'], marker=dict(color='#bf971b'))
     ])
-    colorbars_fig.update_layout(barmode='group', title='SMPTE Color Bars vs Video File Color Bars')
+    colorbars_fig.update_layout(barmode='group', title=f'SMPTE Colorbars vs {video_id} Colorbars')
 
     # Save each chart as an HTML string
-    colorbars_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
+    colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+    # Create the complete HTML with the duration text added
+    colorbars_html = f'''
+    <div>
+        <p>{duration_text}</p>
+        {colorbars_barchart_html}
+    </div>
+    '''
 
     return colorbars_html
     
@@ -207,8 +223,10 @@ def make_profile_piecharts(qctools_profile_check_output):
         if tag != 'Total' and percentage > 0:
             pie_fig = go.Figure(data=[go.Pie(labels=['Failed Frames', 'Other Frames'],
                                             values=[failed_frames, total_frames - failed_frames],
-                                            hole=.3)])
-            pie_fig.update_layout(title=f"{tag} - {percentage:.2f}% ({failed_frames} frames)", height=400, width=400)
+                                            hole=.3,
+                                            marker=dict(colors=['#ffbaba', '#d2ffed']))])
+            pie_fig.update_layout(title=f"{tag} - {percentage:.2f}% ({failed_frames} frames)", height=400, width=400,
+                                  paper_bgcolor='#f5e9e3')
             profile_summary_pie_charts.append(pie_fig.to_html(full_html=False, include_plotlyjs=False))
 
     # Arrange pie charts horizontally
@@ -219,11 +237,11 @@ def make_profile_piecharts(qctools_profile_check_output):
 
     return profile_summary_html
 
-def write_html_report(video_id,report_directory,html_report_path):
+def write_html_report(video_id,report_directory,destination_directory,html_report_path):
 
     qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, difference_csv = find_report_csvs(report_directory)
     
-    exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv = find_qc_metadata(report_directory)
+    exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv = find_qc_metadata(destination_directory)
     
     # Initialize and create html from 
     mc_csv_html, mediaconch_csv_filename = prepare_file_section(mediaconch_csv, lambda path: csv_to_html_table(path, style_mismatched=False, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=True))
@@ -234,7 +252,7 @@ def write_html_report(video_id,report_directory,html_report_path):
 
     # Create graphs for all existing csv files
     if colorbars_values_output:
-        colorbars_html = make_color_bars_graphs(colorbars_values_output)
+        colorbars_html = make_color_bars_graphs(video_id,qctools_colorbars_duration_output,colorbars_values_output)
     else:
          colorbars_html = None
     if qctools_profile_check_output:
@@ -344,13 +362,13 @@ def write_html_report(video_id,report_directory,html_report_path):
     
     if colorbars_html:
         html_template += f"""
-        <h2>Color Bars Comparison</h2>
+        <h3>Colorbars comparison</h3>
         {colorbars_html}
         """
 
     if profile_summary_html:
         html_template += f"""
-        <h2>Profile Summary</h2>
+        <h3>qct-parse Profile Summary</h3>
         <div style="white-space: nowrap;">
             {profile_summary_html}
         </div>

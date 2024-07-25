@@ -532,7 +532,7 @@ def main():
         
         if command_config.command_dict['outputs']['report'] == 'yes':
             html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
-            write_html_report(video_id,report_directory,html_report_path)
+            write_html_report(video_id,report_directory,destination_directory,html_report_path)
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
