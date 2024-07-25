@@ -3,8 +3,11 @@
 
 import csv
 import os
+import pandas as pd
+import plotly.graph_objs as go
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
+
 
 # Read CSV files and convert them to HTML tables
 def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999", match_color="#d2ffed", check_fail=False):
@@ -75,10 +78,9 @@ def parse_profile(profile_name):
             return profile_order[key]
     return 99  # Default order if profile_name does not match any known profiles
 
-def find_qct_thumbs(destination_directory):
+def find_qct_thumbs(report_directory):
     thumbs_dict = {}
-    color_bars_entry = None
-    thumb_exports_dir = os.path.join(destination_directory, 'ThumbExports')
+    thumb_exports_dir = os.path.join(report_directory, 'ThumbExports')
     
     if os.path.isdir(thumb_exports_dir):
         for file in os.listdir(thumb_exports_dir):
@@ -108,16 +110,141 @@ def find_qct_thumbs(destination_directory):
 
     return sorted_thumbs_dict
 
+def find_report_csvs(report_directory):
 
-def write_html_report(video_id,destination_directory,mediaconch_csv,difference_csv,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path):
+    qctools_colorbars_duration_output = None
+    qctools_bars_eval_check_output = None
+    qctools_bars_eval_timestamps = None
+    colorbars_values_output = None
+    qctools_content_check_output = None
+    qctools_profile_check_output = None
+    qctools_profile_timestamps = None
+    difference_csv = None
+
+    if os.path.isdir(report_directory):
+        for file in os.listdir(report_directory):
+            file_path = os.path.join(report_directory, file)
+            if os.path.isfile(file_path) and not file.startswith('.DS_Store'):
+                csv_report_path = file_path
+                if csv_report_path.startswith("qct-parse_"):
+                    if "qct-parse_colorbars_durations" in csv_report_path:
+                        qctools_colorbars_duration_output = csv_report_path
+                    elif "qct-parse_colorbars_eval_summary" in csv_report_path:
+                        qctools_bars_eval_check_output = csv_report_path
+                    elif "qct-parse_colorbars_eval_timestamps" in csv_report_path:
+                        qctools_bars_eval_timestamps = csv_report_path
+                    elif "qct-parse_colorbars_values" in csv_report_path:
+                        colorbars_values_output = csv_report_path
+                    elif "qct-parse_contentFilter_summary" in csv_report_path:
+                        qctools_content_check_output = csv_report_path
+                    elif "qct-parse_profile_summary" in csv_report_path:
+                        qctools_profile_check_output = csv_report_path
+                    elif "qct-parse_profile_timestamps" in csv_report_path:
+                        qctools_profile_timestamps = csv_report_path
+                elif "metadata_difference" in csv_report_path:
+                    difference_csv = csv_report_path
+
+    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, difference_csv
+
+def find_qc_metadata(destination_directory):
+
+    exiftool_output_path = None 
+    ffprobe_output_path = None
+    mediainfo_output_path = None
+    mediaconch_csv = None
+
+    if os.path.isdir(destination_directory):
+        for file in os.listdir(destination_directory):
+            file_path = os.path.join(destination_directory, file)
+            if os.path.isfile(file_path) and not file.startswith('.DS_Store'):
+                if "_exiftool_output" in file_path:
+                    exiftool_output_path = file_path
+                if "_ffprobe_output" in file_path:
+                    ffprobe_output_path = file_path
+                if "_mediinfo_output" in file_path:
+                    mediainfo_output_path = file_path
+                if "_mediaconch_output" in file_path:
+                    mediaconch_csv = file_path
+
+    return exiftool_output_path,ffprobe_output_path,mediainfo_output_path,mediaconch_csv
+
+def make_color_bars_graphs(colorbars_values_output):
+
+    # Read the CSV files
+    colorbars_df = pd.read_csv(colorbars_values_output)
+
+    # Create the bar chart for the colorbars values
+    colorbars_fig = go.Figure(data=[
+        go.Bar(name='SMPTE Color Bars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Color Bars']),
+        go.Bar(name='Video File Color Bars', x=colorbars_df['QCTools Fields'], y=colorbars_df['Video File Color Bars'])
+    ])
+    colorbars_fig.update_layout(barmode='group', title='SMPTE Color Bars vs Video File Color Bars')
+
+    # Save each chart as an HTML string
+    colorbars_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+    return colorbars_html
+    
+def make_profile_piecharts(qctools_profile_check_output):
+
+    # Read the profile summary CSV, skipping the first two metadata lines
+    profile_summary_df = pd.read_csv(qctools_profile_check_output, skiprows=3)
+
+    # Extract the total frames from the third line of the profile summary file
+    with open(qctools_profile_check_output, 'r') as file:
+        lines = file.readlines()
+        total_frames_line = lines[2].strip()  # The third line (index 2) contains TotalFrames
+
+    # Parse the total frames line
+    _, total_frames = total_frames_line.split(',')
+    total_frames = int(total_frames)
+
+    # Create pie charts for the profile summary
+    profile_summary_pie_charts = []
+    for index, row in profile_summary_df.iterrows():
+        tag = row['Tag']
+        failed_frames = int(row['Number of failed frames'])
+        percentage = float(row['Percentage of failed frames'])
+        if tag != 'Total' and percentage > 0:
+            pie_fig = go.Figure(data=[go.Pie(labels=['Failed Frames', 'Other Frames'],
+                                            values=[failed_frames, total_frames - failed_frames],
+                                            hole=.3)])
+            pie_fig.update_layout(title=f"{tag} - {percentage:.2f}% ({failed_frames} frames)", height=400, width=400)
+            profile_summary_pie_charts.append(pie_fig.to_html(full_html=False, include_plotlyjs=False))
+
+    # Arrange pie charts horizontally
+    profile_summary_html = ''.join(
+        f'<div style="display:inline-block; margin-right: 10px;">{pie_chart}</div>'
+        for pie_chart in profile_summary_pie_charts
+    )
+
+    return profile_summary_html
+
+def write_html_report(video_id,report_directory,html_report_path):
+
+    qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, difference_csv = find_report_csvs(report_directory)
+    
+    exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv = find_qc_metadata(report_directory)
     
     # Initialize and create html from 
     mc_csv_html, mediaconch_csv_filename = prepare_file_section(mediaconch_csv, lambda path: csv_to_html_table(path, style_mismatched=False, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=True))
     diff_csv_html, difference_csv_filename = prepare_file_section(difference_csv, lambda path: csv_to_html_table(path, style_mismatched=True, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=False))
-    qct_summary_content, qct_summary_filename = prepare_file_section(qctools_check_output)
     exif_file_content, exif_file_filename = prepare_file_section(exiftool_output_path)
     mi_file_content, mi_file_filename = prepare_file_section(mediainfo_output_path)
     ffprobe_file_content, ffprobe_file_filename = prepare_file_section(ffprobe_output_path)
+
+    # Create graphs for all existing csv files
+    if colorbars_values_output:
+        colorbars_html = make_color_bars_graphs(colorbars_values_output)
+    else:
+         colorbars_html = None
+    if qctools_profile_check_output:
+        profile_summary_html = make_profile_piecharts(qctools_profile_check_output)
+    else:
+        profile_summary_html = None
+
+
+    print(f"DEBUGGING MESSAGE. THE VARIABLE colorbars_html is assigned to {colorbars_html}")
     
     # Get the absolute path of the script file
     script_path = os.path.dirname(os.path.abspath(__file__))
@@ -127,9 +254,7 @@ def write_html_report(video_id,destination_directory,mediaconch_csv,difference_c
     eq_image_path = os.path.join(root_dir, 'germfree_eq.png')
 
     # Get qct-parse thumbs if they exists
-    thumbs_dict = find_qct_thumbs(destination_directory)
-
-    #print(f"!!!!! debugging message!!!!! \n\n {thumbs_dict}")
+    thumbs_dict = find_qct_thumbs(report_directory)
 
     # HTML template
     html_template = f"""
@@ -221,10 +346,18 @@ def write_html_report(video_id,destination_directory,mediaconch_csv,difference_c
             """
         html_template += '</tr></table>'
     
-    if qctools_check_output:
+    if colorbars_html:
         html_template += f"""
-        <h3>{qct_summary_filename}</h3>
-        <pre>{qct_summary_content}</pre>
+        <h2>Color Bars Comparison</h2>
+        {colorbars_html}
+        """
+
+    if profile_summary_html:
+        html_template += f"""
+        <h2>Profile Summary</h2>
+        <div style="white-space: nowrap;">
+            {profile_summary_html}
+        </div>
         """
     
     if exiftool_output_path:
