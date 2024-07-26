@@ -5,6 +5,7 @@ import csv
 import os
 import pandas as pd
 import plotly.graph_objs as go
+from base64 import b64encode
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
@@ -97,7 +98,7 @@ def find_qct_thumbs(report_directory):
                     if profile_name == 'color_bars_detection':
                         qct_thumb_name = f'First frame of color bars\n\nAt timecode: {timestamp_as_string}'
                     else:
-                        qct_thumb_name = f'Failed frame \n\nQCTools check: {profile_name} \n\nQCTools tag: {tag_name} \n\nValue: {tag_value} at {timestamp_as_string}'
+                        qct_thumb_name = f'Failed frame \n\n{tag_name}:{tag_value}\n\n{timestamp_as_string}'
                     thumbs_dict[qct_thumb_name] = (qct_thumb_path, tag_name, timestamp_as_string)
                 else:
                     qct_thumb_name = ':'.join(filename_segments)
@@ -242,26 +243,36 @@ def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestam
             for thumb_name, (thumb_path, profile_name, timestamp) in sorted_thumbs_dict.items():
                 if profile_name == tag:
                     thumb_name_with_breaks = thumb_name.replace("\n", "<br>")
-                    thumbnail_html = f'''
-                        <img src="{thumb_path}" alt="{thumb_name}" style="width:200px; height:auto;">
-                        <p>{thumb_name_with_breaks}</p>
-                    '''
-                    break
-            profile_summary_pie_charts.append(f'''
-                <div style="display:inline-block; margin-right: 10px;">
-                    {pie_chart_html}
-                    {thumbnail_html}
-                </div>
-            ''')
+                    with open(thumb_path, "rb") as image_file:
+                        encoded_string = b64encode(image_file.read()).decode()
+                    thumbnail_html = f"""
+                    <div style="display: flex; align-items: center; justify-content: center; background-color: #f5e9e3; padding: 10px;"> 
+                        <img src="data:image/png;base64,{encoded_string}" style="width: 150px; height: auto;" /> 
+                        <p style="margin-left: 10px;">{thumb_name_with_breaks}</p>
+                    </div>
+                    """
+
+            pie_chart_html = f"""
+            <div style="display: flex; align-items: center; background-color: #f5e9e3; padding: 10px;"> 
+                <div style="width: 400px;"> {pie_fig.to_html(full_html=False, include_plotlyjs=False)} </div>
+                {thumbnail_html} 
+            </div>
+            """
+
+            profile_summary_pie_charts.append(f"""
+            <div style="display:inline-block; margin-right: 10px; padding-bottom: 20px;">  
+                {pie_chart_html}
+            </div>
+            """)
 
     # Arrange pie charts horizontally
     profile_piecharts_html = ''.join(profile_summary_pie_charts)
 
     profile_summary_html = f'''
     <div>
-        {profile_piecharts_html}
         <p>Times stamps of frames with at least one fail</p>
         <p>{formatted_timestamps_html}</p>
+        {profile_piecharts_html}
     </div>
     '''
 
