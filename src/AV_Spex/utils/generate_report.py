@@ -202,12 +202,16 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
             '''
             break
     
-    # Create the complete HTML with the duration text added
+    # Create the complete HTML with the duration text and the thumbnail/barchart side-by-side
     colorbars_html = f'''
-    <div>
-        <p>{thumbnail_html}</p>
-        <p>{duration_text}</p>
-        {colorbars_barchart_html}
+    <div style="display: flex; align-items: center; justify-content: center; background-color: #f5e9e3; padding: 10px;">
+        <div>
+            {thumbnail_html}
+            <p>{duration_text}</p>
+        </div>
+        <div style="margin-left: 20px;">  
+            {colorbars_barchart_html}
+        </div>
     </div>
     '''
 
