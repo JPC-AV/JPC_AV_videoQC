@@ -168,7 +168,7 @@ def find_qc_metadata(destination_directory):
 
     return exiftool_output_path,ffprobe_output_path,mediainfo_output_path,mediaconch_csv
 
-def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbars_values_output):
+def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbars_values_output, sorted_thumbs_dict):
 
     # Read the CSV files
     colorbars_df = pd.read_csv(colorbars_values_output)
@@ -191,9 +191,21 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
     # Save each chart as an HTML string
     colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
 
+    # Add annotations for the thumbnail
+    thumbnail_html = ''
+    for thumb_name, (thumb_path, profile_name, timestamp) in sorted_thumbs_dict.items():
+        if "bars_found.first_frame" in thumb_path:
+            thumb_name_with_breaks = thumb_name.replace("\n", "<br>")
+            thumbnail_html = f'''
+                <img src="{thumb_path}" alt="{thumb_name}" style="width:200px; height:auto;">
+                <p>{thumb_name_with_breaks}</p>
+            '''
+            break
+    
     # Create the complete HTML with the duration text added
     colorbars_html = f'''
     <div>
+        <p>{thumbnail_html}</p>
         <p>{duration_text}</p>
         {colorbars_barchart_html}
     </div>
@@ -301,7 +313,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         colorbars_eval_html = None
 
     if colorbars_values_output:
-        colorbars_html = make_color_bars_graphs(video_id,qctools_colorbars_duration_output,colorbars_values_output)
+        colorbars_html = make_color_bars_graphs(video_id,qctools_colorbars_duration_output,colorbars_values_output,thumbs_dict)
     else:
          colorbars_html = None
     
