@@ -290,6 +290,58 @@ def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestam
 
     return profile_summary_html
 
+def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, paper_bgcolor='#f5e9e3'):
+    with open(qctools_content_check_output, 'r') as file:
+        lines = file.readlines()
+
+    # Find the line with content filter results
+    content_filter_line_index = None
+    for i, line in enumerate(lines):
+        if line.startswith("Segments found within thresholds of content filter"):
+            content_filter_line_index = i
+            break
+
+    if content_filter_line_index is None:
+        return "Content filter results not found in CSV."
+
+    content_filter_name = lines[content_filter_line_index].split()[-1].strip(':')
+    time_ranges = lines[content_filter_line_index + 1:]
+
+    matching_thumbs = [
+        (thumb_name, thumb_path)
+        for thumb_name, (thumb_path, profile_name, _) in sorted_thumbs_dict.items()
+        if content_filter_name in thumb_path  # Simplified matching
+    ]
+
+    # Build HTML table
+    table_rows = []
+    for i, time_range in enumerate(time_ranges):
+        time_range = time_range.strip()
+        thumbnail_html = ""
+        if i < len(matching_thumbs):  
+            thumb_name, thumb_path = matching_thumbs[i]
+            with open(thumb_path, "rb") as image_file:
+                encoded_string = b64encode(image_file.read()).decode()
+            thumbnail_html = f"""<img src="data:image/png;base64,{encoded_string}" style="width: 150px; height: auto;" />"""
+
+        table_rows.append(f"""
+            <tr>
+                <td style="text-align: center; padding: 10px;">{thumbnail_html}</td>
+                <td style="padding: 10px;">{time_range}</td>
+            </tr>
+        """)
+
+    content_summary_html = f"""
+    <table style="background-color: {paper_bgcolor}; margin-top: 20px; border-collapse: collapse; width: 100%;">
+        <tr>
+            <th colspan="2" style="padding: 10px;">Segments found within thresholds of content filter {content_filter_name}:</th>
+        </tr>
+        {''.join(table_rows)}
+    </table>
+    """
+
+    return content_summary_html
+
 def write_html_report(video_id,report_directory,destination_directory,html_report_path):
 
     qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, difference_csv = find_report_csvs(report_directory)
@@ -321,6 +373,11 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,thumbs_dict)
     else:
         profile_summary_html = None
+
+    if qctools_content_check_output:
+        content_summary_html = make_content_summary_html(qctools_content_check_output, thumbs_dict, paper_bgcolor='#f5e9e3')
+    else:
+        content_summary_html = None
     
     # Get the absolute path of the script file
     script_path = os.path.dirname(os.path.abspath(__file__))
@@ -423,6 +480,14 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         <h3>qct-parse Profile Summary</h3>
         <div style="white-space: nowrap;">
             {profile_summary_html}
+        </div>
+        """
+
+    if content_summary_html:
+        html_template += f"""
+        <h3>qct-parse Content Detection</h3>
+        <div style="white-space: nowrap;">
+            {content_summary_html}
         </div>
         """
     

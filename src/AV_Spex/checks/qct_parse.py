@@ -357,10 +357,10 @@ def print_consecutive_durations(durations,qctools_check_output,contentFilter_nam
 					else:
 						logger.info(start_time)
 						f.write(f"{start_time}\n")
-					start_time = current_time
-					end_time = current_time
 					if qct_parse['thumbExport']:
 						printThumb(video_path,"thumbnail",contentFilter_name,startObj,thumbPath,"output",start_time)
+					start_time = current_time
+					end_time = current_time
 
 		# Print the last range or single time
 		if start_time and end_time:
