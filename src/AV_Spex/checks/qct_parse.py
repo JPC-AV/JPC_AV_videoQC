@@ -306,7 +306,7 @@ def find_common_durations(content_over):
     common_durations = set.intersection(*tag_durations.values())
     return common_durations
 
-def print_consecutive_durations(durations, qctools_check_output, contentFilter_name):
+def print_consecutive_durations(durations,qctools_check_output,contentFilter_name,video_path,qct_parse,startObj,thumbPath,thumbDelay,thumbExportDelay):
 	"""
     Intended to be used with detectContentFilter and find_common_durations
 	
@@ -331,6 +331,7 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 
 	start_time = None
 	end_time = None
+	thumbDelay = 0
 
 	with open(qctools_check_output, 'w') as f:
 		f.write("\nqct-parse content detection summary:\n")
@@ -358,6 +359,8 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 						f.write(f"{start_time}\n")
 					start_time = current_time
 					end_time = current_time
+					if qct_parse['thumbExport']:
+						printThumb(video_path,"thumbnail",contentFilter_name,startObj,thumbPath,"output",start_time)
 
 		# Print the last range or single time
 		if start_time and end_time:
@@ -367,9 +370,11 @@ def print_consecutive_durations(durations, qctools_check_output, contentFilter_n
 			else:
 				logger.info(start_time)
 				f.write(f"{start_time}\n")
+			if qct_parse['thumbExport']:
+				printThumb(video_path,"thumbnail",contentFilter_name,startObj,thumbPath,"output",start_time)		
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList):
+def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList,qct_parse,thumbPath,thumbDelay,thumbExportDelay,video_path):
 	"""
     Checks values against thresholds of multiple values
 
@@ -423,7 +428,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
 		elem.clear() # we're done with that element so let's get it outta memory
 		common_durations = find_common_durations(content_over)
 		if common_durations:
-			print_consecutive_durations(common_durations, qctools_check_output, contentFilter_name)
+			print_consecutive_durations(common_durations,qctools_check_output,contentFilter_name,video_path,qct_parse,startObj,thumbPath,thumbDelay,thumbExportDelay)
 		else:
 			logger.error(f"No segments found matching content filter: {contentFilter_name}")
 
@@ -833,7 +838,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 			contentFilter_name = filter
 			contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
 			qctools_content_check_output = os.path.join(report_directory, "qct-parse_contentFilter_summary.csv")
-			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_content_check_output,framesList)
+			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_content_check_output,framesList,qct_parse,thumbPath,thumbDelay,thumbExportDelay,video_path)
 
 	######## Iterate Through the XML for General Analysis ########
 	if qct_parse['profile']:
