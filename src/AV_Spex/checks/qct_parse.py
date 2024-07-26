@@ -639,7 +639,7 @@ def printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_check_outpu
 		elif percent == 0:
 			return "0"
 		elif percent < 0.01:
-			return "<0.01"
+			return "0"
 		else:
 			return f"{percent:.2f}"
 
