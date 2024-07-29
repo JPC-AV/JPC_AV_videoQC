@@ -100,7 +100,7 @@ profile_step1 = {
     },
     "outputs": {
         "report": 'no',
-        "access_file": 'yes',
+        "access_file": 'no',
         "fixity": {
             "output_fixity": 'yes',
             "check_fixity": 'no',
