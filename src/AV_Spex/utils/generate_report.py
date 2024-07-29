@@ -117,6 +117,8 @@ def find_report_csvs(report_directory):
     qctools_bars_eval_check_output = None
     qctools_bars_eval_timestamps = None
     colorbars_values_output = None
+    # consider making qctools_content_check_output a list, and appending to support multiple content summaries 
+    # could potentially make check for qctools_content_check_output diff than others though
     qctools_content_check_output = None
     qctools_profile_check_output = None
     qctools_profile_timestamps = None
