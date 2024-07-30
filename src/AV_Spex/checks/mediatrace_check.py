@@ -10,7 +10,9 @@ from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
 def parse_mediatrace(xml_file):
-    expected_mediatrace = config_path.config_dict['mediatrace']
+    for k, v in config_path.config_dict['mediatrace'].items():
+        expected_mediatrace = {k.lower(): v}
+
     expected_mt_keys = expected_mediatrace.keys()
 
     # Parse the XML file
@@ -34,7 +36,6 @@ def parse_mediatrace(xml_file):
                 tag_string_block = simple_tag.find(f".//mt:block[@name='TagString']/mt:data", ns)
                 if tag_string_block is not None:
                     mediatrace_output[mt_key] = tag_string_block.text
-                    #found = True
                     break
         #if not found:
          #       mediatrace_output[mt_key] = None
