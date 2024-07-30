@@ -349,6 +349,14 @@ def main():
         # Moves vrecord files to subdirectory  
         move_vrec_files(source_directory, video_id)
 
+        # Iterate through files in the directory to identify access file
+        for filename in os.listdir(source_directory):
+            if filename.lower().endswith('mp4'):
+                access_file_found = filename
+                logger.info("Existing access file found!")
+            else:
+                access_file_found = None      # sets var to None, so access file will only be created if none is found.
+
         # Embed stream md5 hashes into MKV tags 
         if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
             existing_tags = extract_tags(video_path)
@@ -527,7 +535,7 @@ def main():
             qctools_check_output = None
         
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
-        if command_config.command_dict['outputs']['access_file'] == 'yes':
+        if access_file_found is None and command_config.command_dict['outputs']['access_file'] == 'yes':
             if os.path.isfile(access_output_path):
                 logger.critical(f"Access file already exists, not running ffmpeg")
             else:
