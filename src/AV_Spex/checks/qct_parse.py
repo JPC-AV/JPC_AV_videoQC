@@ -790,6 +790,21 @@ def archiveThumbs(thumbPath):
 		return archive_dir
 	else:
 		return None
+	
+def save_failures_to_csv(failureInfo, failure_csv_path):
+    """Saves the failure information to a CSV file.
+
+    Args:
+        failureInfo (dict): A dictionary where keys are timestamps and values are lists of failure details.
+        failure_csv_path (str, optional): The path to the CSV file. Defaults to 'failures.csv'.
+    """
+    with open(failure_csv_path, 'w', newline='') as csvfile:
+        fieldnames = ['Timestamp', 'Tag', 'Tag Value', 'Threshold']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for timestamp, info_list in failureInfo.items():
+            for info in info_list:
+                writer.writerow({'Timestamp': timestamp, 'Tag': info['tag'], 'Tag Value': info['tagValue'], 'Threshold': info['over']})
 
 def run_qctparse(video_path, qctools_output_path, report_directory):
 	"""
@@ -878,16 +893,13 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		thumbExportDelay = 9000
 		# set profile_name
 		profile_name = f"threshold_profile_{template}"
-		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
+		# check xml against thresholds, return kbeyond (dictionary of tags: framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		# Iterate through the failureInfo dictionary to get information per failed frame
-		for timestamp, infoList in failureInfo.items():
-			for info in infoList:  # Iterate through the list of dictionaries
-				print(f"Frame at {timestamp}:")
-				print(f"  Tag: {info['tag']}")  # info is now a dictionary, not a list
-				print(f"  Tag Value: {info['tagValue']}")
-				print(f"  Threshold: {info['over']}")
 		summarized_timestamps = summarize_timestamps(fail_stamps)
+		failure_csv_path = os.path.join(report_directory, "qct-parse_failures.csv")
+		if failureInfo:
+			save_failures_to_csv(failureInfo, failure_csv_path)
 		tag_timestamp_output = os.path.join(report_directory, "qct-parse_profile_timestamps.csv")
 		print_timestamps(tag_timestamp_output,summarized_timestamps,'profile check')
 		qctools_profile_check_output = os.path.join(report_directory, "qct-parse_profile_summary.csv")
