@@ -122,6 +122,9 @@ def find_report_csvs(report_directory):
     qctools_content_check_output = None
     qctools_profile_check_output = None
     qctools_profile_timestamps = None
+    profile_fails_csv = None
+    tag_fails_csv = None
+    colorbars_eval_fails_csv = None
     difference_csv = None
 
     if os.path.isdir(report_directory):
@@ -143,13 +146,17 @@ def find_report_csvs(report_directory):
                         qctools_profile_check_output = file_path
                     elif "qct-parse_profile_timestamps" in file:
                         qctools_profile_timestamps = file_path
-                    elif "qct-parse_failures" in file:
-                        failure_csv_path = file
+                    elif "qct-parse_profile_failures" in file:
+                        profile_fails_csv = file
+                    elif "qct-parse_tags_failures" in file:
+                        tag_fails_csv = file
+                    elif "qct-parse_colorbars_eval_failures" in file:
+                        colorbars_eval_fails_csv = file
                 elif "metadata_difference" in file:
                     difference_csv = file_path
 
 
-    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, failure_csv_path, difference_csv
+    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv
 
 def find_qc_metadata(destination_directory):
 
@@ -450,7 +457,7 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
 def write_html_report(video_id,report_directory,destination_directory,html_report_path):
 
-    qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, failure_csv_path, difference_csv = find_report_csvs(report_directory)
+    qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv = find_report_csvs(report_directory)
     
     exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv = find_qc_metadata(destination_directory)
     
@@ -464,14 +471,23 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     # Get qct-parse thumbs if they exists
     thumbs_dict = find_qct_thumbs(report_directory)
 
-    if failure_csv_path:
-        failure_csv_path = os.path.join(report_directory, failure_csv_path)
-        print(f"DEBUGGING failure csv path is {failure_csv_path}")
-        failureInfoSummary = summarize_failures(failure_csv_path)
-        print(f"DEBUGGING failure csv summary is {failureInfoSummary}")
+    if profile_fails_csv:
+        profile_fails_csv_path = os.path.join(report_directory, profile_fails_csv)
+        failureInfoSummary_profile = summarize_failures(profile_fails_csv_path)
+
+    if tag_fails_csv:
+        tag_fails_csv_path = os.path.join(report_directory, tag_fails_csv)
+        failureInfoSummary_tags = summarize_failures(tag_fails_csv_path)
+
+    if colorbars_eval_fails_csv:
+        colorbars_eval_fails_csv_path =  os.path.join(report_directory, colorbars_eval_fails_csv)
+        failureInfoSummary_colorbars = summarize_failures(colorbars_eval_fails_csv_path)
     
     # Create graphs for all existing csv files
-    colorbars_eval_html = None
+    if qctools_bars_eval_check_output:
+        colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,qctools_bars_eval_timestamps,thumbs_dict,failureInfoSummary_colorbars)
+    else:
+        colorbars_eval_html = None
 
     if colorbars_values_output:
         colorbars_html = make_color_bars_graphs(video_id,qctools_colorbars_duration_output,colorbars_values_output,thumbs_dict)
@@ -479,7 +495,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
          colorbars_html = None
     
     if qctools_profile_check_output:
-        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,thumbs_dict,failureInfoSummary)
+        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,thumbs_dict,failureInfoSummary_profile)
     else:
         profile_summary_html = None
 
