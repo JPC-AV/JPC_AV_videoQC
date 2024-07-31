@@ -91,7 +91,7 @@ def dts2ts(frame_pkt_dts_time):
 	return timeStampString
 	
 # finds stuff over/under threshold
-def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay,profile_name):
+def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay,profile_name,failureInfo):
 	"""
     Compares tagValue in frameDict (from qctools.xml.gz) with threshold from config
 
@@ -114,16 +114,28 @@ def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,comp_op,thum
 
 	tagValue = float(inFrame[tag])
 	frame_pkt_dts_time = inFrame[pkt]
-	# Perform the comparison using the retrieved operator if the attribute is over/under threshold
-	if comp_op(float(tagValue), float(over)) :
+
+	# Perform the comparison
+	if comp_op(float(tagValue), float(over)):
 		timeStampString = dts2ts(frame_pkt_dts_time)
-		#logging.warning(f"{tag} is {comp_op} {str(over)} with a value of {str(tagValue)} at duration {timeStampString}")
+
+		# Store failure information in the dictionary (update the existing dictionary, not create a new one)
+		if timeStampString not in failureInfo:  # If timestamp not in dict, initialize an empty list
+			failureInfo[timeStampString] = []
+
+		failureInfo[timeStampString].append({  # Add failure details to the list
+			'tag': tag,
+			'tagValue': tagValue,
+			'over': over
+		})
+
 		if qct_parse['thumbExport'] and (thumbDelay > int(thumbExportDelay)): # if thumb export is turned on and there has been enough delay between this frame and the last exported thumb, then export a new thumb
 			printThumb(video_path,tag,profile_name,startObj,thumbPath,tagValue,timeStampString)
 			thumbDelay = 0
-		return True, thumbDelay # return true because it was over and thumbDelay
+		return True, thumbDelay, tagValue, failureInfo # return true because it was over and thumbDelay
+	
 	else:
-		return False, thumbDelay # return false because it was NOT over and thumbDelay
+		return False, thumbDelay, tagValue, failureInfo # return false because it was NOT over and thumbDelay
 
 #  print thumbnail images of overs/unders		
 #  Need to update - file naming convention has changed
@@ -535,8 +547,12 @@ def analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationSta
         tuple: A tuple containing a dictionary of tags with the count of their exceedances, total frame count, and count of overall frame failures.
     """
 	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
+
+	# Initialize a new dictionary to store failure information
+	failureInfo = {}
 	fail_stamps = [] # init a list for timestamps of frames w/ a fail
 	fots = "" # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count for qct_parse['profile'] or qct_parse['evaluateBars']
+
 	if profile == config_path.config_dict['qct-parse']['fullTagList']:
 		for each_tag, tag_operator, tag_thresh in qct_parse['tagname']:
 			if each_tag not in profile:
@@ -576,14 +592,22 @@ def analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationSta
 							if config_tag in frameDict:
 								# ACTUALLY DO THE THING ONCE FOR EACH TAG
 								tag = config_tag
-								frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay,profile_name)
+								frameOver, thumbDelay, tagValue, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
 								if frameOver is True:
-									kbeyond[config_tag] = kbeyond[config_tag] + 1 					# note the over in the key over dict
-									if not frame_pkt_dts_time in fots: 				# make sure that we only count each over frame once
-										overallFrameFail = overallFrameFail + 1
-										fots = frame_pkt_dts_time 					# set it again so we don't dupe
+									kbeyond[k] = kbeyond[k] + 1
+									if not frame_pkt_dts_time in fots:
 										timeStampString = dts2ts(frame_pkt_dts_time)
+										failureInfo[timeStampString] = []  # Create an empty list for new timestamp
+										failureInfo[timeStampString].append({
+											'tag': tag,
+											'tagValue': tagValue,
+											'comp_op': comp_op,
+											'over': over
+										})
+										overallFrameFail = overallFrameFail + 1
+										fots = frame_pkt_dts_time
 										fail_stamps.append(timeStampString)
+										thumbDelay = thumbDelay + 1	
 					else: # if we're using a profile
 						for k,v in profile.items():
 							if v is not None:
@@ -591,17 +615,18 @@ def analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationSta
 								comp_op = getCompFromConfig(qct_parse,profile,tag)
 								over = float(v)
 								# ACTUALLY DO THE THING ONCE FOR EACH TAG
-								frameOver, thumbDelay = threshFinder(qct_parse,video_path,framesList[-1],startObj,pkt,tag,over,comp_op,thumbPath,thumbDelay,thumbExportDelay,profile_name)
+								frameOver, thumbDelay, tagValue, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
 								if frameOver is True:
-									kbeyond[k] = kbeyond[k] + 1 # note the over in the key over dict
-									if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
-										overallFrameFail = overallFrameFail + 1
-										fots = frame_pkt_dts_time # set it again so we don't dupe
+									kbeyond[k] = kbeyond[k] + 1
+									if not frame_pkt_dts_time in fots:
 										timeStampString = dts2ts(frame_pkt_dts_time)
+										overallFrameFail = overallFrameFail + 1
+										fots = frame_pkt_dts_time
 										fail_stamps.append(timeStampString)
-					thumbDelay = thumbDelay + 1				
+										thumbDelay = thumbDelay + 1				
 			elem.clear() # we're done with that element so let's get it outta memory
-	return kbeyond, frameCount, overallFrameFail, fail_stamps
+
+	return kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
 def print_color_bar_values(video_id, smpte_color_bars, maxBarsDict, colorbars_values_output):
@@ -765,6 +790,21 @@ def archiveThumbs(thumbPath):
 		return archive_dir
 	else:
 		return None
+	
+def save_failures_to_csv(failureInfo, failure_csv_path):
+    """Saves the failure information to a CSV file.
+
+    Args:
+        failureInfo (dict): A dictionary where keys are timestamps and values are lists of failure details.
+        failure_csv_path (str, optional): The path to the CSV file. Defaults to 'failures.csv'.
+    """
+    with open(failure_csv_path, 'w', newline='') as csvfile:
+        fieldnames = ['Timestamp', 'Tag', 'Tag Value', 'Threshold']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        for timestamp, info_list in failureInfo.items():
+            for info in info_list:
+                writer.writerow({'Timestamp': timestamp, 'Tag': info['tag'], 'Tag Value': info['tagValue'], 'Threshold': info['over']})
 
 def run_qctparse(video_path, qctools_output_path, report_directory):
 	"""
@@ -853,9 +893,13 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		thumbExportDelay = 9000
 		# set profile_name
 		profile_name = f"threshold_profile_{template}"
-		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		# check xml against thresholds, return kbeyond (dictionary of tags: framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
+		kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		# Iterate through the failureInfo dictionary to get information per failed frame
 		summarized_timestamps = summarize_timestamps(fail_stamps)
+		failure_csv_path = os.path.join(report_directory, "qct-parse_failures.csv")
+		if failureInfo:
+			save_failures_to_csv(failureInfo, failure_csv_path)
 		tag_timestamp_output = os.path.join(report_directory, "qct-parse_profile_timestamps.csv")
 		print_timestamps(tag_timestamp_output,summarized_timestamps,'profile check')
 		qctools_profile_check_output = os.path.join(report_directory, "qct-parse_profile_summary.csv")
@@ -869,7 +913,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		# set profile_name
 		profile_name = f'tag_check'
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail, fail_stamps = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		summarized_timestamps = summarize_timestamps(fail_stamps)
 		tag_timestamp_output = os.path.join(report_directory, "qct-parse_tags_timestamps.csv")
 		print_timestamps(tag_timestamp_output,summarized_timestamps,'tag check')

@@ -143,10 +143,13 @@ def find_report_csvs(report_directory):
                         qctools_profile_check_output = file_path
                     elif "qct-parse_profile_timestamps" in file:
                         qctools_profile_timestamps = file_path
+                    elif "qct-parse_failures" in file:
+                        failure_csv_path = file
                 elif "metadata_difference" in file:
                     difference_csv = file_path
 
-    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, difference_csv
+
+    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, failure_csv_path, difference_csv
 
 def find_qc_metadata(destination_directory):
 
@@ -169,6 +172,69 @@ def find_qc_metadata(destination_directory):
                     mediaconch_csv = file_path
 
     return exiftool_output_path,ffprobe_output_path,mediainfo_output_path,mediaconch_csv
+
+def summarize_failures(failure_csv_path):  # Change parameter to accept CSV file path
+    """
+    Summarizes the failure information from the CSV file, prioritizing tags 
+    with the greatest difference between tag value and threshold.
+
+    Args:
+        failure_csv_path (str): The path to the CSV file containing failure details.
+
+    Returns:
+        str: A formatted summary of the failures.
+    """
+    failureInfo = {}
+    # 0. Read the failure information from the CSV
+    with open(failure_csv_path, 'r') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            timestamp = row['Timestamp']
+            if timestamp not in failureInfo:
+                failureInfo[timestamp] = []
+            failureInfo[timestamp].append({
+                'tag': row['Tag'],
+                'tagValue': float(row['Tag Value']),  # Convert to float
+                'over': float(row['Threshold'])     # Convert to float
+            })
+    
+    # 1. Collect all unique tags and count their occurrences
+    tag_counts = {}
+    for info_list in failureInfo.values():
+        for info in info_list:
+            tag = info['tag']
+            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+    # 2. Determine the maximum number of frames per tag
+    num_tags = len(tag_counts)
+    max_frames_per_tag = 5 if num_tags <= 2 else 3
+
+    # 3. Flatten the failureInfo dictionary into a list of tuples
+    all_failures = []
+    for timestamp, info_list in failureInfo.items():
+        for info in info_list:
+            all_failures.append((timestamp, info))  # Store as (timestamp, info) tuples
+
+    # 4. Sort the flattened list based on tag value difference
+    all_failures.sort(key=lambda x: abs(x[1]['tagValue'] - x[1]['over']), reverse=True)
+
+    # 5. Limit the number of frames per tag
+    limited_failures = []
+    tag_counts = {tag: 0 for tag in tag_counts}  # Reset tag counts
+    for timestamp, info in all_failures:
+        tag = info['tag']
+        if tag_counts[tag] < max_frames_per_tag:
+            limited_failures.append((timestamp, info))
+            tag_counts[tag] += 1
+
+    # 6. Group the limited failures back into a dictionary by timestamp
+    summary_dict = {}
+    for timestamp, info in limited_failures:
+        if timestamp not in summary_dict:
+            summary_dict[timestamp] = []
+        summary_dict[timestamp].append(info)
+
+    return summary_dict
 
 def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbars_values_output, sorted_thumbs_dict):
 
@@ -219,7 +285,7 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
 
     return colorbars_html
     
-def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,sorted_thumbs_dict):
+def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,sorted_thumbs_dict,failureInfoSummary):
 
     # Read the profile summary CSV, skipping the first two metadata lines
     profile_summary_df = pd.read_csv(qctools_profile_check_output, skiprows=3)
@@ -249,14 +315,44 @@ def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestam
         tag = row['Tag']
         failed_frames = int(row['Number of failed frames'])
         percentage = float(row['Percentage of failed frames'])
+
         if tag != 'Total' and percentage > 0:
-            pie_fig = go.Figure(data=[go.Pie(labels=['Failed Frames', 'Other Frames'],
-                                            values=[failed_frames, total_frames - failed_frames],
-                                            hole=.3,
-                                            marker=dict(colors=['#ffbaba', '#d2ffed']))])
+            # Initialize variables for summary data
+            failed_frame_timestamps = []
+            failed_frame_values = []
+            failed_frame_thresholds = []  # New list to store thresholds
+
+            # Get failure details for this tag
+            for timestamp, info_list in failureInfoSummary.items():
+                for info in info_list:
+                    if info['tag'] == tag:
+                        failed_frame_timestamps.append(timestamp)
+                        failed_frame_values.append(info['tagValue'])
+                        failed_frame_thresholds.append(info['over'])  # Store thresholds
+            
+            # Create formatted failure summary string
+            formatted_failures = "<br>".join(
+                f"Timestamp: {timestamp}<br>Value: {value}<br>Threshold: {threshold}"
+                for timestamp, value, threshold in zip(failed_frame_timestamps, failed_frame_values, failed_frame_thresholds)
+            )
+            summary_html = f"""
+            <div style="display: flex; flex-direction: column; align-items: center; background-color: #f5e9e3; padding: 10px;">
+                <p><b>Peak Values outside of Threshold for {tag}:</b></p>
+                <p>{formatted_failures}</p>
+            </div>
+            """
+
+            # Generate Pie chart
+            pie_fig = go.Figure(data=[go.Pie(
+                labels=['Failed Frames', 'Other Frames'],
+                values=[failed_frames, total_frames - failed_frames],
+                hole=.3,
+                marker=dict(colors=['#ffbaba', '#d2ffed'])
+            )])
             pie_fig.update_layout(title=f"{tag} - {percentage:.2f}% ({failed_frames} frames)", height=400, width=400,
-                                  paper_bgcolor='#f5e9e3')
-            pie_chart_html = pie_fig.to_html(full_html=False, include_plotlyjs=False)
+                                paper_bgcolor='#f5e9e3')
+
+            # Get Thumbnails
             thumbnail_html = ''
             for thumb_name, (thumb_path, profile_name, timestamp) in sorted_thumbs_dict.items():
                 if profile_name == tag:
@@ -264,16 +360,20 @@ def make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestam
                     with open(thumb_path, "rb") as image_file:
                         encoded_string = b64encode(image_file.read()).decode()
                     thumbnail_html = f"""
-                    <div style="display: flex; align-items: center; justify-content: center; background-color: #f5e9e3; padding: 10px;"> 
+                    <div style="display: flex; flex-direction: column; align-items: center; background-color: #f5e9e3; padding: 10px;">
                         <img src="data:image/png;base64,{encoded_string}" style="width: 150px; height: auto;" /> 
                         <p style="margin-left: 10px;">{thumb_name_with_breaks}</p>
                     </div>
                     """
-
+            
+            # Wrap everything in one div
             pie_chart_html = f"""
-            <div style="display: flex; align-items: center; background-color: #f5e9e3; padding: 10px;"> 
-                <div style="width: 400px;"> {pie_fig.to_html(full_html=False, include_plotlyjs=False)} </div>
-                {thumbnail_html} 
+            <div style="display: flex; flex-direction: column; align-items: start; background-color: #f5e9e3; padding: 10px;"> 
+                <div style="display: flex; align-items: center;">  
+                    <div style="width: 400px;">{pie_fig.to_html(full_html=False, include_plotlyjs=False)}</div> 
+                    {thumbnail_html}
+                </div>
+                {summary_html}
             </div>
             """
 
@@ -350,7 +450,7 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
 def write_html_report(video_id,report_directory,destination_directory,html_report_path):
 
-    qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, difference_csv = find_report_csvs(report_directory)
+    qctools_colorbars_duration_output, qctools_bars_eval_check_output, qctools_bars_eval_timestamps, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, qctools_profile_timestamps, failure_csv_path, difference_csv = find_report_csvs(report_directory)
     
     exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv = find_qc_metadata(destination_directory)
     
@@ -363,12 +463,15 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
 
     # Get qct-parse thumbs if they exists
     thumbs_dict = find_qct_thumbs(report_directory)
+
+    if failure_csv_path:
+        failure_csv_path = os.path.join(report_directory, failure_csv_path)
+        print(f"DEBUGGING failure csv path is {failure_csv_path}")
+        failureInfoSummary = summarize_failures(failure_csv_path)
+        print(f"DEBUGGING failure csv summary is {failureInfoSummary}")
     
     # Create graphs for all existing csv files
-    if qctools_bars_eval_check_output:
-        colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,qctools_bars_eval_timestamps,thumbs_dict)
-    else:
-        colorbars_eval_html = None
+    colorbars_eval_html = None
 
     if colorbars_values_output:
         colorbars_html = make_color_bars_graphs(video_id,qctools_colorbars_duration_output,colorbars_values_output,thumbs_dict)
@@ -376,7 +479,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
          colorbars_html = None
     
     if qctools_profile_check_output:
-        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,thumbs_dict)
+        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,qctools_profile_timestamps,thumbs_dict,failureInfoSummary)
     else:
         profile_summary_html = None
 
