@@ -105,7 +105,6 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     This function runs a shell command that takes 4 variables: 
     command name, path to the input file, the output type (currently hardcoded to -oc for csv), and path to the output file
     Finds policy path specified in config/config.yaml
-    Currently defaults to config/JPC_AV_NTSC_MKV_2023-11-21.xml
     '''
 
     policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
@@ -428,9 +427,11 @@ def main():
                         if not found_failures:
                             logger.critical("\nMediaConch policy failed:")
                             found_failures = True
-                            
                         # Print the field and value for the failed entry
                         logger.critical(f"{mc_field}: {mc_value}")
+
+                if not found_failures:
+                    logger.info(f"\nMediaConch policy passed")
 
         # Initiate dictionaries for storing differences between actual values and expected values
         exiftool_differences = None
