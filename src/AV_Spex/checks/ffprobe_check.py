@@ -72,26 +72,41 @@ def parse_ffprobe(file_path):
     if 'ENCODER_SETTINGS' in ffmpeg_output['format']['tags']:
         # initialize variables
         encoder_settings_string = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
+        # split string into list using semicolons as separators. I find reg expression confusing. For reference:
+            # r: Indicates a raw string, where backslashes are treated literally (important for regular expressions).
+            # \s*: Matches zero or more whitespace characters (spaces, tabs, newlines, etc.).
+            # ;: Matches a semicolon character.
+            # \s*: Again, matches zero or more whitespace characters.
         encoder_settings_list = re.split(r'\s*;\s*', encoder_settings_string)
         # Expected number of values for each key
-        expected_values_count = {'Source VTR': 4, 'TBC': 3, 'Framesync': 3, 'ADC': 3, 'Capture Device': 3, 'Computer': 5}
+        expected_values_count = {'Source VTR': 4, 'TBC/Framesync': 4, 'ADC': 4, 'Capture Device': 3, 'Computer': 6}
         sn_strings = ["SN ", "SN-", "SN##"]
         encoder_settings_dict = {}
         encoder_settings_pass = False
         for encoder_settings_device in encoder_settings_list:
+            # splits the string into a list based on either colons or commas, ignoring any surrounding whitespace
+                # r: Indicates a raw string literal, where backslashes are treated as literal characters.
+                # \s*: Matches zero or more whitespace characters (space, tab, newline, etc.).
+                # :: Matches a colon character.
+                # |: Represents an "OR" condition, meaning either the pattern to the left or the pattern to the right can match.
+                # ,: Matches a comma character.
             device_field_name, *device_subfields_w_values = re.split(r'\s*:\s*|\s*,\s*', encoder_settings_device)
+            # The first element of the resulting list is assigned to device_field_name
+            # The remaining elements of the list (if any) are packed into the list device_subfields_w_values
             encoder_settings_dict[device_field_name] = device_subfields_w_values
         for expected_key, expected_value in expected_settings_values.items():
-            # defines variables "expected_key" and "expected_value" to the dictionary "expected_settings_values"
+        # defines variables "expected_key" and "expected_value" to the dictionary "expected_settings_values"
                 if expected_key not in encoder_settings_dict:
                     # append this string to the list "ffprobe_differences"
                     ffprobe_differences[f"Encoder setting field {expected_key}"] = ['metadata field not found', '']
                 elif len(encoder_settings_dict[expected_key]) != float(expected_values_count[expected_key]):
+                # if the number of items in the "device" field do not match the number in the config, then: 
                     ffprobe_differences[f"Encoder setting field {expected_key}"] = [f"{len(encoder_settings_dict[expected_key])} subfields", expected_values_count[expected_key]]
                 else:
                     encoder_settings_pass = 'yes'
         if encoder_settings_pass:
             for field, subfields in encoder_settings_dict.items():
+                # checks each item in each subfields list for a string matching any of the sn_strings declared above. check is case insensitive.
                 has_serial_number = any(any(sn_format.lower() in subfield.lower() for sn_format in sn_strings) for subfield in subfields)
                 if not has_serial_number:
                     ffprobe_differences[f"Encoder Settings field '{field}'"] = ["does not contain a recognized serial number format (starting with 'SN ', 'SN-', 'SN##' - not case sensitive)", ""]

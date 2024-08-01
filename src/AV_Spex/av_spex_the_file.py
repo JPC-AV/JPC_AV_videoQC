@@ -212,7 +212,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
     parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("-dr","--dryrun", action="store_true", help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
-    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS"], help="Select signal flow config type (JPC_AV_SVHS)")
+    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS)")
     parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
     parser.add_argument("-sp","--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference. Select config or command: --saveprofile command")
     parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
@@ -255,6 +255,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
     if args.signalflow:
         if args.signalflow == "JPC_AV_SVHS":
             sn_config_changes = JPC_AV_SVHS
+        elif args.signalflow == "BVH3100":
+            sn_config_changes = BVH3100
     
     fn_config_changes = None
     if args.filename:

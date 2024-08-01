@@ -1,8 +1,9 @@
 mediaconch_policy: JPC_AV_01709_mkv.xml
 filename_values:
-  Collection: JPC
-  MediaType: AV
-  ObjectID: \d{5}
+  Collection: '2012_79'
+  MediaType: '2'
+  ObjectID: \d{3}_\d{1}[a-zA-Z]
+  DigitalGeneration: PM
   FileExtension: mkv
 mediainfo_values:
   expected_general:
@@ -108,27 +109,26 @@ ffmpeg_values:
         - SVO5800
         - SN 122345
         - composite
-        TBC:
-        - SVO5800
-        - SN 122345
-        - composite
-        Framesync:
-        - DPS575
-        - SN 23456
+        - analog balanced
+        TBC/Framesync:
+        - DPS575 with flash firmware h2.16
+        - SN 15230
         - SDI
+        - audio embedded
         ADC:
-        - DPS575
-        - SN 23456
+        - DPS575 with flash firmware h2.16
+        - SN 15230
         - SDI
         Capture Device:
         - Black Magic Ultra Jam
-        - SN 34567
+        - SN B022159
         - Thunderbolt
         Computer:
-        - Mac Mini
-        - SN 45678
-        - OS 14.4
-        - vrecord (2024.01.01)
+        - 2023 Mac Mini
+        - Apple M2 Pro chip
+        - SN H9HDW53JMV
+        - OS 14.5
+        - vrecord v2023-08-07
         - ffmpeg
       DESCRIPTION:
       ORIGINAL MEDIA TYPE:
@@ -255,11 +255,20 @@ qct-parse:
     Overall_Min_level:
     Overall_Max_level:
   color_bar_keys:
-    YMAX: 
+    YMAX:
     YMIN:
     UMIN:
     UMAX:
-    VMIN: 
-    VMAX: 
-    SATMIN: 
+    VMIN:
+    VMAX:
+    SATMIN:
     SATMAX:
+  smpte_color_bars:
+    YMAX: 940
+    YMIN: 28
+    UMIN: 148
+    UMAX: 876
+    VMIN: 124
+    VMAX: 867
+    SATMIN: 0
+    SATMAX: 405
