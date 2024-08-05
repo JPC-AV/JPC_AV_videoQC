@@ -410,10 +410,10 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
         if content_filter_name in thumb_path  # Simplified matching
     ]
 
+
     # Build HTML table
     table_rows = []
     for i, time_range in enumerate(time_ranges):
-        time_range = time_range.strip()
         thumbnail_html = ""
         if i < len(matching_thumbs):  
             thumb_name, thumb_path = matching_thumbs[i]
@@ -424,12 +424,12 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
         table_rows.append(f"""
             <tr>
                 <td style="text-align: center; padding: 10px;">{thumbnail_html}</td>
-                <td style="padding: 10px;">{time_range}</td>
+                <td style="padding: 10px; white-space: nowrap;">{time_range}</td>  
             </tr>
         """)
 
     content_summary_html = f"""
-    <table style="background-color: {paper_bgcolor}; margin-top: 20px; border-collapse: collapse; width: 100%;">
+    <table style="background-color: {paper_bgcolor}; margin-top: 20px; border-collapse: collapse;"> 
         <tr>
             <th colspan="2" style="padding: 10px;">Segments found within thresholds of content filter {content_filter_name}:</th>
         </tr>
@@ -529,7 +529,6 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
                 color: #bf971b;
             }}
             table {{
-                width: 100%;
                 border-collapse: collapse;
                 margin-top: 10px;
                 margin-bottom: 20px;
