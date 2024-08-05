@@ -263,3 +263,12 @@ qct-parse:
     VMAX: 
     SATMIN: 
     SATMAX:
+  smpte_color_bars:
+    YMAX: 940
+    YMIN: 28
+    UMIN: 148
+    UMAX: 876
+    VMIN: 124
+    VMAX: 867
+    SATMIN: 0
+    SATMAX: 405

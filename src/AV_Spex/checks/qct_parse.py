@@ -895,13 +895,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		profile_name = f"threshold_profile_{template}"
 		# check xml against thresholds, return kbeyond (dictionary of tags: framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		# Iterate through the failureInfo dictionary to get information per failed frame
-		summarized_timestamps = summarize_timestamps(fail_stamps)
 		profile_fails_csv_path = os.path.join(report_directory, "qct-parse_profile_failures.csv")
 		if failureInfo:
 			save_failures_to_csv(failureInfo, profile_fails_csv_path)
-		tag_timestamp_output = os.path.join(report_directory, "qct-parse_profile_timestamps.csv")
-		print_timestamps(tag_timestamp_output,summarized_timestamps,'profile check')
 		qctools_profile_check_output = os.path.join(report_directory, "qct-parse_profile_summary.csv")
 		printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_profile_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_profile_check_output}\n")
@@ -914,12 +910,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		profile_name = f'tag_check'
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 		kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-		summarized_timestamps = summarize_timestamps(fail_stamps)
 		tag_fails_csv_path = os.path.join(report_directory, "qct-parse_tags_failures.csv")
 		if failureInfo:
 			save_failures_to_csv(failureInfo, tag_fails_csv_path)
-		tag_timestamp_output = os.path.join(report_directory, "qct-parse_tags_timestamps.csv")
-		print_timestamps(tag_timestamp_output,summarized_timestamps,'tag check')
 		qctools_tag_check_output = os.path.join(report_directory, "qct-parse_tags_summary.csv")
 		printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_tag_check_output)
 		logger.debug(f"qct-parse summary written to {qctools_tag_check_output}\n")
@@ -963,12 +956,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 				thumbExportDelay = 9000				
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 				kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
-				summarized_timestamps = summarize_timestamps(fail_stamps)
 				colorbars_eval_fails_csv_path = os.path.join(report_directory, "qct-parse_colorbars_eval_failures.csv")
 				if failureInfo:
 					save_failures_to_csv(failureInfo, colorbars_eval_fails_csv_path)
-				colorbars_eval_timestamp_output = os.path.join(report_directory, "qct-parse_colorbars_eval_timestamps.csv")
-				print_timestamps(colorbars_eval_timestamp_output,summarized_timestamps,'color bars evaluation')
 				qctools_bars_eval_check_output = os.path.join(report_directory, "qct-parse_colorbars_eval_summary.csv")
 				printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_bars_eval_check_output)
 				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_bars_eval_check_output}\n")
