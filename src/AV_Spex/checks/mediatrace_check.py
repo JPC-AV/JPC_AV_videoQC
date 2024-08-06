@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
-
+import re
 import subprocess
 import xml.etree.ElementTree as ET
 
@@ -10,10 +10,12 @@ from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
 def parse_mediatrace(xml_file):
-    for k, v in config_path.config_dict['mediatrace'].items():
-        expected_mediatrace = {k.lower(): v}
+    expected_mediatrace = config_path.config_dict['mediatrace']
 
     expected_mt_keys = expected_mediatrace.keys()
+
+    expected_encoder_settings = []
+    expected_encoder_settings = expected_mediatrace['ENCODER_SETTINGS']
 
     # Parse the XML file
     tree = ET.parse(xml_file)
@@ -24,12 +26,11 @@ def parse_mediatrace(xml_file):
 
     mediatrace_output = {}
     for mt_key in expected_mt_keys:
-    
         # Find all 'block' elements with the name attribute matching 'SimpleTag'
         simple_tags = root.findall(".//mt:block[@name='SimpleTag']", ns)
-
+        # Iterate through all 'block' elements name matching 'SimpleTag'
         for simple_tag in simple_tags:
-            # Find the 'TagName' block with the specific string_we_have
+            # Find the 'TagName' block with the specific mediatrace field name (key) we are looking
             tag_name_block = simple_tag.find(f".//mt:block[@name='TagName']/mt:data[.='{mt_key}']", ns)
             if tag_name_block is not None:
                 # Find the corresponding 'TagString' block
@@ -48,6 +49,40 @@ def parse_mediatrace(xml_file):
         elif len(mediatrace_output[expected_key]) == 0:
         # count the values in the dictionary "mediatrace_output" with 'len', if the values are zero, then:
              mediatrace_differences[expected_key] =  ['no metadata value found', '']
+    
+    if 'ENCODER_SETTINGS' in mediatrace_output:
+        # initialize variables
+        encoder_settings_string = mediatrace_output['ENCODER_SETTINGS']
+        # split string into list using semicolons as separators. I find reg expression confusing. For reference:
+            # r: Indicates a raw string, where backslashes are treated literally (important for regular expressions).
+            # \s*: Matches zero or more whitespace characters (spaces, tabs, newlines, etc.).
+            # ;: Matches a semicolon character.
+            # \s*: Again, matches zero or more whitespace characters.
+        encoder_settings_list = re.split(r'\s*;\s*', encoder_settings_string)
+        encoder_settings_dict = {}
+        for encoder_settings_device in encoder_settings_list:
+            # splits the string into a list based on either colons or commas, ignoring any surrounding whitespace
+                # r: Indicates a raw string literal, where backslashes are treated as literal characters.
+                # \s*: Matches zero or more whitespace characters (space, tab, newline, etc.).
+                # :: Matches a colon character.
+                # |: Represents an "OR" condition, meaning either the pattern to the left or the pattern to the right can match.
+                # ,: Matches a comma character.
+            device_field_name, *device_subfields_w_values = re.split(r'\s*:\s*|\s*,\s*', encoder_settings_device)
+            # The first element of the resulting list is assigned to device_field_name
+            # The remaining elements of the list (if any) are packed into the list device_subfields_w_values
+            encoder_settings_dict[device_field_name] = device_subfields_w_values
+        for expected_es_key, expected_es_value in expected_encoder_settings.items():
+        # defines variables "expected_es_key" and "expected_es_value" to the dictionary "expected_mediatrace"
+            if expected_es_key not in encoder_settings_dict:
+                # append this string to the list "mediatrace_differences"
+                mediatrace_differences[f"Encoder setting field {expected_es_key}"] = ['metadata field not found', '']
+            elif expected_es_key in encoder_settings_dict:
+            # if the key in the dictionary "encoder_settings_dict"
+                actual_value = encoder_settings_dict[expected_es_key]
+                # assigns the variable "actual_value" to the value that matches the key in the dictionary "encoder_settings_dict"
+                if actual_value not in expected_es_value:
+                # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary encoder_settings_dict, then
+                    mediatrace_differences[expected_es_key] = [actual_value, expected_es_value]
 
     if not mediatrace_differences:
         # if the list "mediatrace_differences" is empty, then
