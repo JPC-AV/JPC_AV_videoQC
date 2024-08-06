@@ -3,12 +3,13 @@
 
 import csv
 import os
+os.environ["NUMEXPR_MAX_THREADS"] = "11"  #troubleshooting goofy numbpy related error "Note: NumExpr detected 11 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+# NumExpr defaulting to 8 threads."
 import pandas as pd
 import plotly.graph_objs as go
 from base64 import b64encode
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
-
 
 # Read CSV files and convert them to HTML tables
 def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999", match_color="#d2ffed", check_fail=False):
