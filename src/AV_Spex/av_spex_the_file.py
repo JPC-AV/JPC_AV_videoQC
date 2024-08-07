@@ -105,6 +105,7 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     This function runs a shell command that takes 4 variables: 
     command name, path to the input file, the output type (currently hardcoded to -oc for csv), and path to the output file
     Finds policy path specified in config/config.yaml
+    Currently defaults to config/JPC_AV_NTSC_MKV_2023-11-21.xml
     '''
 
     policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
@@ -427,9 +428,9 @@ def main():
                         if not found_failures:
                             logger.critical("\nMediaConch policy failed:")
                             found_failures = True
+                            
                         # Print the field and value for the failed entry
                         logger.critical(f"{mc_field}: {mc_value}")
-
                 if not found_failures:
                     logger.info(f"\nMediaConch policy passed")
 
@@ -487,11 +488,11 @@ def main():
             ffprobe_output_path = None
             # reset variable if no output is created, so that it won't print in the report
         
+        # Create 'report directory' for csv files in html report
+        report_directory = make_report_dir(source_directory, video_id) 
         diff_csv_path = None
         # need to initialize path for report
         if command_config.command_dict['outputs']['report'] == 'yes':
-            # Create 'report directory' for csv files in html report
-            report_directory = make_report_dir(source_directory, video_id) 
             if exiftool_differences and mediainfo_differences and ffprobe_differences and mediatrace_differences is None:
                 logger.info(f"All specified metadata fields and values found, no CSV report written")
             else:
@@ -526,19 +527,16 @@ def main():
             run_command('qcli -i', video_path, '-o', qctools_output_path)
 
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
-            qctools_check_output = os.path.join(destination_directory, f'{video_id}_qct-parse_summary.txt')
-            if os.path.isfile(qctools_check_output):
-                    qctools_check_output = os.path.join(destination_directory, f"{video_id}_qct-parse_summary_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
             if not os.path.isfile(qctools_output_path):
                 logger.critical(f"\nUnable to check qctools report. No file found at this path: {qctools_output_path}.\n")
                 qctools_check_output = None
             else:
-                run_qctparse(video_path, qctools_output_path, qctools_check_output)
+                run_qctparse(video_path, qctools_output_path, report_directory)
         else:
             qctools_check_output = None
         
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
-        if access_file_found is None and command_config.command_dict['outputs']['access_file'] == 'yes':
+        if command_config.command_dict['outputs']['access_file'] == 'yes':
             if os.path.isfile(access_output_path):
                 logger.critical(f"Access file already exists, not running ffmpeg")
             else:
@@ -546,7 +544,7 @@ def main():
         
         if command_config.command_dict['outputs']['report'] == 'yes':
             html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
-            write_html_report(video_id,destination_directory,mediaconch_output_path,diff_csv_path,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
+            write_html_report(video_id,report_directory,destination_directory,html_report_path)
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         

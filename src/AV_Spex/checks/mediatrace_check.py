@@ -44,7 +44,9 @@ def parse_mediatrace(xml_file):
     mediatrace_differences = {}
     for expected_key, expected_value in expected_mediatrace.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_mediatrace"
-        if expected_key not in mediatrace_output: 
+        if expected_key == 'ENCODER_SETTINGS':  
+            continue  # Handle encoder settings separately later
+        elif expected_key not in mediatrace_output: 
             mediatrace_differences[expected_key] = ['metadata field not found', '']
         elif len(mediatrace_output[expected_key]) == 0:
         # count the values in the dictionary "mediatrace_output" with 'len', if the values are zero, then:
@@ -76,13 +78,8 @@ def parse_mediatrace(xml_file):
             if expected_es_key not in encoder_settings_dict:
                 # append this string to the list "mediatrace_differences"
                 mediatrace_differences[f"Encoder setting field {expected_es_key}"] = ['metadata field not found', '']
-            elif expected_es_key in encoder_settings_dict:
-            # if the key in the dictionary "encoder_settings_dict"
-                actual_value = encoder_settings_dict[expected_es_key]
-                # assigns the variable "actual_value" to the value that matches the key in the dictionary "encoder_settings_dict"
-                if actual_value not in expected_es_value:
-                # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary encoder_settings_dict, then
-                    mediatrace_differences[expected_es_key] = [actual_value, expected_es_value]
+            elif set(encoder_settings_dict[expected_es_key]) != set(expected_es_value):  # Compare as sets for order insensitivity
+                mediatrace_differences[expected_es_key] = [encoder_settings_dict[expected_es_key], expected_es_value]
 
     if not mediatrace_differences:
         # if the list "mediatrace_differences" is empty, then
@@ -92,6 +89,6 @@ def parse_mediatrace(xml_file):
         logger.critical("\nSome specified MediaTrace fields or values are missing or don't match:")
         for mediatrace_key, values in mediatrace_differences.items():
             actual_value, expected_value = values
-            logger.critical(f"{mediatrace_key} {actual_value}")
+            logger.critical(f"{mediatrace_key} \nactual value: {actual_value}\nexpected value:{expected_value}")
     
     return mediatrace_differences
