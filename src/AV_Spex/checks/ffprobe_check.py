@@ -78,11 +78,8 @@ def parse_ffprobe(file_path):
             # ;: Matches a semicolon character.
             # \s*: Again, matches zero or more whitespace characters.
         encoder_settings_list = re.split(r'\s*;\s*', encoder_settings_string)
-        # Expected number of values for each key
-        expected_values_count = {'Source VTR': 4, 'TBC/Framesync': 4, 'ADC': 4, 'Capture Device': 3, 'Computer': 6}
         sn_strings = ["SN ", "SN-", "SN##"]
         encoder_settings_dict = {}
-        encoder_settings_pass = False
         for encoder_settings_device in encoder_settings_list:
             # splits the string into a list based on either colons or commas, ignoring any surrounding whitespace
                 # r: Indicates a raw string literal, where backslashes are treated as literal characters.
@@ -99,17 +96,9 @@ def parse_ffprobe(file_path):
                 if expected_key not in encoder_settings_dict:
                     # append this string to the list "ffprobe_differences"
                     ffprobe_differences[f"Encoder setting field {expected_key}"] = ['metadata field not found', '']
-                elif len(encoder_settings_dict[expected_key]) != float(expected_values_count[expected_key]):
+                elif set(encoder_settings_dict[expected_key]) != set(expected_value):
                 # if the number of items in the "device" field do not match the number in the config, then: 
-                    ffprobe_differences[f"Encoder setting field {expected_key}"] = [f"{len(encoder_settings_dict[expected_key])} subfields", expected_values_count[expected_key]]
-                else:
-                    encoder_settings_pass = 'yes'
-        if encoder_settings_pass:
-            for field, subfields in encoder_settings_dict.items():
-                # checks each item in each subfields list for a string matching any of the sn_strings declared above. check is case insensitive.
-                has_serial_number = any(any(sn_format.lower() in subfield.lower() for sn_format in sn_strings) for subfield in subfields)
-                if not has_serial_number:
-                    ffprobe_differences[f"Encoder Settings field '{field}'"] = ["does not contain a recognized serial number format (starting with 'SN ', 'SN-', 'SN##' - not case sensitive)", ""]
+                    ffprobe_differences[expected_key] = [encoder_settings_dict[expected_key], expected_value]
     else:
         ffprobe_differences["Encoder Settings"] = ['No Encoder Settings found, No Signal Flow data embedded', '']
 
