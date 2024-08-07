@@ -38,15 +38,11 @@ def parse_mediatrace(xml_file):
                 if tag_string_block is not None:
                     mediatrace_output[mt_key] = tag_string_block.text
                     break
-        #if not found:
-         #       mediatrace_output[mt_key] = None
     
     mediatrace_differences = {}
     for expected_key, expected_value in expected_mediatrace.items():
     # defines variables "expected_key" and "expected_value" to the dictionary "expected_mediatrace"
-        if expected_key == 'ENCODER_SETTINGS':  
-            continue  # Handle encoder settings separately later
-        elif expected_key not in mediatrace_output: 
+        if expected_key not in mediatrace_output: 
             mediatrace_differences[expected_key] = ['metadata field not found', '']
         elif len(mediatrace_output[expected_key]) == 0:
         # count the values in the dictionary "mediatrace_output" with 'len', if the values are zero, then:
@@ -63,12 +59,12 @@ def parse_mediatrace(xml_file):
         encoder_settings_list = re.split(r'\s*;\s*', encoder_settings_string)
         encoder_settings_dict = {}
         for encoder_settings_device in encoder_settings_list:
-            # splits the string into a list based on either colons or commas, ignoring any surrounding whitespace
-                # r: Indicates a raw string literal, where backslashes are treated as literal characters.
-                # \s*: Matches zero or more whitespace characters (space, tab, newline, etc.).
-                # :: Matches a colon character.
-                # |: Represents an "OR" condition, meaning either the pattern to the left or the pattern to the right can match.
-                # ,: Matches a comma character.
+        # splits the string into a list based on either colons or commas, ignoring any surrounding whitespace
+            # r: Indicates a raw string literal, where backslashes are treated as literal characters.
+            # \s*: Matches zero or more whitespace characters (space, tab, newline, etc.).
+            # :: Matches a colon character.
+            # |: Represents an "OR" condition, meaning either the pattern to the left or the pattern to the right can match.
+            # ,: Matches a comma character.
             device_field_name, *device_subfields_w_values = re.split(r'\s*:\s*|\s*,\s*', encoder_settings_device)
             # The first element of the resulting list is assigned to device_field_name
             # The remaining elements of the list (if any) are packed into the list device_subfields_w_values
@@ -78,17 +74,18 @@ def parse_mediatrace(xml_file):
             if expected_es_key not in encoder_settings_dict:
                 # append this string to the list "mediatrace_differences"
                 mediatrace_differences[f"Encoder setting field {expected_es_key}"] = ['metadata field not found', '']
-            elif set(encoder_settings_dict[expected_es_key]) != set(expected_es_value):  # Compare as sets for order insensitivity
+            elif set(encoder_settings_dict[expected_es_key]) != set(expected_es_value):
+                # Compare as sets for order insensitivity  
                 mediatrace_differences[expected_es_key] = [encoder_settings_dict[expected_es_key], expected_es_value]
 
     if not mediatrace_differences:
         # if the list "mediatrace_differences" is empty, then
-        logger.info("\nAll specified mediatrace fields and values found in  output.")
+        logger.info("\nAll specified mediatrace fields and values found in output.")
 
     if mediatrace_differences:
         logger.critical("\nSome specified MediaTrace fields or values are missing or don't match:")
         for mediatrace_key, values in mediatrace_differences.items():
             actual_value, expected_value = values
-            logger.critical(f"{mediatrace_key} \nactual value: {actual_value}\nexpected value:{expected_value}")
+            logger.critical(f"{mediatrace_key} {actual_value}")
     
     return mediatrace_differences

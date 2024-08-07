@@ -306,6 +306,7 @@ def main():
 
     if sn_config_changes:
         update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+        update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
 
     if fn_config_changes:
         update_config(config_path, 'filename_values', fn_config_changes)
