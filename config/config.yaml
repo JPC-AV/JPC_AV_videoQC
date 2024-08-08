@@ -1,7 +1,8 @@
 filename_values:
-  Collection: JPC
-  MediaType: AV
-  ObjectID: \d{5}
+  Collection: '2012_79'
+  MediaType: '2'
+  ObjectID: \d{3}_\d{1}[a-zA-Z]
+  DigitalGeneration: PM
   FileExtension: mkv
 mediainfo_values:
   expected_general:
@@ -10,7 +11,7 @@ mediainfo_values:
     Overall bit rate mode: Variable
   expected_video:
     Format: FFV1
-    Format settings  GOP: N=1
+    Format settings GOP: N=1
     Codec ID: V_MS/VFW/FOURCC / FFV1
     Width: 720 pixels
     Height: 486 pixels
@@ -104,21 +105,22 @@ ffmpeg_values:
    #    - audio connector type (XLR, RCA, etc.)
       ENCODER_SETTINGS:
         Source VTR:
-        - SVO5800
-        - SN 122345
+        - Sony BVH3100
+        - SN 10525
         - composite
         - analog balanced
         TBC/Framesync:
-        - DPS575 with flash firmware h2.16
-        - SN 15230
-        - SDI
-        - audio embedded
+        - Sony BVH3100
+        - SN 10525
+        - composite
+        - analog balanced
         ADC:
-        - DPS575 with flash firmware h2.16
+        - Leitch DPS575 with flash firmware h2.16
         - SN 15230
         - SDI
+        - embedded
         Capture Device:
-        - Black Magic Ultra Jam
+        - Blackmagic Design UltraStudio 4K Extreme
         - SN B022159
         - Thunderbolt
         Computer:
@@ -138,6 +140,32 @@ mediatrace:
   DESCRIPTION:
   DATE_DIGITIZED:
   ENCODER_SETTINGS:
+    Source VTR:
+    - Sony BVH3100
+    - SN 10525
+    - composite
+    - analog balanced
+    TBC/Framesync:
+    - Sony BVH3100
+    - SN 10525
+    - composite
+    - analog balanced
+    ADC:
+    - Leitch DPS575 with flash firmware h2.16
+    - SN 15230
+    - SDI
+    - embedded
+    Capture Device:
+    - Blackmagic Design UltraStudio 4K Extreme
+    - SN B022159
+    - Thunderbolt
+    Computer:
+    - 2023 Mac Mini
+    - Apple M2 Pro chip
+    - SN H9HDW53JMV
+    - OS 14.5
+    - vrecord v2023-08-07
+    - ffmpeg
   ENCODED_BY:
   ORIGINAL_MEDIA_TYPE:
   DATE_TAGGED:
