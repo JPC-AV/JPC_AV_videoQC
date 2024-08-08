@@ -528,11 +528,13 @@ def main():
             run_command('qcli -i', video_path, '-o', qctools_output_path)
 
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
+            qctools_check_output = os.path.join(destination_directory, f'{video_id}_qct-parse_summary.txt')
             if not os.path.isfile(qctools_output_path):
                 logger.critical(f"\nUnable to check qctools report. No file found at this path: {qctools_output_path}.\n")
                 qctools_check_output = None
             else:
-                run_qctparse(video_path, qctools_output_path, report_directory)
+                qctools_check_output
+                run_qctparse(video_path, qctools_output_path, qctools_check_output)
         else:
             qctools_check_output = None
         
