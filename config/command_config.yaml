@@ -1,12 +1,12 @@
 outputs:
 ##  'yes' or 'no'
   access_file: 'no'
-  report: 'yes'
+  report: 'no'
   fixity:
     check_fixity: 'no'
     check_stream_fixity: 'no'
-    embed_stream_fixity: 'no'
-    output_fixity: 'no'
+    embed_stream_fixity: 'yes'
+    output_fixity: 'yes'
     overwrite_stream_fixity: 'no'
 # preferred qctools extension. qct-parse requires qctools.xml.gz
   qctools_ext: qctools.xml.gz
@@ -14,11 +14,11 @@ tools:
   exiftool:
 ##  'yes' or 'no'
     check_exiftool: 'yes'
-    run_exiftool: 'no'
+    run_exiftool: 'yes'
   ffprobe:
 ##  'yes' or 'no'
-    check_ffprobe: 'yes'
-    run_ffprobe: 'no'
+    check_ffprobe: 'no'
+    run_ffprobe: 'yes'
   mediaconch:
 ##  mediaconch policy file name from any xml file in the config directory
     mediaconch_policy: JPC_AV_NTSC_MKV_2024-07-31.xml
@@ -27,15 +27,15 @@ tools:
   mediainfo:
 ##  'yes' or 'no'
     check_mediainfo: 'yes'
-    run_mediainfo: 'no'
+    run_mediainfo: 'yes'
   mediatrace:
 ##  'yes' or 'no'
     check_mediatrace: 'yes'
-    run_mediatrace: 'no'
+    run_mediatrace: 'yes'
   qctools:
 ##  'yes' or 'no'
-    check_qctools: 'yes'
-    run_qctools: 'yes'
+    check_qctools: 'no'
+    run_qctools: 'no'
   qct-parse:
 ##  barsDetection can be true or left empty (null)
     barsDetection: true
