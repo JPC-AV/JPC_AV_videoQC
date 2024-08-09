@@ -500,11 +500,6 @@ def main():
                 # Create CSV for storing differences between expected metadata values and actual values
                 csv_name = video_id + '_' + 'metadata_difference'
                 diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
-                if os.path.exists(diff_csv_path):
-                    # if CSV file already exists, append a timestamp to the new csv_name
-                    timestamp = datetime.now().strftime("%Y%m%d_%H-%M-%S")
-                    csv_name += '_' + timestamp
-                    diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
 
                 # Open CSV file in write mode
                 with open(diff_csv_path, 'w', newline='') as diffs_csv:
@@ -528,13 +523,11 @@ def main():
             run_command('qcli -i', video_path, '-o', qctools_output_path)
 
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
-            qctools_check_output = os.path.join(destination_directory, f'{video_id}_qct-parse_summary.txt')
             if not os.path.isfile(qctools_output_path):
                 logger.critical(f"\nUnable to check qctools report. No file found at this path: {qctools_output_path}.\n")
                 qctools_check_output = None
             else:
-                qctools_check_output
-                run_qctparse(video_path, qctools_output_path, qctools_check_output)
+                run_qctparse(video_path, qctools_output_path, report_directory)
         else:
             qctools_check_output = None
         
@@ -547,8 +540,7 @@ def main():
         
         if command_config.command_dict['outputs']['report'] == 'yes':
             html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
-            # new html report will use less of these, but for now main branch has lots of vars to pass to write_html_report
-            write_html_report(video_id,destination_directory,mediaconch_output_path,diff_csv_path,qctools_check_output,exiftool_output_path,mediainfo_output_path,ffprobe_output_path,html_report_path)
+            write_html_report(video_id,report_directory,destination_directory,html_report_path)
             
         logger.debug(f'\n\nPlease note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
         
