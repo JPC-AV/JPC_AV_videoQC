@@ -30,7 +30,7 @@ def check_fixity(directory, video_id, actual_checksum=None):
                     else:
                         logger.critical(f'Fixity check failed for {video_file_path}')
                         result_file = open(fixity_result_file, 'w')
-                        print(f'Fixity check failed for {os.path.basename(video_file_path)}\n checksum read from .md5 file = {expected_checksum}\n checksum created from MKV file = {actual_checksum}', file = result_file)
+                        print(f'Fixity check failed for {os.path.basename(video_file_path)} checksum read from .md5 file = {expected_checksum} checksum created from MKV file = {actual_checksum}', file = result_file)
                         result_file.close()
                 else:
                     logger.critical(f'Video file not found: {video_file_path}')
@@ -48,7 +48,7 @@ def output_fixity(source_directory, video_path):
     print(f'{md5_checksum}  {os.path.basename(video_path)}', file = result_file)
     # Close fixity_result_file
     result_file.close()
-    logger.debug(f'\nMD5 checksum written to {fixity_result_file}')
+    logger.debug(f'MD5 checksum written to {fixity_result_file}')
     return md5_checksum
 
 def read_checksum_from_file(file_path):
@@ -59,7 +59,7 @@ def read_checksum_from_file(file_path):
     checksum_parts = content.split()
     for part in checksum_parts:
         if len(part) == 32 and all(c in '0123456789abcdefABCDEF' for c in part):
-            logger.info(f'\nMD5 checksum found in {os.path.basename(file_path)}: {part}')
+            logger.info(f'MD5 checksum found in {os.path.basename(file_path)}: {part}')
             return part
 
     logger.critical(f'md5 checksum not found in {file_path}')
@@ -73,7 +73,7 @@ def hashlib_md5(filename):
     last_percent_done = 0
     md5_object = hashlib.md5()
     total_size = os.path.getsize(filename)
-    logger.debug(f'\nGenerating md5 checksum for {os.path.basename(filename)} via {os.path.basename(__file__)}:')
+    logger.debug(f'Generating md5 checksum for {os.path.basename(filename)} via {os.path.basename(__file__)}:')
     with open(str(filename), 'rb') as file_object:
         while True:
             buf = file_object.read(2**20)

@@ -80,10 +80,10 @@ def parse_mediatrace(xml_file):
 
     if not mediatrace_differences:
         # if the list "mediatrace_differences" is empty, then
-        logger.info("\nAll specified mediatrace fields and values found in output.")
+        logger.info("All specified mediatrace fields and values found in output.")
 
     if mediatrace_differences:
-        logger.critical("\nSome specified MediaTrace fields or values are missing or don't match:")
+        logger.critical("Some specified MediaTrace fields or values are missing or don't match:")
         for mediatrace_key, values in mediatrace_differences.items():
             actual_value, expected_value = values
             logger.critical(f"{mediatrace_key} {actual_value}")
