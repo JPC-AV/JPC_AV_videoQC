@@ -877,7 +877,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 			duration_str = get_duration(video_path)
 			contentFilter_name = filter
 			contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
-			qctools_content_check_output = os.path.join(report_directory, "qct-parse_contentFilter_summary.csv")
+			qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{contentFilter_name}_summary.csv")
 			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_content_check_output,framesList,qct_parse,thumbPath,thumbDelay,thumbExportDelay,video_path)
 
 	######## Iterate Through the XML for General Analysis ########

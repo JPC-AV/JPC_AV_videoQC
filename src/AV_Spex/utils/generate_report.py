@@ -71,7 +71,7 @@ def parse_profile(profile_name):
     profile_order = {
         "color_bars_detection": 0,
         "color_bars_evaluation": 1,
-        "threshold_profile": 2,  # Assuming all threshold_profile_* come together
+        "threshold_profile": 2, 
         "tag_check": 3
     }
     
@@ -120,7 +120,7 @@ def find_report_csvs(report_directory):
     colorbars_values_output = None
     # consider making qctools_content_check_output a list, and appending to support multiple content summaries 
     # could potentially make check for qctools_content_check_output diff than others though
-    qctools_content_check_output = None
+    qctools_content_check_outputs = []
     qctools_profile_check_output = None
     qctools_profile_timestamps = None
     profile_fails_csv = None
@@ -139,8 +139,8 @@ def find_report_csvs(report_directory):
                         qctools_bars_eval_check_output = file_path
                     elif "qct-parse_colorbars_values" in file:
                         colorbars_values_output = file_path
-                    elif "qct-parse_contentFilter_summary" in file:
-                        qctools_content_check_output = file_path
+                    elif "qct-parse_contentFilter" in file:
+                        qctools_content_check_outputs.append(file_path)
                     elif "qct-parse_profile_summary" in file:
                         qctools_profile_check_output = file_path
                     elif "qct-parse_profile_failures" in file:
@@ -153,7 +153,7 @@ def find_report_csvs(report_directory):
                     difference_csv = file_path
 
 
-    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv
+    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv
 
 def find_qc_metadata(destination_directory):
 
@@ -326,7 +326,7 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
             
             # Create formatted failure summary string
             formatted_failures = "<br>".join(
-                f"Timestamp: {timestamp}<br>Value: {value}<br>Threshold: {threshold}"
+                f"<b>Timestamp: {timestamp}</b><br><b>Value:</b> {value}<br><b>Threshold:</b> {threshold}<br>" 
                 for timestamp, value, threshold in zip(failed_frame_timestamps, failed_frame_values, failed_frame_thresholds)
             )
             summary_html = f"""
@@ -442,7 +442,7 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
 def write_html_report(video_id,report_directory,destination_directory,html_report_path):
 
-    qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_output, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv = find_report_csvs(report_directory)
+    qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv = find_report_csvs(report_directory)
     
     exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv = find_qc_metadata(destination_directory)
     
@@ -484,10 +484,13 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     else:
         profile_summary_html = None
 
-    if qctools_content_check_output:
-        content_summary_html = make_content_summary_html(qctools_content_check_output, thumbs_dict, paper_bgcolor='#f5e9e3')
+    if qctools_content_check_outputs:
+        content_summary_html_list = []
+        for output_csv in qctools_content_check_outputs:
+            content_summary_html = make_content_summary_html(output_csv, thumbs_dict, paper_bgcolor='#f5e9e3')
+            content_summary_html_list.append(content_summary_html)
     else:
-        content_summary_html = None
+        content_summary_html_list = None
     
     # Get the absolute path of the script file
     script_path = os.path.dirname(os.path.abspath(__file__))
@@ -592,13 +595,14 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         </div>
         """
 
-    if content_summary_html:
-        html_template += f"""
-        <h3>qct-parse Content Detection</h3>
-        <div style="white-space: nowrap;">
-            {content_summary_html}
-        </div>
-        """
+    if content_summary_html_list:
+        for content_summary_html in content_summary_html_list:
+            html_template += f"""
+            <h3>qct-parse Content Detection</h3>
+            <div style="white-space: nowrap;">
+                {content_summary_html}
+            </div>
+            """
     
     if exiftool_output_path:
         html_template += f"""
