@@ -212,7 +212,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
     parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("-dr","--dryrun", action="store_true", help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
     parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
-    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS"], help="Select signal flow config type (JPC_AV_SVHS)")
+    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS)")
     parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
     parser.add_argument("-sp","--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference. Select config or command: --saveprofile command")
     parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
@@ -255,6 +255,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
     if args.signalflow:
         if args.signalflow == "JPC_AV_SVHS":
             sn_config_changes = JPC_AV_SVHS
+        elif args.signalflow == "BVH3100":
+            sn_config_changes = BVH3100
     
     fn_config_changes = None
     if args.filename:
@@ -304,6 +306,7 @@ def main():
 
     if sn_config_changes:
         update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+        update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
 
     if fn_config_changes:
         update_config(config_path, 'filename_values', fn_config_changes)
@@ -348,6 +351,14 @@ def main():
 
         # Moves vrecord files to subdirectory  
         move_vrec_files(source_directory, video_id)
+
+        # Iterate through files in the directory to identify access file
+        for filename in os.listdir(source_directory):
+            if filename.lower().endswith('mp4'):
+                access_file_found = filename
+                logger.info("Existing access file found!")
+            else:
+                access_file_found = None      # sets var to None, so access file will only be created if none is found.
 
         # Embed stream md5 hashes into MKV tags 
         if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
@@ -421,6 +432,8 @@ def main():
                             
                         # Print the field and value for the failed entry
                         logger.critical(f"{mc_field}: {mc_value}")
+                if not found_failures:
+                    logger.info(f"\nMediaConch policy passed")
 
         # Initiate dictionaries for storing differences between actual values and expected values
         exiftool_differences = None
