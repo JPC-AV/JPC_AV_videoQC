@@ -41,7 +41,7 @@ def is_valid_filename(video_filename, failed_mkvs):
     
     # Check if the filename matches the pattern
     if re.match(pattern, video_filename, re.IGNORECASE):
-        logger.debug(f"\nThe file name '{video_filename}' is valid.")
+        logger.debug(f"The file name '{video_filename}' is valid.\n")
     else:
         failed_mkvs.append(video_filename)
 

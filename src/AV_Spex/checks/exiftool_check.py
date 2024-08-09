@@ -18,7 +18,7 @@ def parse_exiftool(file_path):
     expected_exif_values = config_path.config_dict['exiftool_values']
 
     if not os.path.exists(file_path):
-        logger.critical(f"\nCannot perform exiftool check!\nNo such file: {file_path}")
+        logger.critical(f"Cannot perform exiftool check!No such file: {file_path}")
         return
 
     with open(file_path, 'r') as file:
@@ -57,13 +57,14 @@ def parse_exiftool(file_path):
 
     if not exiftool_differences:
     # if the list "exiftool_differences" is empty, then
-        logger.info(f"\nAll specified fields and values found in the Exiftool output.")
+        logger.info(f"All specified fields and values found in the Exiftool output.\n")
     else:
     # if the list "exiftool_differences" is not empty, then
-        logger.critical("\nSome specified Exiftool fields or values are missing or don't match:")
+        logger.critical("Some specified Exiftool fields or values are missing or don't match:")
         for exif_key, values in exiftool_differences.items():
             actual_value, expected_value = values
             logger.critical(f"Metadata field {exif_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
+        logger.debug(f"") # adding a space after results if there are failures
 
     return exiftool_differences
 
@@ -81,4 +82,4 @@ if __name__ == "__main__":
     #runs the function "parse_exiftool" on the file assigned to the variable "file_path"
     if exiftool_differences:
         for diff in exiftool_differences:
-            logger.critical(f"\n\t{diff}")
+            logger.critical(f"\t{diff}")

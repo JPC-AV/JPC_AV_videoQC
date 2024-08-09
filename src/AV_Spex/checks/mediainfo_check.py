@@ -28,7 +28,7 @@ def parse_mediainfo(file_path):
     # the mediainfo field and value are then assigned to the current section's dictionary, which is stored within the section_data dictionary
     
     if not os.path.exists(file_path):
-        logger.critical(f"\nCannot perform MediaInfo check!\nNo such file: {file_path}")
+        logger.critical(f"Cannot perform MediaInfo check!No such file: {file_path}")
         return
     
     with open(file_path, 'r') as file:
@@ -113,13 +113,14 @@ def parse_mediainfo(file_path):
     
     if not mediainfo_differences:
     # if the list "mediainfo_differences" is empty, then
-        logger.info("\nAll specified fields and values found in the MediaInfo output.")
+        logger.info("All specified fields and values found in the MediaInfo output.\n")
     else:
     # if the list "mediainfo_differences" is not empty, then
-        logger.critical(f"\nSome specified MediaInfo fields or values are missing or don't match:")
+        logger.critical(f"Some specified MediaInfo fields or values are missing or don't match:")
         for mi_key, values in mediainfo_differences.items():
             actual_value, expected_value = values
             logger.critical(f"Metadata field {mi_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
+        logger.debug(f"") # adding a space after results if there are failures
     
     return mediainfo_differences
 
@@ -135,4 +136,4 @@ if __name__ == "__main__":
     mediainfo_differences = parse_mediainfo(file_path)
     if mediainfo_differences:
         for diff in mediainfo_differences:
-            logger.critical(f"\n\t{diff}")
+            logger.critical(f"\t{diff}")

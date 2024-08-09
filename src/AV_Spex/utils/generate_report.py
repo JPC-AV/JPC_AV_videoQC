@@ -643,4 +643,4 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     with open(html_report_path, 'w') as f:
         f.write(html_template)
 
-    logger.info("\nHTML report generated successfully!")
+    logger.info("HTML report generated successfully!\n")

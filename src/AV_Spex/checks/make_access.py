@@ -20,7 +20,7 @@ def get_duration(video_path):
 def make_access_file(video_path, output_path):
     """Create access file using ffmpeg."""
     
-    logger.debug(f'\nRunning ffmpeg on {os.path.basename(video_path)} to create access copy {os.path.basename(output_path)}\n')
+    logger.debug(f'Running ffmpeg on {os.path.basename(video_path)} to create access copy {os.path.basename(output_path)}')
 
     duration_str = get_duration(video_path)
     
@@ -46,7 +46,7 @@ def make_access_file(video_path, output_path):
             # Convert string integer
             duration_ms = (duration * 1000000)
             # Calculate the total duration in microseconds
-            for line in ff_output.split('\n'):
+            for line in ff_output.split(''):
                 if line.startswith(duration_prefix):
                     current_frame_str = line.split(duration_prefix)[1]
                     current_frame_ms = float(current_frame_str)

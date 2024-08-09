@@ -19,7 +19,7 @@ def parse_ffprobe(file_path):
     expected_settings_values = config_path.config_dict['ffmpeg_values']['format']['tags']['ENCODER_SETTINGS']
     
     if not os.path.exists(file_path):
-        logger.critical(f"\nCannot perform ffprobe check!\nNo such file: {file_path}")
+        logger.critical(f"Cannot perform ffprobe check!No such file: {file_path}")
         return
 
     with open(file_path, 'r') as file:
@@ -104,10 +104,10 @@ def parse_ffprobe(file_path):
 
     if not ffprobe_differences:
         # if the list "ffprobe_differences" is empty, then
-        logger.info("\nAll specified fields and values found in the ffprobe output.")
+        logger.info("All specified fields and values found in the ffprobe output.\n")
     else:
         # if the list "ffprobe_differences" is not empty, then
-        logger.critical(f"\nSome specified ffprobe fields or values are missing or don't match:")
+        logger.critical(f"Some specified ffprobe fields or values are missing or don't match:")
         for ffprobe_key, values in ffprobe_differences.items():
             actual_value, expected_value = values
             if ffprobe_key == 'ENCODER_SETTINGS':
@@ -118,6 +118,7 @@ def parse_ffprobe(file_path):
                 logger.critical(f"{ffprobe_key} {actual_value}")
             else:    
                 logger.critical(f"Metadata field {ffprobe_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
+        logger.debug(f'')
 
 
 # Only execute if this file is run directly, not imported
@@ -132,4 +133,4 @@ if __name__ == "__main__":
     ffprobe_differences = parse_ffprobe(file_path)
     if ffprobe_differences:
         for diff in ffprobe_differences:
-            logger.critical(f"\n\t{diff}")
+            logger.critical(f"\t{diff}")
