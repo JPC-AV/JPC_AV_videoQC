@@ -54,7 +54,7 @@ def update_config(config_path, nested_key, value_dict):
         
         with open(config_path.config_yml, 'w') as y:
             yaml.dump(config_dict, y)
-            logger.info(f'config.yaml updated to match profile {last_key}')
+            logger.info(f'config.yaml updated to match profile {last_key}\n')
 
 # Function to save the current state of the command_config.yaml to a dictionary (profile)
 def save_current_profile(config):
@@ -72,9 +72,9 @@ def save_profile_to_file(config, new_file_path):
     if current_profile:
         with open(new_file_path, 'w') as f:
             yaml.dump(current_profile, f)
-        logger.info(f'Profile saved to {new_file_path}')
+        logger.info(f'Profile saved to {new_file_path}\n')
     else:
-        logger.critical(f'Unable to save command profile!')
+        logger.critical(f'Unable to save command profile!\n')
 
 profile_step1 = {
     "tools": {
