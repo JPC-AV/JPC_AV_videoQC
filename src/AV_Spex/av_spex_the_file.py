@@ -487,11 +487,6 @@ def main():
                 # Create CSV for storing differences between expected metadata values and actual values
                 csv_name = video_id + '_' + 'metadata_difference'
                 diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
-                if os.path.exists(diff_csv_path):
-                    # if CSV file already exists, append a timestamp to the new csv_name
-                    timestamp = datetime.now().strftime("%Y%m%d_%H-%M-%S")
-                    csv_name += '_' + timestamp
-                    diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
 
                 # Open CSV file in write mode
                 with open(diff_csv_path, 'w', newline='') as diffs_csv:
