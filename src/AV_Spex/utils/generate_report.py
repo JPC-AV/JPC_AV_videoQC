@@ -57,8 +57,6 @@ def prepare_file_section(file_path, process_function=None):
         file_name = ''
     return file_content, file_name
 
-import os
-
 def parse_timestamp(timestamp_str):
     if not timestamp_str:
         return (9999, 99, 99, 99, 9999)  # Return a placeholder tuple for non-timestamp entries
@@ -161,6 +159,7 @@ def find_qc_metadata(destination_directory):
     ffprobe_output_path = None
     mediainfo_output_path = None
     mediaconch_csv = None
+    fixity_sidecar = None
 
     if os.path.isdir(destination_directory):
         for file in os.listdir(destination_directory):
@@ -174,8 +173,15 @@ def find_qc_metadata(destination_directory):
                     mediainfo_output_path = file_path
                 if "_mediaconch_output" in file:
                     mediaconch_csv = file_path
+                
+    if os.path.isdir(os.path.dirname(destination_directory)):
+        parent_dir = os.path.dirname(destination_directory) 
+        for file in os.listdir(parent_dir):
+            file_path = os.path.join(parent_dir, file)
+            if file.endswith('fixity.txt'):
+                fixity_sidecar = file_path
 
-    return exiftool_output_path,ffprobe_output_path,mediainfo_output_path,mediaconch_csv
+    return exiftool_output_path,ffprobe_output_path,mediainfo_output_path,mediaconch_csv,fixity_sidecar
 
 def summarize_failures(failure_csv_path):  # Change parameter to accept CSV file path
     """
@@ -444,7 +450,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
 
     qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv = find_report_csvs(report_directory)
     
-    exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv = find_qc_metadata(destination_directory)
+    exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv,fixity_sidecar = find_qc_metadata(destination_directory)
     
     # Initialize and create html from 
     mc_csv_html, mediaconch_csv_filename = prepare_file_section(mediaconch_csv, lambda path: csv_to_html_table(path, style_mismatched=False, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=True))
@@ -452,6 +458,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     exif_file_content, exif_file_filename = prepare_file_section(exiftool_output_path)
     mi_file_content, mi_file_filename = prepare_file_section(mediainfo_output_path)
     ffprobe_file_content, ffprobe_file_filename = prepare_file_section(ffprobe_output_path)
+    fixity_file_content, fixity_file_filename = prepare_file_section(fixity_sidecar)
 
     # Get qct-parse thumbs if they exists
     thumbs_dict = find_qct_thumbs(report_directory)
@@ -562,6 +569,11 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         <h2>{video_id}</h2>
         <img src="{eq_image_path}" alt="AV Spex Graphic EQ Logo" style="width: 10%">
     """
+
+    if fixity_sidecar:
+        html_template += f"""
+        <pre>{fixity_file_content}</pre>
+        """
 
     if mediaconch_csv:
         html_template += f"""
