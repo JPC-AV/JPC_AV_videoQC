@@ -119,7 +119,7 @@ def parse_mediainfo(file_path):
         logger.critical(f"Some specified MediaInfo fields or values are missing or don't match:")
         for mi_key, values in mediainfo_differences.items():
             actual_value, expected_value = values
-            logger.critical(f"Metadata field {mi_key} has a value of: {actual_value}The expected value is: {expected_value}")
+            logger.critical(f"Metadata field {mi_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
         logger.debug(f"") # adding a space after results if there are failures
     
     return mediainfo_differences
