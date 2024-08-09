@@ -165,7 +165,7 @@ def printThumb(video_path,tag,profile_name,startObj,thumbPath,tagValue,timeStamp
 			ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=vrep:color=pink -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
 		else:
 			ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=brng:color=cyan -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
-		logger.warning(f"Exporting thumbnail image of {baseName} to {os.path.basename(ffoutputFramePath)}")
+		logger.warning(f"Exporting thumbnail image of {baseName} to {os.path.basename(ffoutputFramePath)}\n")
 		output = subprocess.Popen(ffmpegString,stdout=subprocess.PIPE,stderr=subprocess.PIPE,shell=True)
 	else:
 		print("Input video file not found. Ensure video file is in the same directory as the QCTools report and report file name contains video file extension.")
@@ -242,7 +242,7 @@ def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
 				frame_pkt_dts_time = elem.attrib[pkt] 	# get the timestamps for the current frame we're looking at
 				if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time
 					if float(frame_pkt_dts_time) > durationEnd:		# only work on frames that are before the end time
-						logger.debug(f"\nqct-parse bars detection complete")
+						logger.debug(f"qct-parse bars detection complete\n")
 						break
 					frameDict = {}  								# start an empty dict for the new frame
 					frameDict[pkt] = frame_pkt_dts_time  			# make a key for the timestamp, which we have now
@@ -346,8 +346,8 @@ def print_consecutive_durations(durations,qctools_check_output,contentFilter_nam
 	thumbDelay = 0
 
 	with open(qctools_check_output, 'w') as f:
-		f.write("\nqct-parse content detection summary:\n")
-		f.write(f"\nSegments found within thresholds of content filter {contentFilter_name}:\n")
+		f.write("qct-parse content detection summary:\n")
+		f.write(f"Segments found within thresholds of content filter {contentFilter_name}:\n")
 
 		for i in range(len(sorted_durations)):
 			if start_time is None:
@@ -815,7 +815,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         qctools_output_path (str): Path to the QCTools XML report output.
 
     """
-	logger.info("\nStarting qct-parse\n")
+	logger.info("Starting qct-parse\n")
 	
 	###### Initialize variables ######
 	qct_parse = command_config.command_dict['tools']['qct-parse']
@@ -888,7 +888,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 			for t in tagList:
 				if t in config_path.config_dict['qct-parse']['profiles'][template]:
 					profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
-		logger.debug(f"\nStarting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
+		logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
 		# set thumbExportDelay for profile check
 		thumbExportDelay = 9000
 		# set profile_name
@@ -921,7 +921,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 	if qct_parse['barsDetection']:
 		durationStart = ""							# if bar detection is turned on then we have to calculate this
 		durationEnd = ""							# if bar detection is turned on then we have to calculate this
-		logger.debug(f"\nStarting Bars Detection on {baseName}")
+		logger.debug(f"Starting Bars Detection on {baseName}")
 		qctools_colorbars_duration_output = os.path.join(report_directory, "qct-parse_colorbars_durations.csv")
 		durationStart, durationEnd, barsStartString, barsEndString = detectBars(startObj,pkt,durationStart,durationEnd,framesList)
 		if durationStart == "" and durationEnd == "":
@@ -941,9 +941,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
 			maxBarsDict = evalBars(startObj,pkt,durationStart,durationEnd,framesList)
 			if maxBarsDict is None:
-				logger.critical(f"\nSomething went wrong - Cannot run evaluate color bars\n")
+				logger.critical(f"Something went wrong - Cannot run evaluate color bars\n")
 			else:
-				logger.debug(f"\nStarting qct-parse color bars evaluation on {baseName}")
+				logger.debug(f"Starting qct-parse color bars evaluation on {baseName}\n")
 				# make maxBars vs smpte bars csv
 				smpte_color_bars = config_path.config_dict['qct-parse']['smpte_color_bars']
 				colorbars_values_output = os.path.join(report_directory, "qct-parse_colorbars_values.csv")
@@ -961,11 +961,11 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 					save_failures_to_csv(failureInfo, colorbars_eval_fails_csv_path)
 				qctools_bars_eval_check_output = os.path.join(report_directory, "qct-parse_colorbars_eval_summary.csv")
 				printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_bars_eval_check_output)
-				logger.debug(f"\nqct-parse bars evaluation complete. \nqct-parse summary written to {qctools_bars_eval_check_output}\n")
+				logger.debug(f"qct-parse bars evaluation complete. qct-parse summary written to {qctools_bars_eval_check_output}\n")
 		else:
 			logger.critical(f"Cannot run color bars evaluation without running Bars Detection.")
 			
-	logger.info(f"\nqct-parse finished processing file: {baseName}.qctools.xml.gz")
+	logger.info(f"qct-parse finished processing file: {baseName}.qctools.xml.gz \n")
 	
 	return
 

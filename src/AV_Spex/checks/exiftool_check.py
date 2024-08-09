@@ -57,13 +57,14 @@ def parse_exiftool(file_path):
 
     if not exiftool_differences:
     # if the list "exiftool_differences" is empty, then
-        logger.info(f"All specified fields and values found in the Exiftool output.")
+        logger.info(f"All specified fields and values found in the Exiftool output.\n")
     else:
     # if the list "exiftool_differences" is not empty, then
         logger.critical("Some specified Exiftool fields or values are missing or don't match:")
         for exif_key, values in exiftool_differences.items():
             actual_value, expected_value = values
             logger.critical(f"Metadata field {exif_key} has a value of: {actual_value}The expected value is: {expected_value}")
+        logger.debug(f"") # adding a space after results if there are failures
 
     return exiftool_differences
 

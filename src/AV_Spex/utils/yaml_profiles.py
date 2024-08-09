@@ -24,7 +24,7 @@ def apply_profile(command_config, selected_profile):
 
     with open(command_config.command_yml, "w") as f:
         yaml.dump(command_dict, f)
-    logger.info(f'command_config.yaml updated to match selected tool profile')
+    logger.info(f'command_config.yaml updated to match selected tool profile\n')
 
 def update_config(config_path, nested_key, value_dict):
     with open(config_path.config_yml, "r") as f:

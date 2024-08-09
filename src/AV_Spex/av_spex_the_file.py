@@ -37,9 +37,9 @@ def check_directory(source_directory, video_id):
     directory_name = os.path.basename(source_directory)
     # Check if the directory name starts with the base_video_id string
     if directory_name.startswith(base_video_id):
-        logger.info(f'Directory name "{directory_name}" correctly starts with "{base_video_id}".')
+        logger.info(f'Directory name "{directory_name}" correctly starts with "{base_video_id}".\n')
     else:
-        logger.critical(f'Directory name "{directory_name}" does not correctly start with the expected "{base_video_id}" derived from the video ID "{video_id}".')
+        logger.critical(f'Directory name "{directory_name}" does not correctly start with the expected "{base_video_id}" derived from the video ID "{video_id}".\n')
     
 def make_qc_output_dir(source_directory, video_id):
     '''
@@ -51,7 +51,7 @@ def make_qc_output_dir(source_directory, video_id):
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
     
-    logger.debug(f'Metadata files will be written to {destination_directory}')
+    logger.debug(f'Metadata files will be written to {destination_directory}\n')
 
     return destination_directory
 
@@ -65,7 +65,7 @@ def make_report_dir(source_directory, video_id):
     if not os.path.exists(report_directory):
         os.makedirs(report_directory)
     
-    logger.debug(f'Report files will be written to {report_directory}')
+    logger.debug(f'Report files will be written to {report_directory}\n')
 
     return report_directory
 
@@ -80,7 +80,7 @@ def run_command(command, input_path, output_type, output_path):
 
     full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
 
-    logger.debug(f'Running command: {full_command}')
+    logger.debug(f'Running command: {full_command}\n')
     subprocess.run(full_command, shell=True, env=env)
 
 def run_mediatrace_command(command, input_path):
@@ -112,13 +112,13 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
     policy_path = os.path.join(config_path.config_dir, policy_file)
     
     if not os.path.exists(policy_path):
-        logger.critical(f'Policy file not found: {policy_file}')
+        logger.critical(f'Policy file not found: {policy_file}\n')
     else:
-        logger.debug(f'Using MediaConch policy {policy_file}')
+        logger.debug(f'Using MediaConch policy {policy_file}\n')
     
     full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
-    logger.debug(f'Running command: {full_command}')
+    logger.debug(f'Running command: {full_command}\n')
     subprocess.run(full_command, shell=True)
 
 def move_vrec_files(directory, video_id):
@@ -139,7 +139,7 @@ def move_vrec_files(directory, video_id):
     
         # Check if at least one expected file is in the vrecord directory
         if any(filename.endswith(ext) for ext in expected_files for filename in os.listdir(vrecord_directory)):
-            logger.debug(f"Existing vrecord files found in {os.path.basename(directory)}/{os.path.basename(vrecord_directory)}")
+            logger.debug(f"Existing vrecord files found in {os.path.basename(directory)}/{os.path.basename(vrecord_directory)}\n")
             return
 
     # Iterate through files in the directory
@@ -236,13 +236,13 @@ The scripts will confirm that the digital files conform to predetermined specifi
                 logger.critical(f"Error: {input_path} is not a valid file.")
                 sys.exit(1)
             source_directories.append(os.path.dirname(input_path))
-            logger.info(f'Input directory found: {(os.path.dirname(input_path))}')
+            logger.info(f'Input directory found: {(os.path.dirname(input_path))}\n')
         else:
             if not os.path.isdir(input_path):
                 logger.critical(f"Error: {input_path} is not a valid directory.")
                 sys.exit(1)
             source_directories.append(input_path)
-            logger.info(f'Input directory found: {input_path}')
+            logger.info(f'Input directory found: {input_path}\n')
 
     selected_profile = None
     if args.profile:
@@ -289,8 +289,8 @@ def main():
     '''
 
     avspex_icon = text2art("A-V Spex",font='5lineoblique')
-    print(f'{avspex_icon}')
-    time.sleep(1)
+    print(f'{avspex_icon}\n')
+    #time.sleep(1)
     
     source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config = parse_arguments()
 
@@ -336,9 +336,9 @@ def main():
 
         tape_icon = art('cassette1')
 
-        print(f'{tape_icon} {tape_icon} {tape_icon}')
+        print(f'\n{tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}\n')
     
-        logger.warning(f'Now processing {video_path}')
+        logger.warning(f'Now processing {video_path}\n')
         
         # outputs video_id (i.e. 'JPC_AV_05000')
         video_id = os.path.splitext(os.path.basename(video_path))[0]
@@ -356,7 +356,7 @@ def main():
         for filename in os.listdir(source_directory):
             if filename.lower().endswith('mp4'):
                 access_file_found = filename
-                logger.info("Existing access file found!")
+                logger.info("Existing access file found!\n")
             else:
                 access_file_found = None      # sets var to None, so access file will only be created if none is found.
 
@@ -377,7 +377,7 @@ def main():
                     logger.critical(f'New stream hashes will be generated and old hashes will be overwritten!')
                     embed_fixity(video_path)
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
-                    logger.debug(f'Not writing stream hashes to MKV')
+                    logger.debug(f'Not writing stream hashes to MKV\n')
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
                 # User input for handling existing stream hashes
                 # Directly lifted from this tutorial: https://stackabuse.com/bytes/handling-yes-no-user-input-in-python/
@@ -429,11 +429,12 @@ def main():
                         if not found_failures:
                             logger.critical("MediaConch policy failed:")
                             found_failures = True
-                            
                         # Print the field and value for the failed entry
                         logger.critical(f"{mc_field}: {mc_value}")
                 if not found_failures:
-                    logger.info(f"MediaConch policy passed")
+                    logger.info(f"MediaConch policy passed\n")
+                else:
+                    logger.debug("") # adding empty line after mediaconch results, if there are failures
 
         # Initiate dictionaries for storing differences between actual values and expected values
         exiftool_differences = None
@@ -470,7 +471,7 @@ def main():
             
         mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
         if command_config.command_dict['tools']['mediatrace']['run_mediatrace'] == 'yes':
-            logger.info(f"Creating MediaTrace XML file to check custom MKV Tag metadata fields:")
+            logger.debug(f"Creating MediaTrace XML file to check custom MKV Tag metadata fields:")
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             run_command("mediainfo --Details=1 --Output=XML", video_path, '>', mediatrace_output_path)
 
@@ -523,6 +524,7 @@ def main():
         qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
         if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
             run_command('qcli -i', video_path, '-o', qctools_output_path)
+            logger.debug(f'') # adding a new line under qcli output for cleaner terminal output
 
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
             if not os.path.isfile(qctools_output_path):
@@ -544,12 +546,12 @@ def main():
             html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
             write_html_report(video_id,report_directory,destination_directory,html_report_path)
             
-        logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!')
+        logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
         
-        ascii_video_id = text2art(video_id, font='small')
+        ascii_video_id = text2art(video_id, font='tarty2')
 
-        logger.warning(f'Processing complete:{ascii_video_id}')
-        logger.info(f'Output files saved in the directory: {destination_directory}')
+        logger.warning(f'Processing complete:{ascii_video_id}\n')
+        logger.info(f'Output files saved in the directory: {destination_directory}\n')
 
         dir_end_time = time.time()
         dir_total_time = dir_end_time - dir_start_time
@@ -557,18 +559,18 @@ def main():
 
         logger.info(f'Process time for {video_id}: time start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; total time: {formatted_total_time}')
         
-        print(f'{tape_icon} {tape_icon} {tape_icon}')
+        print(f'\n{tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}\n')
 
         time.sleep(1)
 
-    nmaahc_icon = text2art("nmaahc",font='alligator3')
-    print(f'{nmaahc_icon}')
+    nmaahc_icon = text2art("nmaahc",font='tarty1')
+    print(f'{nmaahc_icon}\n')
     
-    logger.warning(f'All files processed!')
+    logger.warning(f'All files processed!\n')
     overall_end_time = time.time()
     overall_total_time = overall_end_time - overall_start_time
     formatted_overall_time = time.strftime("%H:%M:%S", time.gmtime(overall_total_time))
-    logger.info(f"Overall processing time for all directories: {formatted_overall_time}")
+    logger.info(f"Overall processing time for all directories: {formatted_overall_time}\n")
 
 if __name__ == "__main__":
     main()
