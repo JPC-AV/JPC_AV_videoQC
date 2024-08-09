@@ -214,7 +214,8 @@ def validate_embedded_md5(video_path):
             logger.warning(f'No audio stream hash found\n')
         logger.debug(f'Generating video and audio stream hashes. This may take a moment...')
         video_hash, audio_hash = make_stream_hash(video_path)
-        logger.debug(f'\nValidating stream fixity\n')
+        logger.debug(f"\n")
+        logger.debug(f'Validating stream fixity\n')
         compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
     else:
         logger.critical(f"mkvextract unable to extract MKV tags! Cannot validate stream hashes.\n")    

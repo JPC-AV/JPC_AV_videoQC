@@ -937,7 +937,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 	if qct_parse['evaluateBars']:
 		# if bars detection was run but durationStart and durationEnd remain unassigned
 		if qct_parse['barsDetection'] and durationStart == "" and durationEnd == "":
-			logger.critical(f"Cannot run color bars evaluation - no color bars found.")
+			logger.critical(f"Cannot run color bars evaluation - no color bars found.\n")
 		elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
 			maxBarsDict = evalBars(startObj,pkt,durationStart,durationEnd,framesList)
 			if maxBarsDict is None:
