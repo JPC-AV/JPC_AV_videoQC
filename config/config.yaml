@@ -1,8 +1,7 @@
 filename_values:
-  Collection: '2012_79'
-  MediaType: '2'
-  ObjectID: \d{3}_\d{1}[a-zA-Z]
-  DigitalGeneration: PM
+  Collection: JPC
+  MediaType: AV
+  ObjectID: \d{5}
   FileExtension: mkv
 mediainfo_values:
   expected_general:

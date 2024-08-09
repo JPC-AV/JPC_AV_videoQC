@@ -28,6 +28,10 @@ tools:
 ##  'yes' or 'no'
     check_mediainfo: 'yes'
     run_mediainfo: 'yes'
+  mediatrace:
+##  'yes' or 'no'
+    check_mediatrace: 'yes'
+    run_mediatrace: 'yes'
   qctools:
 ##  'yes' or 'no'
     check_qctools: 'no'
@@ -41,9 +45,7 @@ tools:
 ## 'contentFilter' format:
 ##    - allBlack
     contentFilter:
-    - silence
-##  choose a profile from the list from config.yaml in the qct-parse[profiles] section
-    profile: default
+    profile:
 ##  choose a tag from the list from config.yaml in the qct-parse[fullTagList] section
 ## 'tagname' format:
 ##    - [YMIN, lt, 100] 

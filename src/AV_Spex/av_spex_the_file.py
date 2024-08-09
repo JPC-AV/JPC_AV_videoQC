@@ -469,10 +469,12 @@ def main():
             # reset variable if no output is created, so that it won't print in the report
             
         mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
-        if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
+        if command_config.command_dict['tools']['mediatrace']['run_mediatrace'] == 'yes':
             logger.info(f"\nCreating MediaTrace XML file to check custom MKV Tag metadata fields:")
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             run_command("mediainfo --Details=1 --Output=XML", video_path, '>', mediatrace_output_path)
+
+        if command_config.command_dict['tools']['mediatrace']['check_mediatrace'] == 'yes':
             mediatrace_differences = parse_mediatrace(mediatrace_output_path)
             # Run parse functions defined in the '_check.py' scripts
 

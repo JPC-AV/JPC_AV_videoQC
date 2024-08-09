@@ -96,7 +96,11 @@ profile_step1 = {
         "mediainfo": {
             "check_mediainfo": 'yes',
             "run_mediainfo": 'yes'
-        }
+        },
+        "mediatrace": {
+            "check_mediatrace": 'yes',
+            "run_mediatrace": 'yes'
+        },
     },
     "outputs": {
         "report": 'no',
@@ -122,6 +126,10 @@ profile_step2 = {
         },
         "mediaconch": {
             "run_mediaconch": 'yes'
+        },
+        "mediatrace": {
+            "check_mediatrace": 'yes',
+            "run_mediatrace": 'no'
         },
         "mediainfo": {
             "check_mediainfo": 'yes',
