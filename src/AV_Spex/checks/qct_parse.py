@@ -40,6 +40,8 @@ def parse_frame_data(startObj, pkt):
 	"""
 
 	framesList = []
+
+	logger.debug(f"analyzing qctools XML frame data")
 	
 	with gzip.open(startObj) as xml:
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
@@ -252,7 +254,7 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 
 	return durationStart, durationEnd, barsStartString, barsEndString
 
-def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
+def evalBars(pkt,durationStart,durationEnd,framesList):
 	# Define the keys for which you want to calculate the average
 	keys_to_check = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMAX', 'SATMIN']
 	# Initialize a dictionary to store the highest values for each key
@@ -264,41 +266,28 @@ def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
 			maxBarsDict[key_being_checked] = 0
 		elif "MIN" in key_being_checked:
 			maxBarsDict[key_being_checked] = 1023
-	with gzip.open(startObj) as xml:	
-		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
-			if elem.attrib['media_type'] == "video": 	# get just the video frames
-				frame_pkt_dts_time = elem.attrib[pkt] 	# get the timestamps for the current frame we're looking at
-				if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time
-					if float(frame_pkt_dts_time) > durationEnd:		# only work on frames that are before the end time
-						logger.debug(f"qct-parse bars detection complete\n")
-						break
-					frameDict = {}  								# start an empty dict for the new frame
-					frameDict[pkt] = frame_pkt_dts_time  			# make a key for the timestamp, which we have now
-					for t in list(elem):    						# iterating through each attribute for each element
-						keySplit = t.attrib['key'].split(".")   	# split the names by dots 
-						keyName = str(keySplit[-1])             	# get just the last word for the key name
-						if len(keyName) == 1:						# if it's psnr or mse, keyName is gonna be a single char
-							keyName = '.'.join(keySplit[-2:])		# full attribute made by combining last 2 parts of split with a period in btw
-						frameDict[keyName] = t.attrib['value']		# add each attribute to the frame dictionary
-					framesList.append(frameDict)					# add this dict to our circular buffer
-					# Now we can parse the frame data from the buffer!
-					for colorbar_key in keys_to_check:
-						if colorbar_key in frameDict:
-							if "MAX" in colorbar_key:
-								# Convert the value to float and compare it with the current highest value
-								value = float(frameDict[colorbar_key])
-								if value > maxBarsDict[colorbar_key]:
-									maxBarsDict[colorbar_key] = value
-							elif "MIN" in colorbar_key:
-								# Convert the value to float and compare it with the current highest value
-								value = float(frameDict[colorbar_key])
-								if value < maxBarsDict[colorbar_key]:
-									maxBarsDict[colorbar_key] = value
-							# Convert highest values to integer
-							maxBarsDict = {colorbar_key: int(value) for colorbar_key, value in maxBarsDict.items()}
-			elem.clear() # we're done with that element so let's get it outta memory
+
+	for frameDict in framesList:
+		if frameDict[pkt] >= str(durationStart): 	# only work on frames that are after the start time
+			if float(frameDict[pkt]) > durationEnd:		# only work on frames that are before the end time
+				logger.debug(f"qct-parse bars detection complete\n")
+				break
+		for colorbar_key in keys_to_check:
+			if colorbar_key in frameDict:
+				if "MAX" in colorbar_key:
+					# Convert the value to float and compare it with the current highest value
+					value = float(frameDict[colorbar_key])
+					if value > maxBarsDict[colorbar_key]:
+						maxBarsDict[colorbar_key] = value
+				elif "MIN" in colorbar_key:
+					# Convert the value to float and compare it with the current highest value
+					value = float(frameDict[colorbar_key])
+					if value < maxBarsDict[colorbar_key]:
+						maxBarsDict[colorbar_key] = value
+				# Convert highest values to integer
+				maxBarsDict = {colorbar_key: int(value) for colorbar_key, value in maxBarsDict.items()}
 		
-		return maxBarsDict
+	return maxBarsDict
 
 def get_duration(video_path):
 	"""
@@ -921,7 +910,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		if qct_parse['barsDetection'] and durationStart == "" and durationEnd == "":
 			logger.critical(f"Cannot run color bars evaluation - no color bars found.\n")
 		elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
-			maxBarsDict = evalBars(startObj,pkt,durationStart,durationEnd,framesList)
+			maxBarsDict = evalBars(pkt,durationStart,durationEnd,framesList)
 			if maxBarsDict is None:
 				logger.critical(f"Something went wrong - Cannot run evaluate color bars\n")
 			else:
