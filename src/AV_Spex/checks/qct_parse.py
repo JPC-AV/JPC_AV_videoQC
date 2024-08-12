@@ -29,6 +29,12 @@ from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config			
 
 
+# Dictionary to map the string to the corresponding operator function
+operator_mapping = {
+    'lt': operator.lt,
+    'gt': operator.gt,
+}
+
 def parse_frame_data(startObj, pkt):
 	"""
 	Parses the XML file and extracts frame data into a list of dictionaries.
@@ -41,7 +47,7 @@ def parse_frame_data(startObj, pkt):
 
 	framesList = []
 
-	logger.debug(f"analyzing qctools XML frame data")
+	logger.debug(f"analyzing qctools XML frame data\n")
 	
 	with gzip.open(startObj) as xml:
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
@@ -70,34 +76,6 @@ def parse_frame_data(startObj, pkt):
 			elem.clear()
 
 	return framesList  # Return the updated framesList
-
-def get_duration(video_path):
-	"""
-    Retrieves the duration of a video file using the ffprobe tool.
-
-    Parameters:
-        video_path (str): The file path of the video file.
-
-    Returns:
-        str: The duration of the video in seconds.
-    """
-
-	command = [
-		'ffprobe',
-		'-v', 'error',
-		'-show_entries', 'format=duration',
-		'-of', 'csv=p=0',
-		video_path
-	]
-	result = subprocess.run(command, stdout=subprocess.PIPE)
-	duration = result.stdout.decode().strip()
-	return duration
-
-# Dictionary to map the string to the corresponding operator function
-operator_mapping = {
-    'lt': operator.lt,
-    'gt': operator.gt,
-}
 
 # Creates timestamp for pkt_dts_time
 def dts2ts(frame_pkt_dts_time):
@@ -526,7 +504,6 @@ def summarize_timestamps(timestamps):
 def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0):
     kbeyond = {}
     failureInfo = {}
-    fail_stamps = []
     fots = ""
 
     # Simplify tag initialization based on profile type
@@ -575,7 +552,6 @@ def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durat
                                         }]
                                         overallFrameFail += 1
                                         fots = frame_pkt_dts_time
-                                        fail_stamps.append(timeStampString)
                                         thumbDelay += 1
                     else:	# can remove this if we refactor profiles to have same structure as all other cases
                         for tag, v in profile.items():
@@ -589,12 +565,11 @@ def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durat
                                         timeStampString = dts2ts(frame_pkt_dts_time)
                                         overallFrameFail += 1
                                         fots = frame_pkt_dts_time
-                                        fail_stamps.append(timeStampString)
                                         thumbDelay += 1
 
             elem.clear()
 
-    return kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo
+    return kbeyond, frameCount, overallFrameFail, failureInfo
 
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
@@ -837,7 +812,6 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 	if qct_parse['contentFilter']:
 		for filter in qct_parse['contentFilter']:
 			logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {filter}\n")
-			duration_str = get_duration(video_path)
 			contentFilter_name = filter
 			contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
 			qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{contentFilter_name}_summary.csv")
@@ -857,7 +831,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		# set profile_name
 		profile_name = f"threshold_profile_{template}"
 		# check xml against thresholds, return kbeyond (dictionary of tags: framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		profile_fails_csv_path = os.path.join(report_directory, "qct-parse_profile_failures.csv")
 		if failureInfo:
 			save_failures_to_csv(failureInfo, profile_fails_csv_path)
@@ -872,7 +846,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 		# set profile_name
 		profile_name = f'tag_check'
 		# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+		kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 		tag_fails_csv_path = os.path.join(report_directory, "qct-parse_tags_failures.csv")
 		if failureInfo:
 			save_failures_to_csv(failureInfo, tag_fails_csv_path)
@@ -918,7 +892,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 				profile_name = 'color_bars_evaluation'
 				thumbExportDelay = 9000				
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-				kbeyond, frameCount, overallFrameFail, fail_stamps, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
+				kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse,video_path,profile,profile_name,startObj,pkt,durationStart,durationEnd,thumbPath,thumbDelay,thumbExportDelay,framesList)
 				colorbars_eval_fails_csv_path = os.path.join(report_directory, "qct-parse_colorbars_eval_failures.csv")
 				if failureInfo:
 					save_failures_to_csv(failureInfo, colorbars_eval_fails_csv_path)
