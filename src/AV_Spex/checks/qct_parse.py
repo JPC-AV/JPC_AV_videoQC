@@ -30,36 +30,31 @@ from ..utils.find_config import config_path, command_config
 
 
 def parse_frame_data(startObj, pkt, framesList):
-    """
-    Parses the XML file and extracts frame data into a list of dictionaries.
+	"""
+	Parses the XML file and extracts frame data into a list of dictionaries.
 
-    Parameters:
-        startObj (qctools.xml.gz): A gzip-compressed XML file containing frame attributes.
-        pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
-        framesList (list): List of frameDict dictionaries to store the extracted frame data.
-    """
+	Parameters:
+		startObj (qctools.xml.gz): A gzip-compressed XML file containing frame attributes.
+		pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
+		framesList (list): List of frameDict dictionaries to store the extracted frame data.
+	"""
 
-    with gzip.open(startObj) as xml:
-        for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
-            media_type = elem.attrib['media_type']
-            if media_type in ("video", "audio"):  # Handle both video and audio frames
-                frame_pkt_dts_time = elem.attrib[pkt]
-                frameDict = {pkt: frame_pkt_dts_time}
+	with gzip.open(startObj) as xml:
+		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
+			if elem.attrib['media_type'] == "video":
+				frame_pkt_dts_time = elem.attrib[pkt]
+				frameDict = {}  # start an empty dict for the new frame
+				frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
+				#print(f"DEBUGGING - creating frame dictionary for {pkt} with value {frameDict[pkt]}")
+				for t in list(elem):
+					keySplit = t.attrib['key'].split(".")
+					keyName = str(keySplit[-1])
+					frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
+					#print(f"DEBUGGING - identified key {keyName} with value {frameDict[keyName]}")
+				framesList.append(frameDict)
+			elem.clear()
 
-                for t in list(elem):
-                    if media_type == "audio":
-                        keySplit = t.attrib['key'].replace('lavfi.astats.', '')
-                        keyName = '_'.join(keySplit.split('.')) if '.' in keySplit else keySplit
-                    else:  # video
-                        keySplit = t.attrib['key'].split(".")
-                        keyName = str(keySplit[-1])
-                        if len(keyName) == 1:
-                            keyName = '.'.join(keySplit[-2:])
-
-                    frameDict[keyName] = t.attrib['value']
-
-                framesList.append(frameDict)
-            elem.clear()
+	return framesList  # Return the updated framesList
 
 def get_duration(video_path):
 	"""
@@ -227,9 +222,16 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 	barsStartString = None
 	barsEndString = None
 
-	parse_frame_data(startObj, pkt, framesList)  # Use the helper function
+	#print(f"DEBUGGING - before parse_frame_data the framesList looks like this: {framesList}")
+
+	framesList = []
+
+	framesList = parse_frame_data(startObj, pkt, framesList)  # Use the helper function
+
+	#print(f"DEBUGGING - after parse_frame_data the framesList looks like this: {framesList}")
 
 	for frameDict in framesList:
+		#print(f"DEBUGGING - for {frameDict} in framesList")
 		frame_count += 1
 		if frame_count % 25 == 0:
 			if float(frameDict['YMAX']) > 800 and float(frameDict['YMIN']) < 10 and float(frameDict['YDIF']) < 7:
@@ -423,7 +425,7 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
 	
 	content_over = {tag: [] for tag in contentFilter_dict}
 
-	parse_frame_data(startObj, pkt, framesList)  # Use the helper function
+	framesList = parse_frame_data(startObj, pkt, framesList)  # Use the helper function
 
 	for frameDict in framesList:
 		for tag, config_value in contentFilter_dict.items():
