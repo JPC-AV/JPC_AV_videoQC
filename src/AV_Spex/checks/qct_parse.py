@@ -29,6 +29,38 @@ from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config			
 
 
+def parse_frame_data(startObj, pkt, framesList):
+    """
+    Parses the XML file and extracts frame data into a list of dictionaries.
+
+    Parameters:
+        startObj (qctools.xml.gz): A gzip-compressed XML file containing frame attributes.
+        pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
+        framesList (list): List of frameDict dictionaries to store the extracted frame data.
+    """
+
+    with gzip.open(startObj) as xml:
+        for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
+            media_type = elem.attrib['media_type']
+            if media_type in ("video", "audio"):  # Handle both video and audio frames
+                frame_pkt_dts_time = elem.attrib[pkt]
+                frameDict = {pkt: frame_pkt_dts_time}
+
+                for t in list(elem):
+                    if media_type == "audio":
+                        keySplit = t.attrib['key'].replace('lavfi.astats.', '')
+                        keyName = '_'.join(keySplit.split('.')) if '.' in keySplit else keySplit
+                    else:  # video
+                        keySplit = t.attrib['key'].split(".")
+                        keyName = str(keySplit[-1])
+                        if len(keyName) == 1:
+                            keyName = '.'.join(keySplit[-2:])
+
+                    frameDict[keyName] = t.attrib['value']
+
+                framesList.append(frameDict)
+            elem.clear()
+
 def get_duration(video_path):
 	"""
     Retrieves the duration of a video file using the ffprobe tool.
@@ -191,38 +223,27 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
         tuple: Returns a tuple containing the start and end timestamps of detected bars.
     """
 
-	# initialize vars
 	frame_count = 0
 	barsStartString = None
 	barsEndString = None
 
-	# iterate through frames of the qct xml
-	with gzip.open(startObj) as xml:
-		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
-			if elem.attrib['media_type'] == "video": # get just the video frames
-				frame_pkt_dts_time = elem.attrib[pkt] # get the timestamps for the current frame we're looking at
-				frameDict = {}  # start an empty dict for the new frame
-				frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
-				for t in list(elem):    # iterating through each attribute for each element
-					keySplit = t.attrib['key'].split(".")   # split the names by dots 
-					keyName = str(keySplit[-1])             # get just the last word for the key name
-					frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
-				framesList.append(frameDict)
-				frame_count += 1
-				if frame_count % 25 == 0:  #  Check every 25 frames
-					if float(frameDict['YMAX']) > 800 and float(frameDict['YMIN']) < 10 and float(frameDict['YDIF']) < 7 :
-						if durationStart == "":
-							durationStart = float(frameDict[pkt])
-							logger.info("Bars start at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")
-							barsStartString = str(dts2ts(frameDict[pkt]))
-						durationEnd = float(frameDict[pkt])
-					else:
-						if durationStart != "" and durationEnd != "" and durationEnd - durationStart > 2: 
-							logger.info("Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")\n")
-							barsEndString = str(dts2ts(frameDict[pkt]))
-							break
-			elem.clear() # we're done with that element so let's get it outta memory
-		
+	parse_frame_data(startObj, pkt, framesList)  # Use the helper function
+
+	for frameDict in framesList:
+		frame_count += 1
+		if frame_count % 25 == 0:
+			if float(frameDict['YMAX']) > 800 and float(frameDict['YMIN']) < 10 and float(frameDict['YDIF']) < 7:
+				if durationStart == "":
+					durationStart = float(frameDict[pkt])
+					logger.info("Bars start at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")
+					barsStartString = str(dts2ts(frameDict[pkt]))
+				durationEnd = float(frameDict[pkt])
+			else:
+				if durationStart != "" and durationEnd != "" and durationEnd - durationStart > 2:
+					logger.info("Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")\n")
+					barsEndString = str(dts2ts(frameDict[pkt]))
+					break
+
 	return durationStart, durationEnd, barsStartString, barsEndString
 
 def evalBars(startObj,pkt,durationStart,durationEnd,framesList):
@@ -400,66 +421,50 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
     	framesList: List of frameDict dictionaries
     """
 	
-	content_over = {}
+	content_over = {tag: [] for tag in contentFilter_dict}
 
-	for tag, settings in contentFilter_dict.items():
-		content_over[tag] = []
+	parse_frame_data(startObj, pkt, framesList)  # Use the helper function
 
-	with gzip.open(startObj) as xml:	
-		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): 	# iterparse the xml doc
-			if elem.attrib['media_type'] == "video" or elem.attrib['media_type'] == "audio": 	# get audio and video frames
-				frame_pkt_dts_time = elem.attrib[pkt] 											# get the timestamps for the current frame we're looking at
-				frameDict = {}  																# start an empty dict for the new frame
-				frameDict[pkt] = frame_pkt_dts_time
-				for t in list(elem):    										# iterating through each attribute for each element
-					if elem.attrib['media_type'] == "audio":
-						keySplit = t.attrib['key'].replace('lavfi.astats.', '')  					# split the names 
-						if '.' in keySplit:
-							# Split the string at the period and join with an underscore
-							audio_keyParts = keySplit.split('.')
-							keyName = '_'.join(audio_keyParts)
-							frameDict[keyName] = t.attrib['value']	
-						else:
-							# Use the cleaned line as the keyName if no period is present
-							keyName = keySplit
-					elif elem.attrib['media_type'] == "video":
-						keySplit = t.attrib['key'].split(".")   					# split the names by dots 
-						keyName = str(keySplit[-1])             					# get just the last word for the key name
-						if len(keyName) == 1:										# if it's psnr or mse, keyName is gonna be a single char
-							keyName = '.'.join(keySplit[-2:])						# full attribute made by combining last 2 parts of split with a period in btw
-						frameDict[keyName] = t.attrib['value']						# add each attribute to the frame dictionary
-				framesList.append(frameDict)
-				for tag, config_value in contentFilter_dict.items():
-					tag_threshold, op_string = config_value.split(", ")
-					thresh = float(tag_threshold)
-					comp_op = operator_mapping[op_string]
-					if tag in frameDict:
-						# Perform the comparison using the retrieved operator if the attribute is over/under threshold
-						if comp_op(float(frameDict[tag]), float(thresh)) :
-							timeStampString = dts2ts(frame_pkt_dts_time)
-							content_over[tag].append(timeStampString)
-		elem.clear() # we're done with that element so let's get it outta memory
-		common_durations = find_common_durations(content_over)
-		if common_durations:
-			print_consecutive_durations(common_durations,qctools_check_output,contentFilter_name,video_path,qct_parse,startObj,thumbPath,thumbDelay,thumbExportDelay)
-		else:
-			logger.error(f"No segments found matching content filter: {contentFilter_name}")
+	for frameDict in framesList:
+		for tag, config_value in contentFilter_dict.items():
+			tag_threshold, op_string = config_value.split(", ")
+			thresh = float(tag_threshold)
+			comp_op = operator_mapping[op_string]
+			if tag in frameDict and comp_op(float(frameDict[tag]), thresh):
+				content_over[tag].append(dts2ts(frameDict[pkt]))
 
-def getCompFromConfig(qct_parse,profile,tag):
-	color_bar_keys = config_path.config_dict['qct-parse']['color_bar_keys'].keys()
-	if qct_parse['profile']:
-		template = qct_parse['profile']
-		if set(profile.keys()) == set(config_path.config_dict['qct-parse']['profiles'][template].keys()):
-			if "MIN" in tag or "LOW" in tag:
-				comp_op = operator.lt
-			else:
-				comp_op = operator.gt
-	if set(profile.keys()) == set(color_bar_keys):
-		if "MIN" in tag:
-			comp_op = operator.lt
-		else:
-			comp_op = operator.gt
-	return comp_op
+	common_durations = find_common_durations(content_over)
+	if common_durations:
+		print_consecutive_durations(common_durations, qctools_check_output, contentFilter_name, video_path, qct_parse, startObj, thumbPath, thumbDelay, thumbExportDelay)
+	else:
+		logger.error(f"No segments found matching content filter: {contentFilter_name}")
+
+def getCompFromConfig(qct_parse, profile, tag):
+    """
+    Determines the comparison operator based on profile and tag.
+
+    Args:
+        qct_parse (dict): qct-parse configuration.
+        profile (dict): Profile data.
+        tag (str): Tag to check.
+
+    Returns:
+        callable: Comparison operator (e.g., operator.lt, operator.gt).
+    """
+
+    color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
+
+    if qct_parse['profile']:
+        template = qct_parse['profile']
+        if set(profile) == set(config_path.config_dict['qct-parse']['profiles'][template]):
+            return operator.lt if "MIN" in tag or "LOW" in tag else operator.gt
+
+    if set(profile) == set(color_bar_keys):
+        return operator.lt if "MIN" in tag else operator.gt
+
+    # Handle the case where no match is found (consider raising an exception or providing a default)
+    raise ValueError(f"No matching comparison operator found for profile and tag: {profile}, {tag}") 
+
 
 def summarize_timestamps(timestamps):
 	if timestamps:
@@ -578,7 +583,7 @@ def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durat
                                         fots = frame_pkt_dts_time
                                         fail_stamps.append(timeStampString)
                                         thumbDelay += 1
-                    else:
+                    else:	# can remove this if we refactor profiles to have same structure as all other cases
                         for tag, v in profile.items():
                             if v is not None:
                                 comp_op = getCompFromConfig(qct_parse, profile, tag)
@@ -638,7 +643,7 @@ def printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_check_outpu
 		else:
 			return f"{percent:.2f}"
 
-	color_bar_keys = config_path.config_dict['qct-parse']['color_bar_keys'].keys()
+	color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
 
 	with open(qctools_check_output, 'w', newline='') as csvfile:
 		writer = csv.writer(csvfile)
