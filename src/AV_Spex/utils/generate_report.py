@@ -251,23 +251,31 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
     # Read the CSV files
     colorbars_df = pd.read_csv(colorbars_values_output)
 
-    # Read the colorbars duration CSV
-    with open(qctools_colorbars_duration_output, 'r') as file:
-        duration_lines = file.readlines()
-        duration_text = duration_lines[1].strip()  # The 2nd line contains the color bars duration
-        
-    duration_text = duration_text.replace(',',' - ')
-    duration_text = "Colorbars duration: " + duration_text
+    if os.path.isfile(qctools_colorbars_duration_output):
 
-    # Create the bar chart for the colorbars values
-    colorbars_fig = go.Figure(data=[
-        go.Bar(name='SMPTE Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Colorbars'], marker=dict(color='#378d6a')),
-        go.Bar(name=f'{video_id} Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df[f'{video_id} Colorbars'], marker=dict(color='#bf971b'))
-    ])
-    colorbars_fig.update_layout(barmode='group')
+        # Read the colorbars duration CSV
+        with open(qctools_colorbars_duration_output, 'r') as file:
+            duration_lines = file.readlines()
 
-    # Save each chart as an HTML string
-    colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
+            # Check if there are enough lines to access the second one
+            if len(duration_lines) > 1:
+                duration_text = duration_lines[1].strip()  # The 2nd line contains the color bars duration
+                duration_text = duration_text.replace(',',' - ')
+                duration_text = "Colorbars duration: " + duration_text
+                # Create the bar chart for the colorbars values
+                colorbars_fig = go.Figure(data=[
+                    go.Bar(name='SMPTE Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Colorbars'], marker=dict(color='#378d6a')),
+                    go.Bar(name=f'{video_id} Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df[f'{video_id} Colorbars'], marker=dict(color='#bf971b'))
+                ])
+                colorbars_fig.update_layout(barmode='group')
+                # Save each chart as an HTML string
+                colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
+            else:
+                logger.critical(f"The csv file {colorbars_values_output} does not match the expected format, cannot be used in html report.")
+                colorbars_barchart_html = None
+    else:
+        logger.critical(f"Cannot open color bars csv file: {qctools_colorbars_duration_output}")
+        colorbars_barchart_html = None
 
     # Add annotations for the thumbnail
     thumbnail_html = ''
