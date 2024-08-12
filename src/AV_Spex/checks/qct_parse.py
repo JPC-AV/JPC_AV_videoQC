@@ -804,14 +804,6 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 	durationStart = 0
 	durationEnd = 99999999
 
-	# Initialize counts
-	overcount = 0	# init count of overs
-	undercount = 0	# init count of unders
-	count = 0		# init total frames counter
-	buffSize = 11
-	framesList = collections.deque(maxlen=buffSize)		# init holding object for holding all frame data in a circular buffer. 
-	bdFramesList = collections.deque(maxlen=buffSize) 	# init holding object for holding all frame data in a circular buffer. 
-
 	# set the path for the thumbnail export
 	thumbPath = os.path.join(report_directory, "ThumbExports")
 	if qct_parse['thumbExport']:
