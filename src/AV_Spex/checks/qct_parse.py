@@ -222,16 +222,11 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 	barsStartString = None
 	barsEndString = None
 
-	#print(f"DEBUGGING - before parse_frame_data the framesList looks like this: {framesList}")
-
 	framesList = []
 
 	framesList = parse_frame_data(startObj, pkt, framesList)  # Use the helper function
 
-	#print(f"DEBUGGING - after parse_frame_data the framesList looks like this: {framesList}")
-
 	for frameDict in framesList:
-		#print(f"DEBUGGING - for {frameDict} in framesList")
 		frame_count += 1
 		if frame_count % 25 == 0:
 			if float(frameDict['YMAX']) > 800 and float(frameDict['YMIN']) < 10 and float(frameDict['YDIF']) < 7:
@@ -424,6 +419,8 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
     """
 	
 	content_over = {tag: [] for tag in contentFilter_dict}
+
+	framesList = []
 
 	framesList = parse_frame_data(startObj, pkt, framesList)  # Use the helper function
 
