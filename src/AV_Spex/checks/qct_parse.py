@@ -132,6 +132,8 @@ def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,comp_op,thum
         tuple: (bool indicating if threshold was met, updated thumbDelay)
     """
 
+	#print(f"DEBUGGING - the dictionary inFrame is: {inFrame}")
+	#print(f"DEBUGGING - the dictionary inFrame[tag] is: {inFrame[tag]}")
 	tagValue = float(inFrame[tag])
 	frame_pkt_dts_time = inFrame[pkt]
 
@@ -502,74 +504,62 @@ def summarize_timestamps(timestamps):
 
 
 def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0):
-    kbeyond = {}
-    failureInfo = {}
-    fots = ""
+	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
+	failureInfo = {} # Initialize a new dictionary to store failure information
+	fots = "" # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count for qct_parse['profile'] or qct_parse['evaluateBars']
 
-    # Simplify tag initialization based on profile type
-    if profile == config_path.config_dict['qct-parse']['fullTagList']:
-        for tag, _, _ in qct_parse['tagname']:
-            if tag not in profile:
-                logger.critical(f"The tag name {tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
-                break
-            kbeyond[tag] = 0
-    else:
-        kbeyond = {k: 0 for k in profile}
+	# Simplify tag initialization based on profile type
+	if profile == config_path.config_dict['qct-parse']['fullTagList']:
+		for tag, _, _ in qct_parse['tagname']:
+			if tag not in profile:
+				logger.critical(f"The tag name {tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
+				break
+			kbeyond[tag] = 0
+	else:
+		kbeyond = {k: 0 for k in profile}
 
-    with gzip.open(startObj) as xml:
-        for _, elem in etree.iterparse(xml, events=('end',), tag='frame'):
-            if elem.attrib['media_type'] == "video":
-                frameCount += 1
-                frame_pkt_dts_time = elem.attrib[pkt]
-                if frame_pkt_dts_time >= str(durationStart):
-                    if durationEnd and float(frame_pkt_dts_time) > durationEnd:
-                        logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frame_pkt_dts_time)} seconds {dts2ts(frame_pkt_dts_time)}")
-                        break
+	for frameDict in framesList:
+		frameCount += 1
+		if frameDict[pkt] >= str(durationStart): 	# only work on frames that are after the start time
+			if durationEnd and float(frameDict[pkt]) > durationEnd:		# only work on frames that are before the end time
+				logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frameDict[pkt])} seconds {dts2ts(frameDict[pkt])}")
+				break
+		# Process frame data based on profile type
+		if profile == config_path.config_dict['qct-parse']['fullTagList']:
+			for config_tag, config_op, config_value in qct_parse['tagname']:
+				over = float(config_value)
+				comp_op = operator_mapping[config_op]
+				if config_tag in frameDict:
+					frameOver, thumbDelay, tagValue, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, config_tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
+					if frameOver:
+						kbeyond[config_tag] += 1
+						if frameDict[pkt] not in fots:
+							timeStampString = dts2ts(frameDict[pkt])
+							failureInfo[timeStampString] = [{
+								'tag': config_tag,
+								'tagValue': tagValue,
+								'comp_op': comp_op,
+								'over': over
+							}]
+							overallFrameFail += 1
+							fots = frameDict[pkt]
+							thumbDelay += 1
+		else:	# can remove this if we refactor profiles to have same structure as all other cases
+			for tag, v in profile.items():
+				if v is not None:
+					comp_op = getCompFromConfig(qct_parse, profile, tag)
+					over = float(v)
+					if tag in framesList[-1]:
+						frameOver, thumbDelay, tagValue, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
+						if frameOver:
+							kbeyond[tag] += 1
+							if frameDict[pkt] not in fots:
+								timeStampString = dts2ts(frameDict[pkt])
+								overallFrameFail += 1
+								fots = frameDict[pkt]
+								thumbDelay += 1
 
-                    frameDict = {pkt: frame_pkt_dts_time}
-                    for t in elem:
-                        key_parts = t.attrib['key'].split(".")
-                        keyName = '.'.join(key_parts[-2:]) if len(key_parts[-1]) == 1 else key_parts[-1]
-                        frameDict[keyName] = t.attrib['value']
-                    framesList.append(frameDict)
-
-                    # Process frame data based on profile type
-                    if profile == config_path.config_dict['qct-parse']['fullTagList']:
-                        for config_tag, config_op, config_value in qct_parse['tagname']:
-                            over = float(config_value)
-                            comp_op = operator_mapping[config_op]
-                            if config_tag in frameDict:
-                                frameOver, thumbDelay, tagValue, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, config_tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
-                                if frameOver:
-                                    kbeyond[config_tag] += 1
-                                    if frame_pkt_dts_time not in fots:
-                                        timeStampString = dts2ts(frame_pkt_dts_time)
-                                        failureInfo[timeStampString] = [{
-                                            'tag': config_tag,
-                                            'tagValue': tagValue,
-                                            'comp_op': comp_op,
-                                            'over': over
-                                        }]
-                                        overallFrameFail += 1
-                                        fots = frame_pkt_dts_time
-                                        thumbDelay += 1
-                    else:	# can remove this if we refactor profiles to have same structure as all other cases
-                        for tag, v in profile.items():
-                            if v is not None:
-                                comp_op = getCompFromConfig(qct_parse, profile, tag)
-                                over = float(v)
-                                frameOver, thumbDelay, _, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
-                                if frameOver:
-                                    kbeyond[tag] += 1
-                                    if frame_pkt_dts_time not in fots:
-                                        timeStampString = dts2ts(frame_pkt_dts_time)
-                                        overallFrameFail += 1
-                                        fots = frame_pkt_dts_time
-                                        thumbDelay += 1
-
-            elem.clear()
-
-    return kbeyond, frameCount, overallFrameFail, failureInfo
+	return kbeyond, frameCount, overallFrameFail, failureInfo
 
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
