@@ -29,7 +29,7 @@ from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config			
 
 
-def parse_frame_data(startObj, pkt, framesList):
+def parse_frame_data(startObj, pkt):
 	"""
 	Parses the XML file and extracts frame data into a list of dictionaries.
 
@@ -39,18 +39,31 @@ def parse_frame_data(startObj, pkt, framesList):
 		framesList (list): List of frameDict dictionaries to store the extracted frame data.
 	"""
 
+	framesList = []
+	
 	with gzip.open(startObj) as xml:
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
-			if elem.attrib['media_type'] == "video":
+			if elem.attrib['media_type'] == "video" or elem.attrib['media_type'] == "audio":
 				frame_pkt_dts_time = elem.attrib[pkt]
 				frameDict = {}  # start an empty dict for the new frame
 				frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
-				#print(f"DEBUGGING - creating frame dictionary for {pkt} with value {frameDict[pkt]}")
 				for t in list(elem):
-					keySplit = t.attrib['key'].split(".")
-					keyName = str(keySplit[-1])
-					frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
-					#print(f"DEBUGGING - identified key {keyName} with value {frameDict[keyName]}")
+					if elem.attrib['media_type'] == "audio":
+						keySplit = t.attrib['key'].replace('lavfi.astats.', '')  					# split the names 
+						if '.' in keySplit:
+							# Split the string at the period and join with an underscore
+							audio_keyParts = keySplit.split('.')
+							keyName = '_'.join(audio_keyParts)
+							frameDict[keyName] = t.attrib['value']	
+						else:
+							# Use the cleaned line as the keyName if no period is present
+							keyName = keySplit
+					elif elem.attrib['media_type'] == "video":
+						keySplit = t.attrib['key'].split(".")   					# split the names by dots 
+						keyName = str(keySplit[-1])             					# get just the last word for the key name
+						if len(keyName) == 1:										# if it's psnr or mse, keyName is gonna be a single char
+							keyName = '.'.join(keySplit[-2:])						# full attribute made by combining last 2 parts of split with a period in btw
+						frameDict[keyName] = t.attrib['value']			
 				framesList.append(frameDict)
 			elem.clear()
 
@@ -221,10 +234,6 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList):
 	frame_count = 0
 	barsStartString = None
 	barsEndString = None
-
-	framesList = []
-
-	framesList = parse_frame_data(startObj, pkt, framesList)  # Use the helper function
 
 	for frameDict in framesList:
 		frame_count += 1
@@ -401,6 +410,7 @@ def print_consecutive_durations(durations,qctools_check_output,contentFilter_nam
 			else:
 				logger.info(start_time)
 				f.write(f"{start_time}\n")
+			logger.debug(f"")
 			if qct_parse['thumbExport']:
 				printThumb(video_path,"thumbnail",contentFilter_name,startObj,thumbPath,"output",start_time)		
 
@@ -419,10 +429,6 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
     """
 	
 	content_over = {tag: [] for tag in contentFilter_dict}
-
-	framesList = []
-
-	framesList = parse_frame_data(startObj, pkt, framesList)  # Use the helper function
 
 	for frameDict in framesList:
 		for tag, config_value in contentFilter_dict.items():
@@ -844,6 +850,8 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 					pkt = match.group()
 					break
 
+	framesList = parse_frame_data(startObj, pkt)  #create framesList
+	
 	######## Iterate Through the XML for content detection ########
 	if qct_parse['contentFilter']:
 		for filter in qct_parse['contentFilter']:
