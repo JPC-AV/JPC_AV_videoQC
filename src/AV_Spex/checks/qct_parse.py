@@ -132,8 +132,6 @@ def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,comp_op,thum
         tuple: (bool indicating if threshold was met, updated thumbDelay)
     """
 
-	#print(f"DEBUGGING - the dictionary inFrame is: {inFrame}")
-	#print(f"DEBUGGING - the dictionary inFrame[tag] is: {inFrame[tag]}")
 	tagValue = float(inFrame[tag])
 	frame_pkt_dts_time = inFrame[pkt]
 
@@ -529,20 +527,14 @@ def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durat
 			for config_tag, config_op, config_value in qct_parse['tagname']:
 				over = float(config_value)
 				comp_op = operator_mapping[config_op]
-				if config_tag in frameDict:
+				if config_tag in framesList[-1]:
 					frameOver, thumbDelay, tagValue, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, config_tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
 					if frameOver:
 						kbeyond[config_tag] += 1
 						if frameDict[pkt] not in fots:
 							timeStampString = dts2ts(frameDict[pkt])
-							failureInfo[timeStampString] = [{
-								'tag': config_tag,
-								'tagValue': tagValue,
-								'comp_op': comp_op,
-								'over': over
-							}]
 							overallFrameFail += 1
-							fots = frameDict[pkt]
+							fots = frameDict[pkt] 
 							thumbDelay += 1
 		else:	# can remove this if we refactor profiles to have same structure as all other cases
 			for tag, v in profile.items():
