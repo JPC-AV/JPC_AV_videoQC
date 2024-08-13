@@ -267,31 +267,6 @@ def evalBars(pkt,durationStart,durationEnd,framesList):
 		
 	return maxBarsDict
 
-def get_duration(video_path):
-	"""
-    Retrieves the duration of a video file using ffprobe.
-
-    This function executes an ffprobe command to obtain the duration of the specified video file.
-    The output is processed to return the duration as a string.
-
-    Parameters:
-        video_path (str): The file path of the video for which the duration is to be retrieved.
-
-    Returns:
-        str: The duration of the video in seconds as a string.
-    """
-	
-	command = [
-        'ffprobe',
-        '-v', 'error',
-        '-show_entries', 'format=duration',
-        '-of', 'csv=p=0',
-        video_path
-    ]
-	result = subprocess.run(command, stdout=subprocess.PIPE)
-	duration = result.stdout.decode().strip()
-	return duration
-
 def find_common_durations(content_over):
     """
     Identifies common durations across different content tags.
@@ -528,7 +503,6 @@ def parse_framesList(qct_parse, video_path, profile, profile_name, startObj, pkt
             if frameOver:
                 kbeyond[tag] += 1
                 if frameDict[pkt] not in fots:
-                    timeStampString = dts2ts(frameDict[pkt])
                     overallFrameFail += 1
                     fots = frameDict[pkt]
                     thumbDelay += 1
@@ -537,23 +511,25 @@ def parse_framesList(qct_parse, video_path, profile, profile_name, startObj, pkt
 
 
 def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0):
-    kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
-    failureInfo = {} # Initialize a new dictionary to store failure information
-    fots = "" # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count
+	kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
+	failureInfo = {} # Initialize a new dictionary to store failure information
+	fots = "" # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count
 
-    # Initialize kbeyond based on profile
-    if profile == config_path.config_dict['qct-parse']['fullTagList']:
-        for tag, _, _ in qct_parse['tagname']:
-            if tag not in profile:
-                logger.critical(f"The tag name {tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
-                break
-            kbeyond[tag] = 0
-    else:
-        kbeyond = {k: 0 for k in profile}
+	# Initialize kbeyond based on profile
+	if profile == config_path.config_dict['qct-parse']['fullTagList']:
+		for tag, _, _ in qct_parse['tagname']:
+			if tag not in profile:
+				logger.critical(f"The tag name {tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
+				break
+			kbeyond[tag] = 0
+	else:
+		kbeyond = {k: 0 for k in profile}
 
-    kbeyond, frameCount, overallFrameFail, failureInfo, fots = parse_framesList(qct_parse, video_path, profile, profile_name, startObj, pkt, framesList, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, kbeyond, frameCount, overallFrameFail, failureInfo, fots)
+	kbeyond, frameCount, overallFrameFail, failureInfo, fots = parse_framesList(qct_parse, video_path, profile, profile_name, startObj, pkt, framesList, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, kbeyond, frameCount, overallFrameFail, failureInfo, fots)
 
-    return kbeyond, frameCount, overallFrameFail, failureInfo
+	# can kbeyond, frameCount and overallFrameFail be calculated from failureInfo? Is the code faster if they are removed
+
+	return kbeyond, frameCount, overallFrameFail, failureInfo
 
 
 # This function is admittedly very ugly, but what it puts out is very pretty. Need to revamp 	
@@ -668,11 +644,6 @@ def uniquify(path):
             path = filename + " (" + str(counter) + ")" + extension
             counter += 1
         return path
-	
-def rename_file_with_uniquify(file_path):
-    unique_path = uniquify(file_path)
-    os.rename(file_path, unique_path)
-    return unique_path
 
 def archiveThumbs(thumbPath):
 	# Check if thumbPath contains any files
