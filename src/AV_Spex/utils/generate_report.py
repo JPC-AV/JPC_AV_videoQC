@@ -466,17 +466,23 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     if profile_fails_csv:
         profile_fails_csv_path = os.path.join(report_directory, profile_fails_csv)
         failureInfoSummary_profile = summarize_failures(profile_fails_csv_path)
+    else:
+        failureInfoSummary_profile = None
 
     if tag_fails_csv:
         tag_fails_csv_path = os.path.join(report_directory, tag_fails_csv)
         failureInfoSummary_tags = summarize_failures(tag_fails_csv_path)
+    else:
+        failureInfoSummary_tags = None
 
     if colorbars_eval_fails_csv:
         colorbars_eval_fails_csv_path =  os.path.join(report_directory, colorbars_eval_fails_csv)
         failureInfoSummary_colorbars = summarize_failures(colorbars_eval_fails_csv_path)
+    else:
+        failureInfoSummary_colorbars = None
     
     # Create graphs for all existing csv files
-    if qctools_bars_eval_check_output:
+    if qctools_bars_eval_check_output and failureInfoSummary_colorbars:
         colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,thumbs_dict,failureInfoSummary_colorbars)
     else:
         colorbars_eval_html = None
@@ -486,7 +492,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     else:
          colorbars_html = None
     
-    if qctools_profile_check_output:
+    if qctools_profile_check_output and failureInfoSummary_profile:
         profile_summary_html = make_profile_piecharts(qctools_profile_check_output,thumbs_dict,failureInfoSummary_profile)
     else:
         profile_summary_html = None
