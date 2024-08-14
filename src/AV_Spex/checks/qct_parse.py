@@ -8,6 +8,8 @@
 # The original code from the qct-parse was written by Brendan Coates and Morgan Morel as part of the 2016 AMIA "Hack Day"
 # Summary of that event here: https://wiki.curatecamp.org/index.php/Association_of_Moving_Image_Archivists_%26_Digital_Library_Federation_Hack_Day_2016
 
+import cProfile
+
 from lxml import etree	
 import gzip            
 import logging         
@@ -760,6 +762,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 				if match:
 					pkt = match.group()
 					break
+
 	
 	# create framesList
 	framesList = parse_frame_data(startObj, pkt)
