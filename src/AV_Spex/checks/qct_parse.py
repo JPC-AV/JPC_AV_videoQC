@@ -54,7 +54,7 @@ def parse_frame_data(startObj, pkt):
 	
 	with gzip.open(startObj) as xml:
 		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
-			if elem.attrib['media_type'] == "video" or elem.attrib['media_type'] == "audio":
+			if elem.attrib['media_type'] == "video":
 				frame_pkt_dts_time = elem.attrib[pkt]
 				frameDict = {}  # start an empty dict for the new frame
 				frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
