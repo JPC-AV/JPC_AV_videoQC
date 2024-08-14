@@ -35,6 +35,9 @@ operator_mapping = {
     'gt': operator.gt,
 }
 
+# init variable for config list of QCTools tags
+fullTagList = config_path.config_dict['qct-parse']['fullTagList']
+
 def parse_frame_data(startObj, pkt):
 	"""
 	Parses the XML file and extracts frame data into a list of dictionaries.
@@ -138,7 +141,6 @@ def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,comp_op,thum
 	# Perform the comparison
 	if comp_op(float(tagValue), float(over)):
 		timeStampString = dts2ts(frame_pkt_dts_time)
-
 		# Store failure information in the dictionary (update the existing dictionary, not create a new one)
 		if timeStampString not in failureInfo:  # If timestamp not in dict, initialize an empty list
 			failureInfo[timeStampString] = []
@@ -153,12 +155,10 @@ def threshFinder(qct_parse,video_path,inFrame,startObj,pkt,tag,over,comp_op,thum
 			printThumb(video_path,tag,profile_name,startObj,thumbPath,tagValue,timeStampString)
 			thumbDelay = 0
 		return True, thumbDelay, failureInfo # return true because it was over and thumbDelay
-	
 	else:
 		return False, thumbDelay, failureInfo # return false because it was NOT over and thumbDelay
 
 #  print thumbnail images of overs/unders		
-#  Need to update - file naming convention has changed
 def printThumb(video_path,tag,profile_name,startObj,thumbPath,tagValue,timeStampString):
 	"""
     Exports a thumbnail image for a specific frame 
@@ -387,30 +387,30 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
 		logger.error(f"No segments found matching content filter: {contentFilter_name}")
 
 def getCompFromConfig(qct_parse, profile, tag):
-    """
-    Determines the comparison operator based on profile and tag.
+	"""
+	Determines the comparison operator based on profile and tag.
 
-    Args:
-        qct_parse (dict): qct-parse configuration.
-        profile (dict): Profile data.
-        tag (str): Tag to check.
+	Args:
+		qct_parse (dict): qct-parse configuration.
+		profile (dict): Profile data.
+		tag (str): Tag to check.
 
-    Returns:
-        callable: Comparison operator (e.g., operator.lt, operator.gt).
-    """
+	Returns:
+		callable: Comparison operator (e.g., operator.lt, operator.gt).
+	"""
 
-    color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
+	color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
 
-    if qct_parse['profile']:
-        template = qct_parse['profile']
-        if set(profile) == set(config_path.config_dict['qct-parse']['profiles'][template]):
-            return operator.lt if "MIN" in tag or "LOW" in tag else operator.gt
+	if qct_parse['profile']:
+		template = qct_parse['profile']
+		if set(profile) == set(config_path.config_dict['qct-parse']['profiles'][template]):
+			return operator.lt if "MIN" in tag or "LOW" in tag else operator.gt
 
-    if set(profile) == set(color_bar_keys):
-        return operator.lt if "MIN" in tag else operator.gt
+	if set(profile) == set(color_bar_keys):
+		return operator.lt if "MIN" in tag else operator.gt
 
-    # Handle the case where no match is found (consider raising an exception or providing a default)
-    raise ValueError(f"No matching comparison operator found for profile and tag: {profile}, {tag}") 
+	# Handle the case where no match is found (consider raising an exception or providing a default)
+	raise ValueError(f"No matching comparison operator found for profile and tag: {profile}, {tag}") 
 
 
 def summarize_timestamps(timestamps):
@@ -475,39 +475,39 @@ def summarize_timestamps(timestamps):
 
 	return summarized_timestamps
 
-def assign_comparison(qct_parse, profile, framesList):
-    if profile == config_path.config_dict['qct-parse']['fullTagList']:
+def assign_comparison(qct_parse, profile, frameDict):
+    if profile == fullTagList:
         for config_tag, config_op, config_value in qct_parse['tagname']:
-            if config_tag in framesList[-1]:
+            if config_tag in frameDict:
                 over = float(config_value)
                 comp_op = operator_mapping[config_op]
                 tag = config_tag
                 yield tag, comp_op, over  # Yield values for each iteration
     else:
         for tag, v in profile.items():
-            if v is not None and tag in framesList[-1]:
+            if v is not None and tag in frameDict:
                 comp_op = getCompFromConfig(qct_parse, profile, tag)
                 over = float(v)
                 yield tag, comp_op, over  # Yield values for each iteration
 
 def parse_framesList(qct_parse, video_path, profile, profile_name, startObj, pkt, framesList, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, kbeyond, frameCount, overallFrameFail, failureInfo, fots):
-    for frameDict in framesList:
-        frameCount += 1
-        if frameDict[pkt] >= str(durationStart):
-            if durationEnd and float(frameDict[pkt]) > durationEnd:
-                logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frameDict[pkt])} seconds {dts2ts(frameDict[pkt])}")
-                break
+	for frameDict in framesList:
+		frameCount += 1
+		if frameDict[pkt] >= str(durationStart):
+			if durationEnd and float(frameDict[pkt]) > durationEnd:
+				logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frameDict[pkt])} seconds {dts2ts(frameDict[pkt])}")
+				break
 
-        for tag, comp_op, over in assign_comparison(qct_parse, profile, framesList):
-            frameOver, thumbDelay, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
-            if frameOver:
-                kbeyond[tag] += 1
-                if frameDict[pkt] not in fots:
-                    overallFrameFail += 1
-                    fots = frameDict[pkt]
-                    thumbDelay += 1
+			for tag, comp_op, over in assign_comparison(qct_parse, profile, frameDict):
+				frameOver, thumbDelay, failureInfo = threshFinder(qct_parse, video_path, frameDict, startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
+				if frameOver:
+					kbeyond[tag] += 1
+					if frameDict[pkt] not in fots:
+						overallFrameFail += 1
+						fots = frameDict[pkt]
+						thumbDelay += 1
 
-    return kbeyond, frameCount, overallFrameFail, failureInfo, fots
+	return kbeyond, frameCount, overallFrameFail, failureInfo, fots
 
 
 def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0):
@@ -516,7 +516,7 @@ def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durat
 	fots = "" # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count
 
 	# Initialize kbeyond based on profile
-	if profile == config_path.config_dict['qct-parse']['fullTagList']:
+	if profile == fullTagList:
 		for tag, _, _ in qct_parse['tagname']:
 			if tag not in profile:
 				logger.critical(f"The tag name {tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
@@ -579,7 +579,7 @@ def printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_check_outpu
 
 		writer.writerow(["**************************"])
 
-		if profile == config_path.config_dict['qct-parse']['fullTagList']:
+		if profile == fullTagList:
 			writer.writerow(["qct-parse evaluation of user specified tags summary"])
 		elif set(profile.keys()) == set(color_bar_keys):
 			writer.writerow(["qct-parse color bars evaluation summary"])
@@ -748,7 +748,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 	profile = {} # init a dictionary where we'll store reference values from config.yaml file
 	
 	# init a list of every tag available in a QCTools Report from the fullTagList in the config.yaml
-	tagList = list(config_path.config_dict['qct-parse']['fullTagList'].keys())
+	tagList = list(fullTagList.keys())
 	
 	# open qctools report 
 	# determine if report stores pkt_dts_time or pkt_pts_time
@@ -760,10 +760,11 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 				if match:
 					pkt = match.group()
 					break
-
-	framesList = parse_frame_data(startObj, pkt)  #create framesList
 	
-	######## Iterate Through the XML for content detection ########
+	# create framesList
+	framesList = parse_frame_data(startObj, pkt)
+    
+    ######## Iterate Through the XML for content detection ########
 	if qct_parse['contentFilter']:
 		for filter in qct_parse['contentFilter']:
 			logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {filter}\n")
@@ -796,7 +797,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 	if qct_parse['tagname']:
 		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
 		# set profile and thumbExportDelay for ad hoc tag check
-		profile = config_path.config_dict['qct-parse']['fullTagList']
+		profile = fullTagList
 		thumbExportDelay = 9000
 		# set profile_name
 		profile_name = f'tag_check'
@@ -845,7 +846,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 				durationEnd = 99999999
 				profile = maxBarsDict
 				profile_name = 'color_bars_evaluation'
-				thumbExportDelay = 9000				
+				thumbExportDelay = 9000			
 				# check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
 				kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0)
 				colorbars_eval_fails_csv_path = os.path.join(report_directory, "qct-parse_colorbars_eval_failures.csv")
