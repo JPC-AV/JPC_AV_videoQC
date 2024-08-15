@@ -490,8 +490,17 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     # Create graphs for all existing csv files
     if qctools_bars_eval_check_output and failureInfoSummary_colorbars:
         colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,thumbs_dict,failureInfoSummary_colorbars)
-    # elif qctools_bars_eval_check_output and failureInfoSummary_colorbars is None:
-    #   make html that says that no values are outside of colorbars. Can use a summary csv file?
+    elif qctools_bars_eval_check_output and failureInfoSummary_colorbars is None:
+       color_bars_segment = f"""
+        <div style="display: flex; flex-direction: column; align-items: start; background-color: #f5e9e3; padding: 10px;"> 
+            <p><b>All QCTools values of the video file are within the peak values of the color bars.</b></p>
+        </div>
+        """
+       colorbars_eval_html = f"""
+        <div style="display:inline-block; margin-right: 10px; padding-bottom: 20px;">  
+            {color_bars_segment}
+        </div>
+        """
     else:
         colorbars_eval_html = None
 
@@ -609,7 +618,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     
     if colorbars_eval_html:
         html_template += f"""
-        <h3>Values outside of colorbar's thresholds</h3>
+        <h3>Values relative to colorbar's thresholds</h3>
         {colorbars_eval_html}
         """
 
