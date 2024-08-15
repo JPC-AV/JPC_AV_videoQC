@@ -8,8 +8,6 @@
 # The original code from the qct-parse was written by Brendan Coates and Morgan Morel as part of the 2016 AMIA "Hack Day"
 # Summary of that event here: https://wiki.curatecamp.org/index.php/Association_of_Moving_Image_Archivists_%26_Digital_Library_Federation_Hack_Day_2016
 
-import cProfile
-
 from lxml import etree	
 import gzip            
 import logging         
@@ -867,7 +865,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 			contentFilter_name = filter
 			contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
 			qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{contentFilter_name}_summary.csv")
-			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_content_check_output,framesList,qct_parse,thumbPath,thumbDelay,thumbExportDelay,video_path)
+			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_content_check_output,framesList,qct_parse,thumbPath,video_path)
 
 	######## Iterate Through the XML for General Analysis ########
 	if qct_parse['profile']:
