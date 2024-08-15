@@ -116,8 +116,6 @@ def find_report_csvs(report_directory):
     qctools_bars_eval_check_output = None
     qctools_bars_eval_timestamps = None
     colorbars_values_output = None
-    # consider making qctools_content_check_output a list, and appending to support multiple content summaries 
-    # could potentially make check for qctools_content_check_output diff than others though
     qctools_content_check_outputs = []
     qctools_profile_check_output = None
     qctools_profile_timestamps = None
@@ -329,7 +327,6 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
             failed_frame_timestamps = []
             failed_frame_values = []
             failed_frame_thresholds = []  # New list to store thresholds
-
             # Get failure details for this tag
             for timestamp, info_list in failureInfoSummary.items():
                 for info in info_list:
@@ -359,6 +356,8 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
             )])
             pie_fig.update_layout(title=f"{tag} - {percentage:.2f}% ({failed_frames} frames)", height=400, width=400,
                                 paper_bgcolor='#f5e9e3')
+            
+            # - the variable pie_fig is assigned to {pie_fig}")
 
             # Get Thumbnails
             thumbnail_html = ''
@@ -378,7 +377,7 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
             pie_chart_html = f"""
             <div style="display: flex; flex-direction: column; align-items: start; background-color: #f5e9e3; padding: 10px;"> 
                 <div style="display: flex; align-items: center;">  
-                    <div style="width: 400px;">{pie_fig.to_html(full_html=False, include_plotlyjs=False)}</div> 
+                    <div style="width: 400px;">{pie_fig.to_html(full_html=False, include_plotlyjs='cdn')}</div> 
                     {thumbnail_html}
                 </div>
                 {summary_html}
@@ -424,7 +423,6 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
         for thumb_name, (thumb_path, profile_name, _) in sorted_thumbs_dict.items()
         if content_filter_name in thumb_path  # Simplified matching
     ]
-
 
     # Build HTML table
     table_rows = []
