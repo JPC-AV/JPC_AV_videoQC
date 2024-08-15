@@ -62,8 +62,9 @@ def make_report_dir(source_directory, video_id):
 
     report_directory = os.path.join(source_directory, f'{video_id}_report_csvs')
 
-    if not os.path.exists(report_directory):
-        os.makedirs(report_directory)
+    if os.path.exists(report_directory):
+        shutil.rmtree(report_directory)
+    os.makedirs(report_directory)
     
     logger.debug(f'Report files will be written to {report_directory}\n')
 
