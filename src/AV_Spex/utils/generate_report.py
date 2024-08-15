@@ -116,8 +116,6 @@ def find_report_csvs(report_directory):
     qctools_bars_eval_check_output = None
     qctools_bars_eval_timestamps = None
     colorbars_values_output = None
-    # consider making qctools_content_check_output a list, and appending to support multiple content summaries 
-    # could potentially make check for qctools_content_check_output diff than others though
     qctools_content_check_outputs = []
     qctools_profile_check_output = None
     qctools_profile_timestamps = None
@@ -251,23 +249,31 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
     # Read the CSV files
     colorbars_df = pd.read_csv(colorbars_values_output)
 
-    # Read the colorbars duration CSV
-    with open(qctools_colorbars_duration_output, 'r') as file:
-        duration_lines = file.readlines()
-        duration_text = duration_lines[1].strip()  # The 2nd line contains the color bars duration
-        
-    duration_text = duration_text.replace(',',' - ')
-    duration_text = "Colorbars duration: " + duration_text
+    if os.path.isfile(qctools_colorbars_duration_output):
 
-    # Create the bar chart for the colorbars values
-    colorbars_fig = go.Figure(data=[
-        go.Bar(name='SMPTE Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Colorbars'], marker=dict(color='#378d6a')),
-        go.Bar(name=f'{video_id} Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df[f'{video_id} Colorbars'], marker=dict(color='#bf971b'))
-    ])
-    colorbars_fig.update_layout(barmode='group')
+        # Read the colorbars duration CSV
+        with open(qctools_colorbars_duration_output, 'r') as file:
+            duration_lines = file.readlines()
 
-    # Save each chart as an HTML string
-    colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
+            # Check if there are enough lines to access the second one
+            if len(duration_lines) > 1:
+                duration_text = duration_lines[1].strip()  # The 2nd line contains the color bars duration
+                duration_text = duration_text.replace(',',' - ')
+                duration_text = "Colorbars duration: " + duration_text
+                # Create the bar chart for the colorbars values
+                colorbars_fig = go.Figure(data=[
+                    go.Bar(name='SMPTE Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Colorbars'], marker=dict(color='#378d6a')),
+                    go.Bar(name=f'{video_id} Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df[f'{video_id} Colorbars'], marker=dict(color='#bf971b'))
+                ])
+                colorbars_fig.update_layout(barmode='group')
+                # Save each chart as an HTML string
+                colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
+            else:
+                logger.critical(f"The csv file {colorbars_values_output} does not match the expected format, cannot be used in html report.")
+                colorbars_barchart_html = None
+    else:
+        logger.critical(f"Cannot open color bars csv file: {qctools_colorbars_duration_output}")
+        colorbars_barchart_html = None
 
     # Add annotations for the thumbnail
     thumbnail_html = ''
@@ -321,7 +327,6 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
             failed_frame_timestamps = []
             failed_frame_values = []
             failed_frame_thresholds = []  # New list to store thresholds
-
             # Get failure details for this tag
             for timestamp, info_list in failureInfoSummary.items():
                 for info in info_list:
@@ -351,6 +356,8 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
             )])
             pie_fig.update_layout(title=f"{tag} - {percentage:.2f}% ({failed_frames} frames)", height=400, width=400,
                                 paper_bgcolor='#f5e9e3')
+            
+            # - the variable pie_fig is assigned to {pie_fig}")
 
             # Get Thumbnails
             thumbnail_html = ''
@@ -370,7 +377,7 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
             pie_chart_html = f"""
             <div style="display: flex; flex-direction: column; align-items: start; background-color: #f5e9e3; padding: 10px;"> 
                 <div style="display: flex; align-items: center;">  
-                    <div style="width: 400px;">{pie_fig.to_html(full_html=False, include_plotlyjs=False)}</div> 
+                    <div style="width: 400px;">{pie_fig.to_html(full_html=False, include_plotlyjs='cdn')}</div> 
                     {thumbnail_html}
                 </div>
                 {summary_html}
@@ -416,7 +423,6 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
         for thumb_name, (thumb_path, profile_name, _) in sorted_thumbs_dict.items()
         if content_filter_name in thumb_path  # Simplified matching
     ]
-
 
     # Build HTML table
     table_rows = []
@@ -484,6 +490,17 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     # Create graphs for all existing csv files
     if qctools_bars_eval_check_output and failureInfoSummary_colorbars:
         colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,thumbs_dict,failureInfoSummary_colorbars)
+    elif qctools_bars_eval_check_output and failureInfoSummary_colorbars is None:
+       color_bars_segment = f"""
+        <div style="display: flex; flex-direction: column; align-items: start; background-color: #f5e9e3; padding: 10px;"> 
+            <p><b>All QCTools values of the video file are within the peak values of the color bars.</b></p>
+        </div>
+        """
+       colorbars_eval_html = f"""
+        <div style="display:inline-block; margin-right: 10px; padding-bottom: 20px;">  
+            {color_bars_segment}
+        </div>
+        """
     else:
         colorbars_eval_html = None
 
@@ -601,7 +618,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
     
     if colorbars_eval_html:
         html_template += f"""
-        <h3>Values outside of colorbar's thresholds</h3>
+        <h3>Values relative to colorbar's thresholds</h3>
         {colorbars_eval_html}
         """
 

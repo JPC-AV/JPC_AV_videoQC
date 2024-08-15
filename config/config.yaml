@@ -173,10 +173,6 @@ mediatrace:
   _ORIGINAL_FPS:
 qct-parse:
   content:
-    silence:
-      Overall_Min_level: 0.001900, lt
-      Overall_Max_level: 0.001900, lt
-      Overall_Mean_difference: 0.009, lt
     allBlack:
       YMAX: 300, lt
       YHIGH: 115, lt
@@ -279,15 +275,6 @@ qct-parse:
     psnr_avg:
     Overall_Min_level:
     Overall_Max_level:
-  color_bar_keys:
-    YMAX:
-    YMIN:
-    UMIN:
-    UMAX:
-    VMIN:
-    VMAX:
-    SATMIN:
-    SATMAX:
   smpte_color_bars:
     YMAX: 940
     YMIN: 28
