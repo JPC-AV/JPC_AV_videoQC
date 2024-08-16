@@ -11,20 +11,36 @@ def apply_profile(command_config, selected_profile):
     with open(command_config.command_yml, "r") as f:
         command_dict = yaml.load(f)
 
-    for output, output_settings in selected_profile["outputs"].items():
-        if output in command_dict["outputs"]:
-            if isinstance(output_settings, dict):
-                command_dict["outputs"][output].update(output_settings)
-            else:
-                command_dict["outputs"][output] = output_settings
+    if 'outputs' in selected_profile:
+        for output, output_settings in selected_profile["outputs"].items():
+            if output in command_dict["outputs"]:
+                if isinstance(output_settings, dict):
+                    command_dict["outputs"][output].update(output_settings)
+                else:
+                    command_dict["outputs"][output] = output_settings
 
-    for tool, updates in selected_profile["tools"].items():
-        if tool in command_dict["tools"]:
-            command_dict["tools"][tool].update(updates)
+    if 'tools' in selected_profile:
+        for tool, updates in selected_profile["tools"].items():
+            if tool in command_dict["tools"]:
+                command_dict["tools"][tool].update(updates)
 
     with open(command_config.command_yml, "w") as f:
         yaml.dump(command_dict, f)
-    logger.info(f'command_config.yaml updated to match selected tool profile\n')
+
+def apply_by_name(command_config, tool_names):
+    apply_profile(command_config, profile_allOff)  # Turn everything off initially
+
+    tool_profile = {"tools": {}}  # Initialize the tool_profile dictionary
+
+    for tool in tool_names:
+        # Check if the tool exists in the command_config
+        if tool in command_config.command_dict["tools"]:
+            tool_profile["tools"][tool] = {
+                subfield: "yes" for subfield in command_config.command_dict["tools"][tool]
+            }
+            logger.debug(f"{tool} set to 'on'")
+
+    apply_profile(command_config, tool_profile)  # Apply the selective changes
 
 def update_config(config_path, nested_key, value_dict):
     with open(config_path.config_yml, "r") as f:
@@ -155,6 +171,51 @@ profile_step2 = {
             "check_fixity": 'yes',
             "embed_stream_fixity": 'no',
             "check_stream_fixity": 'yes'
+        }
+    }
+}
+
+profile_allOff = {
+    "tools": {
+        "exiftool": {
+            "check_exiftool": 'no',
+            "run_exiftool": 'no'
+        },
+        "ffprobe": {
+            "check_ffprobe": 'no',
+            "run_ffprobe": 'no'
+        },
+        "mediaconch": {
+            "run_mediaconch": 'no'
+        },
+        "mediatrace": {
+            "check_mediatrace": 'no',
+            "run_mediatrace": 'no'
+        },
+        "mediainfo": {
+            "check_mediainfo": 'no',
+            "run_mediainfo": 'no'
+        },
+        "qctools": {
+            "run_qctools": 'no',
+            "check_qctools": 'no'
+        },
+        "qct-parse": {
+            "barsDetection": None,
+            "evaluateBars": None,
+            "contentFilter": None,
+            "profile": None,
+            "thumbExport": None
+        }
+    },
+    "outputs": {
+        "report": 'no',
+        "access_file": 'no',
+        "fixity": {
+            "output_fixity": 'no',
+            "check_fixity": 'no',
+            "embed_stream_fixity": 'no',
+            "check_stream_fixity": 'no'
         }
     }
 }
