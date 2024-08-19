@@ -130,9 +130,9 @@ def write_tags_to_mkv(mkv_file, temp_xml_file):
     if stdout:
         # Modify the output as needed
         modified_output = stdout.decode('utf-8').replace('Done.', '')
-        logger.info(f'Running mkvpropedit:{modified_output}')  # Or do something else with the modified output
+        logger.info(f'Running mkvpropedit:\n{modified_output}')  # Or do something else with the modified output
     if stderr:
-        logger.critical(f"Running mkvpropedit:{stderr.decode('utf-8')}")  # Print any errors if they occur
+        logger.critical(f"Running mkvpropedit:\n{stderr.decode('utf-8')}")  # Print any errors if they occur
 
 def extract_hashes(xml_tags):
     video_hash = None
@@ -174,6 +174,7 @@ def embed_fixity(video_path):
     # Make md5 of video/audio stream
     logger.debug(f'Generating video and audio stream hashes. This may take a moment...')
     video_hash, audio_hash = make_stream_hash(video_path)
+    logger.debug('') # add space after stream hash output
     logger.info(f'Video hash = {video_hash}\nAudio hash = {audio_hash}\n')
 
     # Extract existing tags
