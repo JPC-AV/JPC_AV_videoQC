@@ -212,12 +212,22 @@ The scripts will confirm that the digital files conform to predetermined specifi
     parser.add_argument('--version', action='version', version=f'%(prog)s {version_string}')
     parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("-dr","--dryrun", action="store_true", help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
-    parser.add_argument("--profile", choices=["step1", "step2"], help="Select processing profile (step1 or step2)")
-    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS)")
+    parser.add_argument("--profile", choices=["step1", "step2", "off"], help="Select processing profile ('step1' or 'step2'), or turn all checks off with 'off'")
+    parser.add_argument("-t", "--tool", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
+                        action='append',  # Allow multiple tool selections
+                        help="Select individual tools to enable - turns all other tools off") 
+    parser.add_argument("--on", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
+                        action='append',  
+                        help="Select specific tools to turn on") 
+    parser.add_argument("--off", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
+                        action='append',  
+                        help="Select specific tools to turn off") 
+    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
     parser.add_argument("-sp","--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference. Select config or command: --saveprofile command")
     parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
     parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
+    # make "turn off" which toggles checks on and leaves everything else the same
 
     args = parser.parse_args()
 
@@ -251,6 +261,15 @@ The scripts will confirm that the digital files conform to predetermined specifi
             selected_profile = profile_step1
         elif args.profile == "step2":
             selected_profile = profile_step2
+        elif args.profile == "off":
+            selected_profile = profile_allOff
+    
+    # Handle the selected tools
+    tool_names = args.tool  
+
+    tools_on_names = args.on
+
+    tools_off_names = args.off
 
     sn_config_changes = None
     if args.signalflow:
@@ -280,7 +299,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
             config_dir = command_config.config_dir
             user_profile_config = os.path.join(config_dir, f"command_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
 
-    return source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config
+    return source_directories, selected_profile, tool_names, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config, tools_on_names, tools_off_names
 
 def main():
     '''
@@ -293,7 +312,7 @@ def main():
     print(f'{avspex_icon}\n')
     #time.sleep(1)
     
-    source_directories, selected_profile, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config = parse_arguments()
+    source_directories, selected_profile, tool_names, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config, tools_on_names, tools_off_names = parse_arguments()
 
     check_py_version()
     
@@ -304,6 +323,22 @@ def main():
 
     if selected_profile:
         apply_profile(command_config, selected_profile)
+        logger.info(f'command_config.yaml updated to match selected tool profile\n')
+
+    if tool_names and selected_profile:
+        logger.critical(f"Both profile and individual tools selected! Cannot use '-t'/-tool' with '--profile'. Exiting...")
+        sys.exit(1)
+    elif tool_names and tools_on_names:
+        logger.critical(f"Both 'on' option and individual tools selected! Cannot use '-t'/-tool' with '--on'. Exiting...")
+        sys.exit(1)
+    elif tool_names:
+        apply_by_name(command_config, tool_names)
+
+    if tools_on_names:
+        toggle_on(command_config, tools_on_names)
+
+    if tools_off_names:
+        toggle_off(command_config, tools_off_names)
 
     if sn_config_changes:
         update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
