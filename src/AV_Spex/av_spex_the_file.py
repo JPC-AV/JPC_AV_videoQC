@@ -212,16 +212,16 @@ The scripts will confirm that the digital files conform to predetermined specifi
     parser.add_argument('--version', action='version', version=f'%(prog)s {version_string}')
     parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("-dr","--dryrun", action="store_true", help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
-    parser.add_argument("--profile", choices=["step1", "step2", "off"], help="Select processing profile (step1 or step2), or turn all checks off with 'off'")
+    parser.add_argument("--profile", choices=["step1", "step2", "off"], help="Select processing profile ('step1' or 'step2'), or turn all checks off with 'off'")
     parser.add_argument("-t", "--tool", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
                         action='append',  # Allow multiple tool selections
                         help="Select individual tools to enable - turns all other tools off") 
     parser.add_argument("--on", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
                         action='append',  
-                        help="Select specific tools to enable") 
+                        help="Select specific tools to turn on") 
     parser.add_argument("--off", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
                         action='append',  
-                        help="Select specific tools to enable") 
+                        help="Select specific tools to turn off") 
     parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
     parser.add_argument("-sp","--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference. Select config or command: --saveprofile command")
