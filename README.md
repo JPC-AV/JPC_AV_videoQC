@@ -168,6 +168,7 @@ The 2 yaml files in the `/config/` directory control various settings and option
    - Each tool has a 'run' or 'check' option    
       - **'run'** outputs a sidecar file     
       - **'check'** compares the values in the sidecar file to the values stored in the config.yaml file
+           
 - **config.yaml**:
    - Expected metadata output values are stored in `config/config.yaml`
    - Values are organized by tool
@@ -178,7 +179,7 @@ The 2 yaml files in the `/config/` directory control various settings and option
       - PCM
       ```
 - **Options**
-   - Edit the config files using command line options in order to maintain consistent formatting
+   Edit the config files using command line options in order to maintain consistent formatting
    - `--profile`: Selects a predefined processing profile of particular tools outputs and checks    
       - Options: `step1`, `step2`, `allOff`
    - `--tool/-t`: Enables only the specified tool(s) and disables all others. 
@@ -193,7 +194,7 @@ The 2 yaml files in the `/config/` directory control various settings and option
 
 ### qct-parse
    To check the QCTools report, AV Spex incorporates code from the open source tool [qct-parse](https://github.com/amiaopensource/qct-parse). qct-parse can be used to check for individual tags, profiles, or specific content.   
-#### qct-parse Options**
+#### qct-parse Options
    - **Bars detection**: Find color bars, if present, and output start and end timestamp
    - **Evaluate bars**: Identify maximum and minimum values for Y, Cb, Cr and Saturation in color bars. Using these maximums and minimums as thresholds, evaluate the rest of the video for values outside these values.
    - **Content filter**: Identify specific content types by their QCTools report values. For example, segments fo all black. 
