@@ -130,12 +130,12 @@ File naming
 - AV Spex checks if the video file follows the JPC_AV naming convention (e.g., `JPC_AV_00001.mkv`). The script exits if the naming convention is not met.
 
 Multiple fixity checks are built-in to AV Spex, which can be enabled or disabled in the `config/command_config.yaml` file.
-**Fixity**:
-- Generate and write md5 checksum to [input_video_file_name]_YYY_MM_DD_fixity.txt file
-- Read md5 checksums from text files in the input directory that end with '_checksums.md5' or '_fixity.txt' and validate against calculated md5. Record result to [input_video_file_name]_YYY_MM_DD_fixity_check.txt
-**Stream fixity**:
-- Calculate video stream and audio stream md5 checksums using the ffmpeg command: `ffmpeg -loglevel error -i {input_video} -map 0 -f streamhash -hash md5 - `
-- Read existing audio and video 'streamhash' md5s found embedded in the input mkv video file with the tags `VIDEO_STREAM_HASH` or `AUDIO_STREAM_HASH` and validate against calculated md5
+- **Fixity**:
+   - Generate and write md5 checksum to [input_video_file_name]_YYY_MM_DD_fixity.txt file
+   - Read md5 checksums from text files in the input directory that end with '_checksums.md5' or '_fixity.txt' and validate against calculated md5. Record result to [input_video_file_name]_YYY_MM_DD_fixity_check.txt
+- **Stream fixity**:
+   - Calculate video stream and audio stream md5 checksums using the ffmpeg command: `ffmpeg -loglevel error -i {input_video} -map 0 -f streamhash -hash md5 - `
+   - Read existing audio and video 'streamhash' md5s found embedded in the input mkv video file with the tags `VIDEO_STREAM_HASH` or `AUDIO_STREAM_HASH` and validate against calculated md5
 
 ### Metadata Tools
 - Various metadata tools are run on the input video file(s), which can be enabled or disabled in the `config/command_config.yaml` file.
@@ -218,7 +218,7 @@ Contributions that enhance script functionality are welcome. Please ensure compa
 AV Spex makes use of code from several open source projects. Attribution and copyright notices are included as comments inline where open source code is used.    
 The copyright notices are reproduced here:
 
-[loglog]https://github.com/amiaopensource/loglog
+[loglog](https://github.com/amiaopensource/loglog)
 ```
 Copyright (C) 2021  Eddy Colloton and Morgan Morel
 
