@@ -408,32 +408,6 @@ def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctoo
 	else:
 		logger.error(f"No segments found matching content filter: {contentFilter_name}")
 
-def getCompFromConfig(qct_parse, profile, tag):
-	"""
-	Determines the comparison operator based on profile and tag.
-
-	Args:
-		qct_parse (dict): qct-parse configuration.
-		profile (dict): Profile data.
-		tag (str): Tag to check.
-
-	Returns:
-		callable: Comparison operator (e.g., operator.lt, operator.gt).
-	"""
-
-	color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
-
-	if qct_parse['profile']:
-		template = qct_parse['profile']
-		if set(profile) == set(config_path.config_dict['qct-parse']['profiles'][template]):
-			return operator.lt if "MIN" in tag or "LOW" in tag else operator.gt
-
-	if set(profile) == set(color_bar_keys):
-		return operator.lt if "MIN" in tag else operator.gt
-
-	# Handle the case where no match is found (consider raising an exception or providing a default)
-	raise ValueError(f"No matching comparison operator found for profile and tag: {profile}, {tag}") 
-
 def assign_comparison(qct_parse, profile, frameDict):
 	"""
 	splits different profile formats (depending on 'ad hoc' tags or other profile)
@@ -457,7 +431,10 @@ def assign_comparison(qct_parse, profile, frameDict):
 	else:
 		for tag, v in profile.items():
 			if v is not None and tag in frameDict:
-				comp_op = getCompFromConfig(qct_parse, profile, tag)
+				if "MIN" in tag:
+					comp_op = operator.lt
+				else:
+					comp_op = operator.gt
 				over = float(v)
 				yield tag, comp_op, over  # Yield values for each iteration
 
@@ -620,8 +597,6 @@ def printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_check_outpu
 			writer.writerow(["qct-parse evaluation of user specified tags summary"])
 		elif set(profile.keys()) == set(color_bar_keys):
 			writer.writerow(["qct-parse color bars evaluation summary"])
-		else:
-			writer.writerow(["qct-parse profile results summary"])
 
 		if frameCount == 0:
 			writer.writerow(["TotalFrames", "0"])
@@ -799,7 +774,7 @@ def save_failures_to_csv(failureInfo, failure_csv_path):
 
 def run_qctparse(video_path, qctools_output_path, report_directory):
 	"""
-    Executes the qct-parse analysis on a given video file, exporting relevant data and thumbnails based on specified thresholds and profiles.
+    Executes the qct-parse analysis on a given video file, exporting relevant data and thumbnails based on specified thresholds.
 
     Parameters:
         video_path (str): Path to the video file being analyzed.
@@ -866,28 +841,6 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 			contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
 			qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{contentFilter_name}_summary.csv")
 			detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_content_check_output,framesList,qct_parse,thumbPath,video_path)
-
-	######## Iterate Through the XML for General Analysis ########
-	if qct_parse['profile']:
-		template = qct_parse['profile'] # get the profile/ section name from the command config
-		if template in config_path.config_dict['qct-parse']['profiles']:
-		# If the template matches one of the profiles
-			for t in tagList:
-				if t in config_path.config_dict['qct-parse']['profiles'][template]:
-					profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
-		logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
-		# set thumbExportDelay for profile check
-		thumbExportDelay = 9000
-		# set profile_name
-		profile_name = f"threshold_profile_{template}"
-		# check xml against thresholds, return kbeyond (dictionary of tags: framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-		kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0)
-		profile_fails_csv_path = os.path.join(report_directory, "qct-parse_profile_failures.csv")
-		if failureInfo:
-			save_failures_to_csv(failureInfo, profile_fails_csv_path)
-		qctools_profile_check_output = os.path.join(report_directory, "qct-parse_profile_summary.csv")
-		printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_profile_check_output)
-		logger.debug(f"qct-parse summary written to {qctools_profile_check_output}\n")
 	
 	if qct_parse['tagname']:
 		logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
