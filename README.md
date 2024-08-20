@@ -178,7 +178,7 @@ The 2 yaml files in the `/config/` directory control various settings and option
       - FLAC
       - PCM
       ```
-- **Options**
+- **Options**    
    Edit the config files using command line options in order to maintain consistent formatting
    - `--profile`: Selects a predefined processing profile of particular tools outputs and checks    
       - Options: `step1`, `step2`, `allOff`
