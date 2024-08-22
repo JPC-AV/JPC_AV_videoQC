@@ -177,7 +177,7 @@ Each tool has a 'run' or 'check' option. **'run'** outputs a sidecar file. **'ch
    - mediainfo
    - mediatrace (checks custom mkv tags)
    - qctools
-   - qct-parse (more on qct-parse below)
+   - qct-parse (more on [qct-parse](#qct-parse) below)
            
 #### config.yaml:
 Expected metadata output values are stored in `config/config.yaml`    
@@ -202,7 +202,7 @@ Edit the config files using command line options in order to maintain consistent
    - Options: `jpc`, `bowser`
 - To edit either fo the configs without running AV Spex on an input file use the `--dryrun/-dr` option
 
-### qct-parse
+### <a name="qct-parse"></a>qct-parse 
    To check the QCTools report, AV Spex incorporates code from the open source tool [qct-parse](https://github.com/amiaopensource/qct-parse). qct-parse can be used to check for individual tags, profiles, or specific content.   
 #### qct-parse Options
    - **Bars detection**: Find color bars, if present, and output start and end timestamp
