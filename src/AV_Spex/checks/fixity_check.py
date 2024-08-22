@@ -7,11 +7,23 @@ from ..utils.log_setup import logger
 
 def check_fixity(directory, video_id, actual_checksum=None):
     fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity_check.txt')
+    # Store paths to checksum files
+    checksum_files = []  
+
     # Walks files of the source directory looking for file with '_checksums.md5' suffix
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith('_checksums.md5') or file.endswith('_fixity.txt'):
                 checksum_file_path = os.path.join(root, file)
+                try:
+                    # Extract date from filename (YYYY_MM_DD format)
+                    file_date_str = file.split('_')[3:6]  # Adjust if naming convention differs
+                    file_date = datetime.strptime("_".join(file_date_str), "%Y_%m_%d").date()
+                    checksum_files.append((checksum_file_path, file_date))
+                except ValueError:
+                    logger.warning(f"Skipping checksum file with invalid date format: {file}")
+                    # Sort checksum files by date (descending)
+                    checksum_files.sort(key=lambda x: x[1], reverse=True)
                 video_file_path = os.path.join(root, f'{video_id}.mkv')
                 # If video file exists, then:
                 if os.path.exists(video_file_path):
@@ -21,8 +33,26 @@ def check_fixity(directory, video_id, actual_checksum=None):
                     if actual_checksum is None:
                         # Calculate the MD5 checksum of the video file
                         actual_checksum = hashlib_md5(video_file_path)
-                    # Compare the calculated checksum with the one from the file
-                    if actual_checksum == expected_checksum:
+
+                    # initialize variables
+                    checksums_match = True  # Assume all checksums match initially
+                    collision_found = False
+                    most_recent_checksum = None
+                    most_recent_checksum_date = None
+
+                    for checksum_file_path, file_date in checksum_files:
+                        expected_checksum = read_checksum_from_file(checksum_file_path)
+
+                        # Update most recent checksum if this one is newer
+                        if most_recent_checksum_date is None or file_date > most_recent_checksum_date:
+                            most_recent_checksum = expected_checksum
+                            most_recent_checksum_date = file_date
+
+                        if actual_checksum != expected_checksum:
+                            checksums_match = False 
+                            collision_found = True # not currently using this, but may want to acknowledge mismatch, even if most recent checksum matches
+
+                    if checksums_match:
                         logger.info(f'Fixity check passed for {video_file_path}\n')
                         result_file = open(fixity_result_file, 'w')
                         print(f'Fixity check passed for {video_file_path}\n', file = result_file)
