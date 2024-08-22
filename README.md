@@ -157,7 +157,7 @@ Various metadata tools are run on the input video file(s), which can be enabled 
   - **[QCTools](https://bavc.org/programs/preservation/preservation-tools/)**: Creates audiovisual analytics reports as XML files.
 
 ### Configuration
-The 2 yaml files in the `/config/` directory control various settings and options. Both files can be modified manually, but it is preferable to edit the file using the command line options.   
+The 2 yaml files in the `/config/` directory control various settings and options. Both files can be modified manually, but it is preferable to edit the file using the command line [options](#options).   
 
 #### command_config.yaml:
 The command_config.yaml stores settings pertaining to which output, tools and checks will be run.   
@@ -181,7 +181,7 @@ Each tool has a 'run' or 'check' option. **'run'** outputs a sidecar file. **'ch
            
 #### config.yaml:
 Expected metadata output values are stored in `config/config.yaml`    
-- Values are organized by tool    
+- Values are organized by tool
 - Multiple acceptable values are written in a list:
       
       Format:
@@ -191,7 +191,7 @@ Expected metadata output values are stored in `config/config.yaml`
 #### Options    
 Edit the config files using command line options in order to maintain consistent formatting
 - `--profile`: Selects a predefined processing profile of particular tools outputs and checks    
-   - Options: `step1`, `step2`, `allOff`
+   - Options: `step1`, `step2`, `off`
 - `--tool/-t`: Enables only the specified tool(s) and disables all others. 
    - List multiple tools in this format: `-t exiftool -t mediainfo -t ffprobe`
 - `--on`: Enables the specified tool without affecting others.
@@ -213,11 +213,13 @@ Edit the config files using command line options in order to maintain consistent
    - **Thumb export**: Export thumbnail png image files for frames outside of set thresholds, limit is currently set as 1 thumbnail maximum for every 5 minutes of input video duration 
 
 ### Output
-- Outputs are saved in a subdirectory within the input directory named: [input_directory_name]_qc_metadata and [input_directory_name]_report_csvs
-   - **qc_metadata**:  Metadata outputs for: fixity check, exiftool, ffprobe, mediaconch, mediainfo, mediatrace, and qctools
-   - **report_csvs**: CSV files used to populate the HTML report summarizing the outputs
+- Outputs are saved in a subdirectory within the input directory named: 
+   - **[input_directory_name]_qc_metadata**:  Metadata outputs for: fixity check, exiftool, ffprobe, mediaconch, mediainfo, mediatrace, and qctools
+   - **[input_directory_name]_report_csvs**: CSV files used to populate the HTML report summarizing the outputs
 - An HTML file is output which collects the various outputs of AV Spex and presents them as a report named: [input_directory_name]_avspex_report.html
-- Any existing vrecord metadata is moved to a subdirectory named: [input_directory_name]_vrecord_metadata 
+- Any existing vrecord metadata is moved to a subdirectory named: [input_directory_name]_vrecord_metadata    
+
+<br/><br/>
 
 <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 ---
