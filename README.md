@@ -71,11 +71,17 @@ av-spex --help
 
 Execute the scripts with:
 ```bash
-av-spex [path/to/directory] (*optionally:) [path/to/another/directory] [path/to/another/directory]
+av-spex [path/to/directory]
 ```
 
-The following options are available:
+### av-spex --help
 ```bash
+    // | |       ||   / /       //   ) )                              
+   //__| |       ||  / /       ((            ___        ___           
+  / ___  | ____  || / /          \\        //   ) )   //___) ) \\ / / 
+ //    | |       ||/ /             ) )    //___/ /   //         \/ /  
+//     | |       |  /       ((___ / /    //         ((____      / /\  
+
 usage: av-spex [-h] [--version] [-dr] [--profile {step1,step2,off}]
                [-t {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}]
                [--on {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}]
@@ -83,6 +89,11 @@ usage: av-spex [-h] [--version] [-dr] [--profile {step1,step2,off}]
                [-sn {JPC_AV_SVHS,BVH3100}] [-fn {jpc,bowser}]
                [-sp {config,command}] [-d] [-f]
                [paths ...]
+
+av-spex 0.4.5
+
+AV Spex is a python application designed to help process digital audio and video media created from analog sources.
+The scripts will confirm that the digital files conform to predetermined specifications.
 
 positional arguments:
   paths                 Path to the input -f: video file(s) or -d:
@@ -117,7 +128,7 @@ options:
   -f, --file            Flag to indicate input is a video file
   ```
 
-Options explain in detail below.
+<a name="options"></a> Options explained in detail [below](#options). 
 
 ### Logging
 Each time AV Spex is run a log file is created. Everything output to the terminal is also recorded in a log file w/ timestamps located at:
@@ -126,71 +137,70 @@ logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log
 ```
 
 ### File Validation
-File naming
+#### File naming
 - AV Spex checks if the video file follows the JPC_AV naming convention (e.g., `JPC_AV_00001.mkv`). The script exits if the naming convention is not met.
 
-Multiple fixity checks are built-in to AV Spex, which can be enabled or disabled in the `config/command_config.yaml` file.
-- **Fixity**:
+#### File Fixity:
    - Generate and write md5 checksum to [input_video_file_name]_YYY_MM_DD_fixity.txt file
    - Read md5 checksums from text files in the input directory that end with '_checksums.md5' or '_fixity.txt' and validate against calculated md5. Record result to [input_video_file_name]_YYY_MM_DD_fixity_check.txt
-- **Stream fixity**:
+#### Stream fixity:
    - Calculate video stream and audio stream md5 checksums using the ffmpeg command: `ffmpeg -loglevel error -i {input_video} -map 0 -f streamhash -hash md5 - `
    - Read existing audio and video 'streamhash' md5s found embedded in the input mkv video file with the tags `VIDEO_STREAM_HASH` or `AUDIO_STREAM_HASH` and validate against calculated md5
 
 ### Metadata Tools
-- Various metadata tools are run on the input video file(s), which can be enabled or disabled in the `config/command_config.yaml` file.
+Various metadata tools are run on the input video file(s), which can be enabled or disabled in the `config/command_config.yaml` file.
 - Tools include:
-  - **MediaConch**: Checks compliance with specific policies (stored as XML files in /config/ directory). [MediaConch website](https://mediaarea.net/MediaConch).
-  - **MediaInfo**: Provides unified display of the most relevant technical and tag data for video and audio files. [MediaInfo website](https://mediaarea.net/en/MediaInfo).
-  - **Exiftool**: Command-line application for reading metadata [Exiftool website ](https://exiftool.org/)
-  - **ffprobe**: Gathers information from multimedia streams and prints it in JSON format. [ffprobe website](https://www.ffmpeg.org/ffprobe.html)
-  - **QCTools**: Creates audiovisual analytics reports as XML files. [QCTools website](https://bavc.org/programs/preservation/preservation-tools/)
+  - **[MediaConch](https://mediaarea.net/MediaConch)**: Checks compliance with specific policies (stored as XML files in /config/ directory).
+  - **[MediaInfo](https://mediaarea.net/en/MediaInfo)**: Provides unified display of the most relevant technical and tag data for video and audio files.
+  - **[Exiftool](https://exiftool.org/)**: Command-line application for reading metadata 
+  - **[ffprobe](https://www.ffmpeg.org/ffprobe.html)**: Gathers information from multimedia streams and prints it in JSON format.
+  - **[QCTools](https://bavc.org/programs/preservation/preservation-tools/)**: Creates audiovisual analytics reports as XML files.
 
 ### Configuration
 The 2 yaml files in the `/config/` directory control various settings and options. Both files can be modified manually, but it is preferable to edit the file using the command line options.   
-- **command_config.yaml**:
-   - The command_config.yaml stores settings pertaining to which output, tools and checks will be run.
-   - Outputs ('yes'/'no'):
-      - access file
-      - report
-      - fixity
-      - stream fixity
-      - overwrite stream fixity (if found)
-   - Tools ('yes'/'no'):        
-      - exiftool
-      - ffprobe
-      - mediaconch
-         -  mediaconch_policy: file name from any xml file in the config directory
-      - mediainfo
-      - mediatrace (checks custom mkv tags)
-      - qctools
-      - qct-parse (more on qct-parse below)
-   - Each tool has a 'run' or 'check' option    
-      - **'run'** outputs a sidecar file     
-      - **'check'** compares the values in the sidecar file to the values stored in the config.yaml file
+
+#### command_config.yaml:
+The command_config.yaml stores settings pertaining to which output, tools and checks will be run.   
+Each tool has a 'run' or 'check' option. **'run'** outputs a sidecar file. **'check'** compares the values in the sidecar file to the values stored in the config.yaml file
+
+- Outputs ('yes'/'no'):
+   - access file
+   - report
+   - fixity
+   - stream fixity
+   - overwrite stream fixity (if found)
+- Tools ('yes'/'no'):        
+   - exiftool
+   - ffprobe
+   - mediaconch
+      -  mediaconch_policy: file name from any xml file in the config directory
+   - mediainfo
+   - mediatrace (checks custom mkv tags)
+   - qctools
+   - qct-parse (more on qct-parse below)
            
-- **config.yaml**:
-   - Expected metadata output values are stored in `config/config.yaml`
-   - Values are organized by tool
-   - Multiple acceptable values are written in a list:
-      ```
+#### config.yaml:
+Expected metadata output values are stored in `config/config.yaml`    
+- Values are organized by tool    
+- Multiple acceptable values are written in a list:
+      
       Format:
-      - FLAC
-      - PCM
-      ```
-- **Options**    
-   Edit the config files using command line options in order to maintain consistent formatting
-   - `--profile`: Selects a predefined processing profile of particular tools outputs and checks    
-      - Options: `step1`, `step2`, `allOff`
-   - `--tool/-t`: Enables only the specified tool(s) and disables all others. 
-      - List multiple tools in this format: `-t exiftool -t mediainfo -t ffprobe`
-   - `--on`: Enables the specified tool without affecting others.
-   - `--off`: Disables the specified tool without affecting others.
-   - `--signalflow/-sn`: Changes the expected values in the config.yaml file for the mkv tag `ENCODER_SETTINGS` according to NMAAHC custom metadata convention   
-      - Options: `JPC_AV_SVHS`, `BVH3100`
-   - `--filename/-fn`: Changes the expected values in the config.yaml for the input file naming convention
-      - Options: `jpc`, `bowser`
-   - To edit either fo the configs without running AV Spex on an input file use the `--dryrun/-dr` option
+         - FLAC
+         - PCM
+
+#### Options    
+Edit the config files using command line options in order to maintain consistent formatting
+- `--profile`: Selects a predefined processing profile of particular tools outputs and checks    
+   - Options: `step1`, `step2`, `allOff`
+- `--tool/-t`: Enables only the specified tool(s) and disables all others. 
+   - List multiple tools in this format: `-t exiftool -t mediainfo -t ffprobe`
+- `--on`: Enables the specified tool without affecting others.
+- `--off`: Disables the specified tool without affecting others.
+- `--signalflow/-sn`: Changes the expected values in the config.yaml file for the mkv tag `ENCODER_SETTINGS` according to NMAAHC custom metadata convention   
+   - Options: `JPC_AV_SVHS`, `BVH3100`
+- `--filename/-fn`: Changes the expected values in the config.yaml for the input file naming convention
+   - Options: `jpc`, `bowser`
+- To edit either fo the configs without running AV Spex on an input file use the `--dryrun/-dr` option
 
 ### qct-parse
    To check the QCTools report, AV Spex incorporates code from the open source tool [qct-parse](https://github.com/amiaopensource/qct-parse). qct-parse can be used to check for individual tags, profiles, or specific content.   
