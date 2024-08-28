@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "AV_Spex"
-version = "0.4.7"
+version = "0.4.8"
 description = "A Python project written for NMAAHC media conservation lab"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -19,7 +19,9 @@ dependencies = [
     "ruamel.yaml==0.18.6",
     "colorlog==6.7.0",
     "art==6.1",
-    "lxml==5.2.0"
+    "lxml==5.2.0",
+    "pandas==2.2.2",
+    "plotly==5.23.0"
 ]
 
 [project.urls]
