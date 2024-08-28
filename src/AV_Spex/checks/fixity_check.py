@@ -27,14 +27,14 @@ def check_fixity(directory, video_id, actual_checksum=None):
     checksum_files.sort(key=lambda x: x[1], reverse=True)
 
     if not checksum_files:
-        logger.error(f"Unable to validate fixity against previous md5 checksum. No file ending in '_checksums.md5' or '_fixity.txt' found.\n")
+        logger.error("Unable to validate fixity against previous md5 checksum. No file ending in '_checksums.md5' or '_fixity.txt' found.\n")
 
     video_file_path = os.path.join(directory, f'{video_id}.mkv')
     # If video file exists, then:
     if os.path.exists(video_file_path):   
         # If checksum has not yet been calculated, then:
         if not checksum_files and actual_checksum is None:
-            output_fixity(directory,video_file_path)
+            output_fixity(directory, video_file_path)
             return
         elif checksum_files and actual_checksum is None:
             # Calculate the MD5 checksum of the video file
@@ -59,7 +59,7 @@ def check_fixity(directory, video_id, actual_checksum=None):
             most_recent_checksum_date = file_date
 
         if actual_checksum != expected_checksum:
-            checksums_match = False 
+            checksums_match = False
             # collision_found = True # not currently using this, but may want to acknowledge mismatch, even if most recent checksum matches
 
     if checksums_match:

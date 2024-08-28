@@ -1,9 +1,8 @@
 import subprocess
 import os
 import sys
-from datetime import datetime
-import logging
 from ..utils.log_setup import logger
+
 
 def get_duration(video_path):
     command = [
@@ -17,13 +16,14 @@ def get_duration(video_path):
     duration = result.stdout.decode().strip()
     return duration
 
+
 def make_access_file(video_path, output_path):
     """Create access file using ffmpeg."""
-    
+
     logger.debug(f'Running ffmpeg on {os.path.basename(video_path)} to create access copy {os.path.basename(output_path)}')
 
     duration_str = get_duration(video_path)
-    
+
     ffmpeg_command = [
         'ffmpeg',
         '-n', '-vsync', '0',
@@ -33,7 +33,7 @@ def make_access_file(video_path, output_path):
         '-vf', 'yadif=1,format=yuv420p', '-crf', '18', '-preset', 'fast', '-maxrate', '1000k', '-bufsize', '1835k', 
         '-c:a', 'aac', '-strict', '-2', '-b:a', '192k', '-f', 'mp4', output_path
     ]
-    
+
     try:
         ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         while True:
@@ -57,6 +57,7 @@ def make_access_file(video_path, output_path):
             logger.error(f"ffmpeg stderr: {ffmpeg_stderr.strip()}")
     except Exception as e:
         logger.error(f"Error during ffmpeg process: {str(e)}")
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
