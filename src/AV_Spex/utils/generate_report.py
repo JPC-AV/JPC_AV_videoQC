@@ -3,13 +3,13 @@
 
 import csv
 import os
-os.environ["NUMEXPR_MAX_THREADS"] = "11"  #troubleshooting goofy numbpy related error "Note: NumExpr detected 11 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
-# NumExpr defaulting to 8 threads."
 import pandas as pd
 import plotly.graph_objs as go
 from base64 import b64encode
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+
+os.environ["NUMEXPR_MAX_THREADS"] = "11"  #troubleshooting goofy numbpy related error "Note: NumExpr detected 11 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8. # NumExpr defaulting to 8 threads."
+
 
 # Read CSV files and convert them to HTML tables
 def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999", match_color="#d2ffed", check_fail=False):
@@ -23,7 +23,7 @@ def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999"
     for cell in header:
         table_html += f'    <th>{cell}</th>\n'
     table_html += '  </tr>\n'
-    
+
     for row in rows[1:]:
         table_html += '  <tr>\n'
         for i, cell in enumerate(row):
@@ -41,10 +41,12 @@ def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999"
     table_html += '</table>\n'
     return table_html
 
+
 def read_text_file(text_file_path):
     with open(text_file_path, 'r') as file:
         return file.read()
-    
+
+
 def prepare_file_section(file_path, process_function=None):
     if file_path:
         if process_function:
@@ -57,12 +59,14 @@ def prepare_file_section(file_path, process_function=None):
         file_name = ''
     return file_content, file_name
 
+
 def parse_timestamp(timestamp_str):
     if not timestamp_str:
         return (9999, 99, 99, 99, 9999)  # Return a placeholder tuple for non-timestamp entries
     # Convert timestamp to a tuple of integers
     timestamp_tuple = tuple(map(int, timestamp_str.split(':')))
     return timestamp_tuple
+
 
 def parse_profile(profile_name):
     # Define a custom order for the profile names
@@ -72,16 +76,17 @@ def parse_profile(profile_name):
         "threshold_profile": 2, 
         "tag_check": 3
     }
-    
+
     for key in profile_order:
         if profile_name.startswith(key):
             return profile_order[key]
     return 99  # Default order if profile_name does not match any known profiles
 
+
 def find_qct_thumbs(report_directory):
     thumbs_dict = {}
     thumb_exports_dir = os.path.join(report_directory, 'ThumbExports')
-    
+
     if os.path.isdir(thumb_exports_dir):
         for file in os.listdir(thumb_exports_dir):
             file_path = os.path.join(thumb_exports_dir, file)
@@ -109,6 +114,7 @@ def find_qct_thumbs(report_directory):
         sorted_thumbs_dict[key] = thumbs_dict[key]
 
     return sorted_thumbs_dict
+
 
 def find_report_csvs(report_directory):
 
@@ -148,8 +154,8 @@ def find_report_csvs(report_directory):
                 elif "metadata_difference" in file:
                     difference_csv = file_path
 
-
     return qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv
+
 
 def find_qc_metadata(destination_directory):
 
@@ -171,7 +177,7 @@ def find_qc_metadata(destination_directory):
                     mediainfo_output_path = file_path
                 if "_mediaconch_output" in file:
                     mediaconch_csv = file_path
-                
+    
     if os.path.isdir(os.path.dirname(destination_directory)):
         parent_dir = os.path.dirname(destination_directory) 
         for file in os.listdir(parent_dir):
@@ -179,7 +185,8 @@ def find_qc_metadata(destination_directory):
             if file.endswith('fixity.txt'):
                 fixity_sidecar = file_path
 
-    return exiftool_output_path,ffprobe_output_path,mediainfo_output_path,mediaconch_csv,fixity_sidecar
+    return exiftool_output_path, ffprobe_output_path, mediainfo_output_path, mediaconch_csv, fixity_sidecar
+
 
 def summarize_failures(failure_csv_path):  # Change parameter to accept CSV file path
     """
@@ -205,7 +212,7 @@ def summarize_failures(failure_csv_path):  # Change parameter to accept CSV file
                 'tagValue': float(row['Tag Value']),  # Convert to float
                 'over': float(row['Threshold'])     # Convert to float
             })
-    
+
     # 1. Collect all unique tags and count their occurrences
     tag_counts = {}
     for info_list in failureInfo.values():
@@ -243,6 +250,7 @@ def summarize_failures(failure_csv_path):  # Change parameter to accept CSV file
         summary_dict[timestamp].append(info)
 
     return summary_dict
+
 
 def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbars_values_output, sorted_thumbs_dict):
 
@@ -285,7 +293,7 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
                 <p>{thumb_name_with_breaks}</p>
             '''
             break
-    
+
     # Create the complete HTML with the duration text and the thumbnail/barchart side-by-side
     colorbars_html = f'''
     <div style="display: flex; align-items: center; justify-content: center; background-color: #f5e9e3; padding: 10px;">
@@ -300,8 +308,9 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
     '''
 
     return colorbars_html
-    
-def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failureInfoSummary):
+
+
+def make_profile_piecharts(qctools_profile_check_output, sorted_thumbs_dict, failureInfoSummary):
 
     # Read the profile summary CSV, skipping the first two metadata lines
     profile_summary_df = pd.read_csv(qctools_profile_check_output, skiprows=3)
@@ -314,7 +323,7 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
     # Parse the total frames line
     _, total_frames = total_frames_line.split(',')
     total_frames = int(total_frames)
-    
+
     # Create pie charts for the profile summary
     profile_summary_pie_charts = []
     for index, row in profile_summary_df.iterrows():
@@ -334,7 +343,7 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
                         failed_frame_timestamps.append(timestamp)
                         failed_frame_values.append(info['tagValue'])
                         failed_frame_thresholds.append(info['over'])  # Store thresholds
-            
+
             # Create formatted failure summary string
             formatted_failures = "<br>".join(
                 f"<b>Timestamp: {timestamp}</b><br><b>Value:</b> {value}<br><b>Threshold:</b> {threshold}<br>" 
@@ -356,8 +365,6 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
             )])
             pie_fig.update_layout(title=f"{tag} - {percentage:.2f}% ({failed_frames} frames)", height=400, width=400,
                                 paper_bgcolor='#f5e9e3')
-            
-            # - the variable pie_fig is assigned to {pie_fig}")
 
             # Get Thumbnails
             thumbnail_html = ''
@@ -372,7 +379,7 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
                         <p style="margin-left: 10px;">{thumb_name_with_breaks}</p>
                     </div>
                     """
-            
+
             # Wrap everything in one div
             pie_chart_html = f"""
             <div style="display: flex; flex-direction: column; align-items: start; background-color: #f5e9e3; padding: 10px;"> 
@@ -400,6 +407,7 @@ def make_profile_piecharts(qctools_profile_check_output,sorted_thumbs_dict,failu
     '''
 
     return profile_summary_html
+
 
 def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, paper_bgcolor='#f5e9e3'):
     with open(qctools_content_check_output, 'r') as file:
@@ -452,12 +460,13 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
     return content_summary_html
 
-def write_html_report(video_id,report_directory,destination_directory,html_report_path):
+
+def write_html_report(video_id, report_directory, destination_directory, html_report_path):
 
     qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv = find_report_csvs(report_directory)
-    
-    exiftool_output_path,mediainfo_output_path,ffprobe_output_path,mediaconch_csv,fixity_sidecar = find_qc_metadata(destination_directory)
-    
+
+    exiftool_output_path, mediainfo_output_path, ffprobe_output_path, mediaconch_csv, fixity_sidecar = find_qc_metadata(destination_directory)
+
     # Initialize and create html from 
     mc_csv_html, mediaconch_csv_filename = prepare_file_section(mediaconch_csv, lambda path: csv_to_html_table(path, style_mismatched=False, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=True))
     diff_csv_html, difference_csv_filename = prepare_file_section(difference_csv, lambda path: csv_to_html_table(path, style_mismatched=True, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=False))
@@ -486,7 +495,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         failureInfoSummary_colorbars = summarize_failures(colorbars_eval_fails_csv_path)
     else:
         failureInfoSummary_colorbars = None
-    
+
     # Create graphs for all existing csv files
     if qctools_bars_eval_check_output and failureInfoSummary_colorbars:
         colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,thumbs_dict,failureInfoSummary_colorbars)
@@ -508,7 +517,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
         colorbars_html = make_color_bars_graphs(video_id,qctools_colorbars_duration_output,colorbars_values_output,thumbs_dict)
     else:
          colorbars_html = None
-    
+
     if qctools_profile_check_output and failureInfoSummary_profile:
         profile_summary_html = make_profile_piecharts(qctools_profile_check_output,thumbs_dict,failureInfoSummary_profile)
     else:
@@ -521,7 +530,7 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
             content_summary_html_list.append(content_summary_html)
     else:
         content_summary_html_list = None
-    
+
     # Get the absolute path of the script file
     script_path = os.path.dirname(os.path.abspath(__file__))
     # Determine the  path to the image file
@@ -638,13 +647,13 @@ def write_html_report(video_id,report_directory,destination_directory,html_repor
                 {content_summary_html}
             </div>
             """
-    
+
     if exiftool_output_path:
         html_template += f"""
         <h3>{exif_file_filename}</h3>
         <pre>{exif_file_content}</pre>
         """
-    
+
     if mediainfo_output_path:
         html_template += f"""
         <h3>{mi_file_filename}</h3>

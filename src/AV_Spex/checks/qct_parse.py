@@ -8,22 +8,15 @@
 # The original code from the qct-parse was written by Brendan Coates and Morgan Morel as part of the 2016 AMIA "Hack Day"
 # Summary of that event here: https://wiki.curatecamp.org/index.php/Association_of_Moving_Image_Archivists_%26_Digital_Library_Federation_Hack_Day_2016
 
-from lxml import etree    
-import gzip            
-import logging         
-import collections   
-import os                  
-import subprocess            
-import math    
-import shutil            
-import sys            
+from lxml import etree
+import gzip
+import os
+import subprocess
+import shutil
+import sys
 import re
 import operator
 import csv
-from ruamel.yaml import YAML
-from ruamel.yaml.compat import StringIO
-from statistics import median
-from datetime import datetime, timedelta
 import datetime as dt
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config            
@@ -367,7 +360,7 @@ def print_consecutive_durations(durations,qctools_check_output,contentFilter_nam
                         logger.info(start_time)
                         f.write(f"{start_time}\n")
                     if qct_parse['thumbExport']:
-                        printThumb(video_path,"thumbnail",contentFilter_name,startObj,thumbPath,"output",start_time)
+                        printThumb(video_path, "thumbnail", contentFilter_name, startObj, thumbPath, "output", start_time)
                     start_time = current_time
                     end_time = current_time
 
@@ -381,11 +374,11 @@ def print_consecutive_durations(durations,qctools_check_output,contentFilter_nam
                 f.write(f"{start_time}\n")
             logger.debug(f"")
             if qct_parse['thumbExport']:
-                printThumb(video_path,"thumbnail",contentFilter_name,startObj,thumbPath,"output",start_time)        
+                printThumb(video_path, "thumbnail", contentFilter_name, startObj, thumbPath, "output", start_time)
 
 
 # Modified version of detectBars for finding segments that meet all thresholds instead of any thresholds (like analyze does)
-def detectContentFilter(startObj,pkt,contentFilter_name,contentFilter_dict,qctools_check_output,framesList,qct_parse,thumbPath,video_path):
+def detectContentFilter(startObj, pkt, contentFilter_name, contentFilter_dict, qctools_check_output, framesList, qct_parse, thumbPath, video_path):
     """
     Checks values against thresholds of multiple values
 
@@ -966,7 +959,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                 if failureInfo:
                     save_failures_to_csv(failureInfo, colorbars_eval_fails_csv_path)
                 qctools_bars_eval_check_output = os.path.join(report_directory, "qct-parse_colorbars_eval_summary.csv")
-                printresults(profile,kbeyond,frameCount,overallFrameFail,qctools_bars_eval_check_output)
+                printresults(profile, kbeyond, frameCount, overallFrameFail, qctools_bars_eval_check_output)
                 logger.debug(f"qct-parse bars evaluation complete. qct-parse summary written to {qctools_bars_eval_check_output}\n")
         else:
             logger.critical(f"Cannot run color bars evaluation without running Bars Detection.")
