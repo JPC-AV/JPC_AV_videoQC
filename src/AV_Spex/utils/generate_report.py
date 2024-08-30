@@ -3,12 +3,11 @@
 
 import csv
 import os
+os.environ["NUMEXPR_MAX_THREADS"] = "11"  # troubleshooting goofy numbpy related error "Note: NumExpr detected 11 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8. # NumExpr defaulting to 8 threads."
 import pandas as pd
 import plotly.graph_objs as go
 from base64 import b64encode
 from ..utils.log_setup import logger
-
-os.environ["NUMEXPR_MAX_THREADS"] = "11"  #troubleshooting goofy numbpy related error "Note: NumExpr detected 11 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8. # NumExpr defaulting to 8 threads."
 
 
 # Read CSV files and convert them to HTML tables
@@ -491,7 +490,7 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
         failureInfoSummary_tags = None
 
     if colorbars_eval_fails_csv:
-        colorbars_eval_fails_csv_path =  os.path.join(report_directory, colorbars_eval_fails_csv)
+        colorbars_eval_fails_csv_path = os.path.join(report_directory, colorbars_eval_fails_csv)
         failureInfoSummary_colorbars = summarize_failures(colorbars_eval_fails_csv_path)
     else:
         failureInfoSummary_colorbars = None

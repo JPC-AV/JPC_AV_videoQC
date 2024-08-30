@@ -415,12 +415,12 @@ def main():
             if existing_video_hash is None or existing_audio_hash is None:
                 embed_fixity(video_path)
             else:
-                logger.critical(f"Existing stream hashes found!")
+                logger.critical("Existing stream hashes found!")
                 if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
-                    logger.critical(f'New stream hashes will be generated and old hashes will be overwritten!')
+                    logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
                     embed_fixity(video_path)
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
-                    logger.debug(f'Not writing stream hashes to MKV\n')
+                    logger.error('Not writing stream hashes to MKV\n')
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
                     # User input for handling existing stream hashes
                     # Directly lifted from this tutorial: https://stackabuse.com/bytes/handling-yes-no-user-input-in-python/

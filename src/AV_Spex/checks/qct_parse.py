@@ -190,7 +190,7 @@ def printThumb(video_path, tag, profile_name, startObj, thumbPath, tagValue, tim
         # logger.warning(f"Exporting thumbnail image of {baseName} to {os.path.basename(ffoutputFramePath)}\n")
         output = subprocess.Popen(ffmpegString, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     else:
-        print("Input video file not found. Ensure video file is in the same directory as the QCTools report and report file name contains video file extension.")
+        logger.critical("Input video file not found when attempting to create thumbnail for report. Ensure video file is in the '_qc_metadata' directory as the QCTools report and report file name contains video file extension.")
         exit()
     return
 
