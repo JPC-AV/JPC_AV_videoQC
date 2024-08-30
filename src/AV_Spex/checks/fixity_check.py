@@ -2,12 +2,12 @@ import os
 import sys
 import hashlib
 from datetime import datetime
-import logging
 from ..utils.log_setup import logger
+
 
 def check_fixity(directory, video_id, actual_checksum=None):
     fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity_check.txt')
-    
+
     # Store paths to checksum files
     checksum_files = []  
 
@@ -27,14 +27,14 @@ def check_fixity(directory, video_id, actual_checksum=None):
     checksum_files.sort(key=lambda x: x[1], reverse=True)
 
     if not checksum_files:
-        logger.error(f"Unable to validate fixity against previous md5 checksum. No file ending in '_checksums.md5' or '_fixity.txt' found.\n")
+        logger.error("Unable to validate fixity against previous md5 checksum. No file ending in '_checksums.md5' or '_fixity.txt' found.\n")
 
     video_file_path = os.path.join(directory, f'{video_id}.mkv')
     # If video file exists, then:
     if os.path.exists(video_file_path):   
         # If checksum has not yet been calculated, then:
         if not checksum_files and actual_checksum is None:
-            output_fixity(directory,video_file_path)
+            output_fixity(directory, video_file_path)
             return
         elif checksum_files and actual_checksum is None:
             # Calculate the MD5 checksum of the video file
@@ -42,7 +42,7 @@ def check_fixity(directory, video_id, actual_checksum=None):
     else:
         logger.critical(f'Video file not found: {video_file_path}')
         return
-        
+
     # initialize variables
     checksums_match = True  
     most_recent_checksum = None
@@ -59,7 +59,7 @@ def check_fixity(directory, video_id, actual_checksum=None):
             most_recent_checksum_date = file_date
 
         if actual_checksum != expected_checksum:
-            checksums_match = False 
+            checksums_match = False
             # collision_found = True # not currently using this, but may want to acknowledge mismatch, even if most recent checksum matches
 
     if checksums_match:
@@ -72,6 +72,7 @@ def check_fixity(directory, video_id, actual_checksum=None):
         result_file = open(fixity_result_file, 'w')
         print(f'Fixity check failed for {os.path.basename(video_file_path)} checksum read from .md5 file = {expected_checksum} checksum created from MKV file = {actual_checksum}\n', file = result_file)
         result_file.close()
+
 
 def output_fixity(source_directory, video_path):
     # Parse video_id from video file path
@@ -89,6 +90,7 @@ def output_fixity(source_directory, video_path):
     logger.debug(f'MD5 checksum written to {fixity_result_file}\n')
     return md5_checksum
 
+
 def read_checksum_from_file(file_path):
     with open(file_path, 'r') as checksum_file:
         content = checksum_file.read()
@@ -102,6 +104,7 @@ def read_checksum_from_file(file_path):
 
     logger.critical(f'md5 checksum not found in {file_path}\n')
     return None
+
 
 def hashlib_md5(filename):
     '''
@@ -142,6 +145,7 @@ def hashlib_md5(filename):
 
 # The above copyright notice and this permission notice shall be included in
 # all copies or substantial portions of the Software.
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

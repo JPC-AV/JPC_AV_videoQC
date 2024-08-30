@@ -1,10 +1,9 @@
-import os
-import sys
+import argparse
 from ruamel.yaml import YAML
 from ruamel.yaml.compat import StringIO
-import argparse
 from ..utils.find_config import config_path, command_config, yaml
 from ..utils.log_setup import logger
+
 
 # Function to apply profile changes
 def apply_profile(command_config, selected_profile):
@@ -27,6 +26,7 @@ def apply_profile(command_config, selected_profile):
     with open(command_config.command_yml, "w") as f:
         yaml.dump(command_dict, f)
 
+
 def apply_by_name(command_config, tool_names):
     apply_profile(command_config, profile_allOff)  # Turn everything off initially
 
@@ -42,6 +42,7 @@ def apply_by_name(command_config, tool_names):
 
     apply_profile(command_config, tool_profile)  # Apply the selective changes
 
+
 def toggle_on(command_config, tool_names):
 
     tool_profile = {"tools": {}}  # Initialize the tool_profile dictionary
@@ -55,6 +56,7 @@ def toggle_on(command_config, tool_names):
             logger.debug(f"{tool} set to 'on'")
 
     apply_profile(command_config, tool_profile)  # Apply the selective changes
+
 
 def toggle_off(command_config, tool_names):
 
@@ -70,10 +72,11 @@ def toggle_off(command_config, tool_names):
 
     apply_profile(command_config, tool_profile)  # Apply the selective changes
 
+
 def update_config(config_path, nested_key, value_dict):
     with open(config_path.config_yml, "r") as f:
         config_dict = yaml.load(f)
-    
+
     keys = nested_key.split('.')                # creates a list of keys from the input, for example 'ffmpeg_values.format.tags.ENCODER_SETTINGS'
     current_dict = config_dict                  # initializes current_dict as config.yaml, this var will be reset in the for loop below
     for key in keys[:-1]:                       # Iterating through the keys (except the last one)
@@ -88,17 +91,18 @@ def update_config(config_path, nested_key, value_dict):
         for k in list(current_dict[last_key].keys()):
             if k not in value_dict:
                 del current_dict[last_key][k]
-        
+
         # Create a new ordered dictionary based on value_dict
         ordered_dict = {k: value_dict[k] for k in value_dict}
-        
+
         # Replace the old dictionary with the ordered one
         current_dict[last_key].clear()
         current_dict[last_key].update(ordered_dict)
-        
+
         with open(config_path.config_yml, 'w') as y:
             yaml.dump(config_dict, y)
             logger.info(f'config.yaml updated to match profile {last_key}\n')
+
 
 # Function to save the current state of the command_config.yaml to a dictionary (profile)
 def save_current_profile(config):
@@ -110,6 +114,7 @@ def save_current_profile(config):
             current_profile = yaml.load(f)
     return current_profile
 
+
 # Function to save the current profile to a new YAML file
 def save_profile_to_file(config, new_file_path):
     current_profile = save_current_profile(config)
@@ -118,7 +123,8 @@ def save_profile_to_file(config, new_file_path):
             yaml.dump(current_profile, f)
         logger.info(f'Profile saved to {new_file_path}\n')
     else:
-        logger.critical(f'Unable to save command profile!\n')
+        logger.critical('Unable to save command profile!\n')
+
 
 profile_step1 = {
     "tools": {
@@ -295,9 +301,8 @@ def parse_arguments():
 
     return selected_profile
 
+
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":
     selected_profile = parse_arguments()
     apply_profile(command_config, selected_profile)
-
-

@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import logging          
-import os               
-import sys
+import logging
+import os
 import colorlog
 from datetime import datetime
-from colorlog import ColoredFormatter 
+from colorlog import ColoredFormatter
 
 # Much of this script is taken from the AMIA open source project loglog. More information here: https://github.com/amiaopensource/loglog
+
 
 def setup_logger(): 
     # Assigns getLogger function from imported module, creates logger 
@@ -60,6 +60,7 @@ def setup_logger():
     logger.addHandler(console_handler)
 
     return logger
+
 
 logger = setup_logger() 
 

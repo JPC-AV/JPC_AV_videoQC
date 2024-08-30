@@ -4,22 +4,19 @@
 import os
 import subprocess
 import sys
-import re
 import logging
-from ruamel.yaml import YAML
-from ruamel.yaml.compat import StringIO
 import csv
 import shutil
 import argparse
 import importlib.metadata
 import time
-from art import *
+from art import art, text2art
 from datetime import datetime
 
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
-from .utils.yaml_profiles import *
+from .utils import yaml_profiles
 from .utils.generate_report import write_html_report
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import check_filenames
@@ -31,6 +28,7 @@ from .checks.embed_fixity import extract_tags, extract_hashes, embed_fixity, val
 from .checks.make_access import make_access_file
 from .checks.qct_parse import run_qctparse
 
+
 def check_directory(source_directory, video_id):
     # Assuming DigitalGeneration is always prefixed with an underscore and is the last part before the file extension
     base_video_id = video_id.rsplit('_', 1)[0]  # Splits off the DigitalGeneration part
@@ -39,8 +37,9 @@ def check_directory(source_directory, video_id):
     if directory_name.startswith(base_video_id):
         logger.info(f'Directory name "{directory_name}" correctly starts with "{base_video_id}".\n')
     else:
-        logger.critical(f'Directory name "{directory_name}" does not correctly start with the expected "{base_video_id}" derived from the video ID "{video_id}".\n')
-    
+        logger.critical(f'Directory name "{directory_name}" does not correctly start with the expected "{base_video_id}" derived from the video ID "{video_id}".\n')    
+
+
 def make_qc_output_dir(source_directory, video_id):
     '''
     Creates output directory for metadata files
@@ -50,10 +49,11 @@ def make_qc_output_dir(source_directory, video_id):
 
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
-    
+   
     logger.debug(f'Metadata files will be written to {destination_directory}\n')
 
     return destination_directory
+
 
 def make_report_dir(source_directory, video_id):
     '''
@@ -65,10 +65,11 @@ def make_report_dir(source_directory, video_id):
     if os.path.exists(report_directory):
         shutil.rmtree(report_directory)
     os.makedirs(report_directory)
-    
+   
     logger.debug(f'Report files will be written to {report_directory}\n')
 
     return report_directory
+
 
 def run_command(command, input_path, output_type, output_path):
     '''
@@ -83,6 +84,7 @@ def run_command(command, input_path, output_type, output_path):
 
     logger.debug(f'Running command: {full_command}\n')
     subprocess.run(full_command, shell=True, env=env)
+
 
 def run_mediatrace_command(command, input_path):
     '''
@@ -100,6 +102,7 @@ def run_mediatrace_command(command, input_path):
 
     return output
 
+
 # Mediaconch needs its own function, because the command's flags and multiple inputs don't conform to the simple 3 part structure of the other commands
 def run_mediaconch_command(command, input_path, output_type, output_path):
     '''
@@ -111,16 +114,17 @@ def run_mediaconch_command(command, input_path, output_type, output_path):
 
     policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
     policy_path = os.path.join(config_path.config_dir, policy_file)
-    
+
     if not os.path.exists(policy_path):
         logger.critical(f'Policy file not found: {policy_file}\n')
     else:
         logger.debug(f'Using MediaConch policy {policy_file}\n')
-    
+
     full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
 
     logger.debug(f'Running command: {full_command}\n')
     subprocess.run(full_command, shell=True)
+
 
 def move_vrec_files(directory, video_id):
     vrecord_files_found = False
@@ -137,7 +141,7 @@ def move_vrec_files(directory, video_id):
             '.mkv.qctools.mkv',
             '.framemd5'
         ]
-    
+
         # Check if at least one expected file is in the vrecord directory
         if any(filename.endswith(ext) for ext in expected_files for filename in os.listdir(vrecord_directory)):
             logger.debug(f"Existing vrecord files found in {os.path.basename(directory)}/{os.path.basename(vrecord_directory)}\n")
@@ -158,14 +162,15 @@ def move_vrec_files(directory, video_id):
             # Move the file to the target directory
             new_path = os.path.join(vrecord_directory, filename)
             shutil.move(file_path, new_path)
-            #logger.debug(f'Moved vrecord file: {filename} to directory: {os.path.basename(vrecord_directory)}')
+            # logger.debug(f'Moved vrecord file: {filename} to directory: {os.path.basename(vrecord_directory)}')
             vrecord_files_found = True
-        
+
     # Check if any matching files were found to create the directory
     if vrecord_files_found:
         logger.debug(f"Files generated by vrecord found. '{video_id}_vrecord_metadata' directory created and files moved.")
     else:
         logger.debug("No vrecord files found.\n")
+
 
 def find_mkv(source_directory):
     # Create empty list to store any found mkv files
@@ -185,11 +190,12 @@ def find_mkv(source_directory):
     else:
         logger.critical("Error: No mkv video file found in the directory.")
         sys.exit(1)
-    
+
     return video_path
 
+
 def write_to_csv(diff_dict, tool_name, writer):
-     for key, values in diff_dict.items():
+    for key, values in diff_dict.items():
         actual_value, expected_value = values
         writer.writerow({
             'Metadata Tool': tool_name,
@@ -197,6 +203,7 @@ def write_to_csv(diff_dict, tool_name, writer):
             'Expected Value': expected_value,
             'Actual Value': actual_value
         })
+
 
 def parse_arguments():
     version_string = importlib.metadata.version('AV_Spex')
@@ -258,12 +265,12 @@ The scripts will confirm that the digital files conform to predetermined specifi
     selected_profile = None
     if args.profile:
         if args.profile == "step1":
-            selected_profile = profile_step1
+            selected_profile = yaml_profiles.profile_step1
         elif args.profile == "step2":
-            selected_profile = profile_step2
+            selected_profile = yaml_profiles.profile_step2
         elif args.profile == "off":
-            selected_profile = profile_allOff
-    
+            selected_profile = yaml_profiles.profile_allOff
+
     # Handle the selected tools
     tool_names = args.tool  
 
@@ -274,16 +281,16 @@ The scripts will confirm that the digital files conform to predetermined specifi
     sn_config_changes = None
     if args.signalflow:
         if args.signalflow == "JPC_AV_SVHS":
-            sn_config_changes = JPC_AV_SVHS
+            sn_config_changes = yaml_profiles.JPC_AV_SVHS
         elif args.signalflow == "BVH3100":
-            sn_config_changes = BVH3100
-    
+            sn_config_changes = yaml_profiles.BVH3100
+
     fn_config_changes = None
     if args.filename:
         if args.filename == "jpc":
-            fn_config_changes = JPCAV_filename
-        elif args.filename =="bowser":
-            fn_config_changes = bowser_filename
+            fn_config_changes = yaml_profiles.JPCAV_filename
+        elif args.filename == "bowser":
+            fn_config_changes = yaml_profiles.bowser_filename
 
     dry_run_only = args.dryrun
 
@@ -301,6 +308,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
 
     return source_directories, selected_profile, tool_names, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config, tools_on_names, tools_off_names
 
+
 def main():
     '''
     av-spex takes 1 input file or directory as an argument, like this:
@@ -308,21 +316,20 @@ def main():
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
-    avspex_icon = text2art("A-V Spex",font='5lineoblique')
+    avspex_icon = text2art("A-V Spex", font='5lineoblique')
     print(f'{avspex_icon}\n')
-    #time.sleep(1)
-    
+
     source_directories, selected_profile, tool_names, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config, tools_on_names, tools_off_names = parse_arguments()
 
     check_py_version()
-    
+
     for command in required_commands:
         if not check_external_dependency(command):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
 
     if selected_profile:
-        apply_profile(command_config, selected_profile)
+        yaml_profiles.apply_profile(command_config, selected_profile)
         logger.info(f'command_config.yaml updated to match selected tool profile\n')
 
     if tool_names and selected_profile:
@@ -332,50 +339,50 @@ def main():
         logger.critical(f"Both 'on' option and individual tools selected! Cannot use '-t'/-tool' with '--on'. Exiting...")
         sys.exit(1)
     elif tool_names:
-        apply_by_name(command_config, tool_names)
+        yaml_profiles.apply_by_name(command_config, tool_names)
 
     if tools_on_names:
-        toggle_on(command_config, tools_on_names)
+        yaml_profiles.toggle_on(command_config, tools_on_names)
 
     if tools_off_names:
-        toggle_off(command_config, tools_off_names)
+        yaml_profiles.toggle_off(command_config, tools_off_names)
 
     if sn_config_changes:
-        update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
-        update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
+        yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+        yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
 
     if fn_config_changes:
-        update_config(config_path, 'filename_values', fn_config_changes)
+        yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)
 
     if save_config_type:
-        save_profile_to_file(save_config_type, user_profile_config)
+        yaml_profiles.save_profile_to_file(save_config_type, user_profile_config)
 
     if dry_run_only:
-        logger.critical(f"Dry run selected. Exiting now.")
+        logger.critical("Dry run selected. Exiting now.")
         sys.exit(1)
 
     # Reload the dictionaries if the profile has been applied
     config_path.reload()
     command_config.reload()
-    
+
     check_filenames(source_directories)
 
     overall_start_time = time.time()
-    
+
     for source_directory in source_directories:
         dir_start_time = time.time()
 
         source_directory = os.path.normpath(source_directory)
         # sanitize user input directory path
-        
+
         video_path = find_mkv(source_directory)
 
         tape_icon = art('cassette1')
 
         print(f'\n{tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}\n')
-    
+
         logger.warning(f'Now processing {video_path}\n')
-        
+
         # outputs video_id (i.e. 'JPC_AV_05000')
         video_id = os.path.splitext(os.path.basename(video_path))[0]
 
@@ -405,25 +412,25 @@ def main():
                 existing_video_hash = None 
                 existing_audio_hash = None
             # Check if VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags exists
-            if existing_video_hash is None or existing_audio_hash is None :
+            if existing_video_hash is None or existing_audio_hash is None:
                 embed_fixity(video_path)
             else:
-                logger.critical(f"Existing stream hashes found!")
+                logger.critical("Existing stream hashes found!")
                 if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
-                    logger.critical(f'New stream hashes will be generated and old hashes will be overwritten!')
+                    logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
                     embed_fixity(video_path)
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
-                    logger.debug(f'Not writing stream hashes to MKV\n')
+                    logger.error('Not writing stream hashes to MKV\n')
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
-                # User input for handling existing stream hashes
-                # Directly lifted from this tutorial: https://stackabuse.com/bytes/handling-yes-no-user-input-in-python/
+                    # User input for handling existing stream hashes
+                    # Directly lifted from this tutorial: https://stackabuse.com/bytes/handling-yes-no-user-input-in-python/
                     while True:
                         user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
                         if user_input.lower() in ["yes", "y"]:
                             embed_fixity(video_path)
                             break
                         elif user_input.lower() in ["no", "n"]:
-                            logger.debug(f'Not writing stream hashes to MKV')
+                            logger.debug('Not writing stream hashes to MKV')
                             break
                         else:
                             print("Invalid input. Please enter yes/no.")
@@ -431,18 +438,18 @@ def main():
         # Validate stream hashes
         if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
             validate_embedded_md5(video_path)
-        
+
         # Initialize md5_checksum variable, so if it is not assigned in output_fixity, it is 'None' if run in check_fixity
         md5_checksum = None 
 
         # Create checksum for video file output results to '{video_id}_YYYY_MM_DD_fixity.txt' 
         if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
             md5_checksum = output_fixity(source_directory, video_path)
-        
+
         # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to '{video_id}_YYYY_MM_DD_fixity_check.txt' 
         if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
             check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
-        
+
         # Run mediaconch on the video file and save the output to a csv file
         mediaconch_output_path = None
         # need to initialize path for report
@@ -456,9 +463,9 @@ def main():
                 mc_header = next(reader)  # Get the header row
                 mc_values = next(reader)  # Get the values row
 
-                 # Initialize a flag to track if any failures are found
+                # Initialize a flag to track if any failures are found
                 found_failures = False
-                
+
                 for mc_field, mc_value in zip(mc_header, mc_values):
                     if mc_value == "fail":
                         # If this is the first failure, print the initial message
@@ -470,14 +477,14 @@ def main():
                 if not found_failures:
                     logger.info(f"MediaConch policy passed\n")
                 else:
-                    logger.debug("") # adding empty line after mediaconch results, if there are failures
+                    logger.debug("")  # adding empty line after mediaconch results, if there are failures
 
         # Initiate dictionaries for storing differences between actual values and expected values
         exiftool_differences = None
         mediainfo_differences = None
         mediatrace_differences = None
         ffprobe_differences = None
-        
+
         # Run exiftool, mediainfo and ffprobe using the 'run_command' function
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
         if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
@@ -495,7 +502,7 @@ def main():
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
         if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
             run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
-        
+
         if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             mediainfo_differences = parse_mediainfo(mediainfo_output_path)
@@ -504,7 +511,7 @@ def main():
         if not os.path.isfile(mediainfo_output_path):
             mediainfo_output_path = None
             # reset variable if no output is created, so that it won't print in the report
-            
+
         mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
         if command_config.command_dict['tools']['mediatrace']['run_mediatrace'] == 'yes':
             logger.debug(f"Creating MediaTrace XML file to check custom MKV Tag metadata fields:")
@@ -527,7 +534,7 @@ def main():
         if not os.path.isfile(ffprobe_output_path):
             ffprobe_output_path = None
             # reset variable if no output is created, so that it won't print in the report
-        
+
         # Create 'report directory' for csv files in html report
         report_directory = make_report_dir(source_directory, video_id) 
         diff_csv_path = None
@@ -560,7 +567,7 @@ def main():
         qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
         if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
             run_command('qcli -i', video_path, '-o', qctools_output_path)
-            logger.debug(f'') # adding a new line under qcli output for cleaner terminal output
+            logger.debug('')  # adding a new line under qcli output for cleaner terminal output
 
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
             if not os.path.isfile(qctools_output_path):
@@ -570,20 +577,20 @@ def main():
                 run_qctparse(video_path, qctools_output_path, report_directory)
         else:
             qctools_check_output = None
-        
+
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
         if command_config.command_dict['outputs']['access_file'] == 'yes':
             if os.path.isfile(access_output_path):
                 logger.critical(f"Access file already exists, not running ffmpeg")
             else:
                 make_access_file(video_path, access_output_path)
-        
+
         if command_config.command_dict['outputs']['report'] == 'yes':
             html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
             write_html_report(video_id,report_directory,destination_directory,html_report_path)
-            
+
         logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
-        
+
         ascii_video_id = text2art(video_id, font='tarty2')
 
         logger.warning(f'Processing complete:{ascii_video_id}\n')
@@ -594,19 +601,20 @@ def main():
         formatted_total_time = time.strftime("%H:%M:%S", time.gmtime(dir_total_time))
 
         logger.info(f'Process time for {video_id}: time start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; total time: {formatted_total_time}')
-        
+
         print(f'\n{tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}\n')
 
         time.sleep(1)
 
     nmaahc_icon = text2art("nmaahc",font='tarty1')
     print(f'{nmaahc_icon}\n')
-    
+
     logger.warning(f'All files processed!\n')
     overall_end_time = time.time()
     overall_total_time = overall_end_time - overall_start_time
     formatted_overall_time = time.strftime("%H:%M:%S", time.gmtime(overall_total_time))
     logger.info(f"Overall processing time for all directories: {formatted_overall_time}\n")
+
 
 if __name__ == "__main__":
     main()

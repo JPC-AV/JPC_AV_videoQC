@@ -6,6 +6,7 @@ import sys
 import logging
 from ..utils.log_setup import logger
 
+
 def get_total_frames(video_path):
     command = [
         'ffprobe',
@@ -20,13 +21,14 @@ def get_total_frames(video_path):
     total_frames = int(result.stdout.decode().strip())
     return total_frames
 
+
 def make_stream_hash(video_path):
     """Calculate MD5 checksum of video and audio streams using ffmpeg."""
-    
+
     total_frames = get_total_frames(video_path)
     video_hash = None
     audio_hash = None
-    
+
     ffmpeg_command = [
         'ffmpeg',
         '-hide_banner', '-progress', '-', '-nostats', '-loglevel', 'error',
@@ -36,7 +38,7 @@ def make_stream_hash(video_path):
         '-hash', 'md5',
         '-'
     ]
-    
+
     ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     while True:
         ff_output = ffmpeg_process.stdout.readline()
@@ -63,10 +65,12 @@ def make_stream_hash(video_path):
 
     return video_hash, audio_hash
 
+
 def extract_tags(video_path):
     command = f"mkvextract tags {video_path}"
     result = subprocess.run(command, capture_output=True, text=True, shell=True)
     return result.stdout
+
 
 def add_stream_hash_tag(xml_tags, video_hash, audio_hash):
     root = ET.fromstring(xml_tags)
@@ -114,12 +118,14 @@ def add_stream_hash_tag(xml_tags, video_hash, audio_hash):
 
     return ET.tostring(root, encoding="unicode")
 
+
 def write_tags_to_temp_file(xml_tags):
     # Create a temporary XML file
     with tempfile.NamedTemporaryFile(mode='w+', suffix=".xml", delete=False) as temp_file:
         temp_file.write(xml_tags)
         temp_file_path = temp_file.name
     return temp_file_path
+
 
 def write_tags_to_mkv(mkv_file, temp_xml_file):
     command = f'mkvpropedit --tags "global:{temp_xml_file}" "{mkv_file}"'
@@ -133,6 +139,7 @@ def write_tags_to_mkv(mkv_file, temp_xml_file):
         logger.info(f'Running mkvpropedit:\n{modified_output}')  # Or do something else with the modified output
     if stderr:
         logger.critical(f"Running mkvpropedit:\n{stderr.decode('utf-8')}")  # Print any errors if they occur
+
 
 def extract_hashes(xml_tags):
     video_hash = None
@@ -158,6 +165,7 @@ def extract_hashes(xml_tags):
 
     return video_hash, audio_hash
 
+
 def compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash):
     if existing_video_hash == video_hash:
         logger.info("Video hashes match.")
@@ -169,12 +177,13 @@ def compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_h
     else:
         logger.critical(f"Audio hashes do not match. MD5 stored in MKV file: {audio_hash} Generated MD5: {existing_audio_hash}\n")
 
+
 def embed_fixity(video_path):
 
     # Make md5 of video/audio stream
-    logger.debug(f'Generating video and audio stream hashes. This may take a moment...')
+    logger.debug('Generating video and audio stream hashes. This may take a moment...')
     video_hash, audio_hash = make_stream_hash(video_path)
-    logger.debug('') # add space after stream hash output
+    logger.debug('')  # add space after stream hash output
     logger.info(f'Video hash = {video_hash}\nAudio hash = {audio_hash}\n')
 
     # Extract existing tags
@@ -184,7 +193,7 @@ def embed_fixity(video_path):
     if existing_tags:
         updated_tags = add_stream_hash_tag(existing_tags, video_hash, audio_hash)
     else:
-        logger.critical(f"mkvextract unable to extract MKV tags! Unable to embed stream hashes.\n")
+        logger.critical("mkvextract unable to extract MKV tags! Unable to embed stream hashes.\n")
         return
 
     # Write updated tags to a temporary XML file
@@ -197,9 +206,10 @@ def embed_fixity(video_path):
     # Remove the temporary XML file
     os.remove(temp_xml_file)
 
+
 def validate_embedded_md5(video_path):
 
-    logger.debug(f'Extracting existing video and audio stream hashes')
+    logger.debug('Extracting existing video and audio stream hashes')
     existing_tags = extract_tags(video_path)
     if existing_tags:
         existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
@@ -207,24 +217,25 @@ def validate_embedded_md5(video_path):
         if existing_video_hash is not None:
             logger.info(f'Video stream md5 found: {existing_video_hash}')
         else:
-            logger.warning(f'No video stream hash found')
+            logger.warning('No video stream hash found')
 
         if existing_audio_hash is not None:
             logger.info(f'Audio stream md5 found: {existing_audio_hash}\n')
         else:
-            logger.warning(f'No audio stream hash found\n')
-        logger.debug(f'Generating video and audio stream hashes. This may take a moment...')
+            logger.warning('No audio stream hash found\n')
+        logger.debug('Generating video and audio stream hashes. This may take a moment...')
         video_hash, audio_hash = make_stream_hash(video_path)
         logger.debug(f"\n")
-        logger.debug(f'Validating stream fixity\n')
+        logger.debug('Validating stream fixity\n')
         compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
     else:
-        logger.critical(f"mkvextract unable to extract MKV tags! Cannot validate stream hashes.\n")    
+        logger.critical("mkvextract unable to extract MKV tags! Cannot validate stream hashes.\n")    
+
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-            print("Usage: python embed_fixity.py <mkv_file>")
-            sys.exit(1)
+        print("Usage: python embed_fixity.py <mkv_file>")
+        sys.exit(1)
     file_path = sys.argv[1]
     if not os.path.isfile(file_path):
         print(f"Error: {file_path} is not a valid file.")

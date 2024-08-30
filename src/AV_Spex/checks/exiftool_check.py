@@ -3,9 +3,9 @@
 
 import os
 import sys
-import logging
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
+
 
 def parse_exiftool(file_path):
     '''
@@ -22,18 +22,18 @@ def parse_exiftool(file_path):
         return
 
     with open(file_path, 'r') as file:
-    # open exiftool text file as variable "file"
+        # open exiftool text file as variable "file"
         lines = file.readlines()
         # define variable 'lines' as all individual lines in file (to be parsed in next "for loop")
-    
+
     exif_data = {}
-    
+
     for line in lines:
-    # for each line in exiftool text file
+        # for each line in exiftool text file
         line = line.strip()
         # strips line of blank space with python function strip()
         key, value = [x.strip() for x in line.split(":", 1)]
-        #assign variable "key" to string before ":" and variable "value" to string after ":"
+        # assign variable "key" to string before ":" and variable "value" to string after ":"
         exif_data[key] = value
         # value is matched to the key, in a key:value pair
 
@@ -45,28 +45,29 @@ def parse_exiftool(file_path):
     exiftool_differences = {}
     # Create empty list, "exiftool_differences"
     for expected_key, expected_value in expected_exif_values.items():
-    # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
+        # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
         if expected_key in exif_data:
-        # if the key in the dictionary "General"
+            # if the key in the dictionary "General"
             actual_value = exif_data[expected_key]
             # assigns the variable "actual_value" to the value that matches the key in the dictionary "General"
             # I'm not sure if this should be "key" or "expected_key" honestly. Perhaps there should be an additional line for if key = expected_key or something?
             if actual_value not in expected_value:
-            # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
+                # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
                 exiftool_differences[expected_key] = [actual_value, expected_value]
 
     if not exiftool_differences:
-    # if the list "exiftool_differences" is empty, then
-        logger.info(f"All specified fields and values found in the Exiftool output.\n")
+        # if the list "exiftool_differences" is empty, then
+        logger.info("All specified fields and values found in the Exiftool output.\n")
     else:
-    # if the list "exiftool_differences" is not empty, then
+        # if the list "exiftool_differences" is not empty, then
         logger.critical("Some specified Exiftool fields or values are missing or don't match:")
         for exif_key, values in exiftool_differences.items():
             actual_value, expected_value = values
             logger.critical(f"Metadata field {exif_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
-        logger.debug(f"") # adding a space after results if there are failures
+        logger.debug("")  # adding a space after results if there are failures
 
     return exiftool_differences
+
 
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":
