@@ -56,7 +56,7 @@ def parse_frame_data(startObj, pkt):
                 frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
                 for t in list(elem):
                     if elem.attrib['media_type'] == "audio":
-                        keySplit = t.attrib['key'].replace('lavfi.astats.', '')                      # split the names 
+                        keySplit = t.attrib['key'].replace('lavfi.astats.', '')  # split the names
                         if '.' in keySplit:
                             # Split the string at the period and join with an underscore
                             audio_keyParts = keySplit.split('.')
@@ -66,11 +66,11 @@ def parse_frame_data(startObj, pkt):
                             # Use the cleaned line as the keyName if no period is present
                             keyName = keySplit
                     elif elem.attrib['media_type'] == "video":
-                        keySplit = t.attrib['key'].split(".")                       # split the names by dots 
-                        keyName = str(keySplit[-1])                                 # get just the last word for the key name
-                        if len(keyName) == 1:                                        # if it's psnr or mse, keyName is gonna be a single char
-                            keyName = '.'.join(keySplit[-2:])                        # full attribute made by combining last 2 parts of split with a period in btw
-                        frameDict[keyName] = t.attrib['value']            
+                        keySplit = t.attrib['key'].split(".")       # split the names by dots
+                        keyName = str(keySplit[-1])                 # get just the last word for the key name
+                        if len(keyName) == 1:                       # if it's psnr or mse, keyName is gonna be a single char
+                            keyName = '.'.join(keySplit[-2:])       # full attribute made by combining last 2 parts of split with a period in btw
+                        frameDict[keyName] = t.attrib['value']
                 framesList.append(frameDict)
             elem.clear()
 
@@ -109,7 +109,7 @@ def dts2ts(frame_pkt_dts_time):
         secondsStr = secondsStr + "0"
     timeStampString = hours + ":" + minutes + ":" + secondsStr
     return timeStampString
-    
+
 
 # finds stuff over/under threshold
 def threshFinder(qct_parse, video_path, inFrame, startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo):
@@ -192,7 +192,7 @@ def printThumb(video_path, tag, profile_name, startObj, thumbPath, tagValue, tim
     else:
         print("Input video file not found. Ensure video file is in the same directory as the QCTools report and report file name contains video file extension.")
         exit()
-    return    
+    return
 
 
 # detect bars    
@@ -865,7 +865,6 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                     pkt = match.group()
                     break
 
-
     # create framesList
     framesList = parse_frame_data(startObj, pkt)
 
@@ -922,15 +921,15 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         durationEnd = ""                            # if bar detection is turned on then we have to calculate this
         logger.debug(f"Starting Bars Detection on {baseName}")
         qctools_colorbars_duration_output = os.path.join(report_directory, "qct-parse_colorbars_durations.csv")
-        durationStart, durationEnd, barsStartString, barsEndString = detectBars(pkt,durationStart,durationEnd,framesList)
+        durationStart, durationEnd, barsStartString, barsEndString = detectBars(pkt, durationStart, durationEnd, framesList)
         if durationStart == "" and durationEnd == "":
             logger.error("No color bars detected\n")
-            print_bars_durations(qctools_colorbars_duration_output,barsStartString,barsEndString)
+            print_bars_durations(qctools_colorbars_duration_output, barsStartString, barsEndString)
         if barsStartString and barsEndString:
-            print_bars_durations(qctools_colorbars_duration_output,barsStartString,barsEndString)
+            print_bars_durations(qctools_colorbars_duration_output, barsStartString, barsEndString)
             if qct_parse['thumbExport']:
                 barsStampString = dts2ts(durationStart)
-                printThumb(video_path,"bars_found","color_bars_detection",startObj,thumbPath,"first_frame",barsStampString)
+                printThumb(video_path, "bars_found", "color_bars_detection", startObj,thumbPath, "first_frame", barsStampString)
 
     ######## Iterate Through the XML for Bars Evaluation ########
     if qct_parse['evaluateBars']:
@@ -938,9 +937,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         if qct_parse['barsDetection'] and durationStart == "" and durationEnd == "":
             logger.critical(f"Cannot run color bars evaluation - no color bars found.\n")
         elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
-            maxBarsDict = evalBars(pkt,durationStart,durationEnd,framesList)
+            maxBarsDict = evalBars(pkt, durationStart, durationEnd, framesList)
             if maxBarsDict is None:
-                logger.critical(f"Something went wrong - Cannot run evaluate color bars\n")
+                logger.critical("Something went wrong - Cannot run evaluate color bars\n")
             else:
                 logger.debug(f"Starting qct-parse color bars evaluation on {baseName}\n")
                 # make maxBars vs smpte bars csv
@@ -962,7 +961,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                 printresults(profile, kbeyond, frameCount, overallFrameFail, qctools_bars_eval_check_output)
                 logger.debug(f"qct-parse bars evaluation complete. qct-parse summary written to {qctools_bars_eval_check_output}\n")
         else:
-            logger.critical(f"Cannot run color bars evaluation without running Bars Detection.")
+            logger.critical("Cannot run color bars evaluation without running Bars Detection.")
 
     logger.info(f"qct-parse finished processing file: {baseName}.qctools.xml.gz \n")
 
