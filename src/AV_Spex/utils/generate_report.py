@@ -146,15 +146,17 @@ def find_report_csvs(report_directory):
                     elif "qct-parse_profile_summary" in file:
                         qctools_profile_check_output = file_path
                     elif "qct-parse_profile_failures" in file:
-                        profile_fails_csv = file
+                        profile_fails_csv = file_path
+                    elif "qct-parse_tags_summary.csv" in file:
+                        tags_check_output = file_path
                     elif "qct-parse_tags_failures" in file:
-                        tag_fails_csv = file
+                        tag_fails_csv = file_path
                     elif "qct-parse_colorbars_eval_failures" in file:
-                        colorbars_eval_fails_csv = file
+                        colorbars_eval_fails_csv = file_path
                 elif "metadata_difference" in file:
                     difference_csv = file_path
 
-    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv
+    return qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tags_check_output, tag_fails_csv, colorbars_eval_fails_csv, difference_csv
 
 
 def find_qc_metadata(destination_directory):
@@ -463,7 +465,7 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
 def write_html_report(video_id, report_directory, destination_directory, html_report_path):
 
-    qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tag_fails_csv, colorbars_eval_fails_csv, difference_csv = find_report_csvs(report_directory)
+    qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tags_check_output, tag_fails_csv, colorbars_eval_fails_csv, difference_csv = find_report_csvs(report_directory)
 
     exiftool_output_path, mediainfo_output_path, ffprobe_output_path, mediaconch_csv, fixity_sidecar = find_qc_metadata(destination_directory)
 
@@ -530,6 +532,11 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
             content_summary_html_list.append(content_summary_html)
     else:
         content_summary_html_list = None
+
+    if tags_check_output and failureInfoSummary_tags:
+        tags_summary_html = make_profile_piecharts(tags_check_output,thumbs_dict,failureInfoSummary_tags)
+    else:
+        tags_summary_html = None
 
     # Get the absolute path of the script file
     script_path = os.path.dirname(os.path.abspath(__file__))
@@ -636,6 +643,14 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
         <h3>qct-parse Profile Summary</h3>
         <div style="white-space: nowrap;">
             {profile_summary_html}
+        </div>
+        """
+    
+    if tags_summary_html:
+        html_template += f"""
+        <h3>qct-parse Tag Check Summary</h3>
+        <div style="white-space: nowrap;">
+            {tags_summary_html}
         </div>
         """
 

@@ -540,13 +540,11 @@ def main():
         diff_csv_path = None
         # need to initialize path for report
         if command_config.command_dict['outputs']['report'] == 'yes':
-            if exiftool_differences and mediainfo_differences and ffprobe_differences and mediatrace_differences is None:
-                logger.info(f"All specified metadata fields and values found, no CSV report written")
-            else:
+            # if any of the 'differences' lists are not None, then::
+            if None not in (exiftool_differences, mediainfo_differences, ffprobe_differences, mediatrace_differences):
                 # Create CSV for storing differences between expected metadata values and actual values
                 csv_name = video_id + '_' + 'metadata_difference'
                 diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
-
                 # Open CSV file in write mode
                 with open(diff_csv_path, 'w', newline='') as diffs_csv:
                     # Define CSV header
@@ -562,6 +560,8 @@ def main():
                         write_to_csv(mediatrace_differences, 'mediatrace', writer)  
                     if ffprobe_differences:
                         write_to_csv(ffprobe_differences, 'ffprobe', writer)
+            else:
+                logger.info(f"All specified metadata fields and values found, no CSV report written\n")
 
         qctools_ext = command_config.command_dict['outputs']['qctools_ext']
         qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
