@@ -49,7 +49,7 @@ def make_qc_output_dir(source_directory, video_id):
 
     if not os.path.exists(destination_directory):
         os.makedirs(destination_directory)
-   
+
     logger.debug(f'Metadata files will be written to {destination_directory}\n')
 
     return destination_directory
@@ -65,7 +65,7 @@ def make_report_dir(source_directory, video_id):
     if os.path.exists(report_directory):
         shutil.rmtree(report_directory)
     os.makedirs(report_directory)
-   
+
     logger.debug(f'Report files will be written to {report_directory}\n')
 
     return report_directory
@@ -224,14 +224,14 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         action='append',  # Allow multiple tool selections
                         help="Select individual tools to enable - turns all other tools off") 
     parser.add_argument("--on", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
-                        action='append',  
+                        action='append',
                         help="Select specific tools to turn on") 
     parser.add_argument("--off", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
-                        action='append',  
+                        action='append',
                         help="Select specific tools to turn off") 
-    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
-    parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
-    parser.add_argument("-sp","--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference. Select config or command: --saveprofile command")
+    parser.add_argument("-sn", "--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
+    parser.add_argument("-fn", "--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
+    parser.add_argument("-sp", "--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference.")
     parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
     parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
     # make "turn off" which toggles checks on and leaves everything else the same

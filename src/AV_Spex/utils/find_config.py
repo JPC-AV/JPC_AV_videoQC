@@ -1,6 +1,5 @@
 import os
 from ruamel.yaml import YAML
-# from ..utils.log_setup import logger
 
 yaml = YAML()
 yaml.preserve_quotes = True

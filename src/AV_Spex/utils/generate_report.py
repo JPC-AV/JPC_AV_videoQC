@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import csv
 import os
 os.environ["NUMEXPR_MAX_THREADS"] = "11"  # troubleshooting goofy numbpy related error "Note: NumExpr detected 11 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8. # NumExpr defaulting to 8 threads."
+
+import csv
 import pandas as pd
 import plotly.graph_objs as go
 from base64 import b64encode
@@ -176,7 +177,7 @@ def find_qc_metadata(destination_directory):
                     mediainfo_output_path = file_path
                 if "_mediaconch_output" in file:
                     mediaconch_csv = file_path
-    
+
     if os.path.isdir(os.path.dirname(destination_directory)):
         parent_dir = os.path.dirname(destination_directory) 
         for file in os.listdir(parent_dir):
@@ -617,13 +618,13 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
         <h3>{difference_csv_filename}</h3>
         {diff_csv_html}
         """
-    
+
     if colorbars_html:
         html_template += f"""
         <h3>SMPTE Colorbars vs {video_id} Colorbars</h3>
         {colorbars_html}
         """
-    
+
     if colorbars_eval_html:
         html_template += f"""
         <h3>Values relative to colorbar's thresholds</h3>
