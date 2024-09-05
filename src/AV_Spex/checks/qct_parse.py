@@ -31,7 +31,6 @@ operator_mapping = {
 # init variable for config list of QCTools tags
 fullTagList = config_path.config_dict['qct-parse']['fullTagList']
 
-
 def parse_frame_data(startObj, pkt):
     '''
     Parses the XML file and extracts frame data into a list of dictionaries.
@@ -173,6 +172,8 @@ def printThumb(video_path, tag, profile_name, startObj, thumbPath, tagValue, tim
     if os.path.isfile(inputVid):
         baseName = os.path.basename(startObj)
         baseName = baseName.replace(".qctools.xml.gz", "")
+        if baseName.endswith(".mkv"):
+            baseName = baseName.replace(".mkv", "")
         outputFramePath = os.path.join(thumbPath, baseName + "." + profile_name + "." + tag + "." + str(tagValue) + "." + timeStampString + ".png")
         ffoutputFramePath = outputFramePath.replace(":", ".")
         # for windows we gotta see if that first : for the drive has been replaced by a dot and put it back
@@ -824,16 +825,37 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     ###### Initialize variables ######
     qct_parse = command_config.command_dict['tools']['qct-parse']
 
-    startObj = qctools_output_path
+    qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+
+    if qctools_ext.lower().endswith('mkv'):
+        # Get the current PATH environment variable
+        env = os.environ.copy()
+        env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
+
+        report_file_output = qctools_output_path.replace(".qctools.mkv", ".qctools.xml.gz")
+        
+        # Run ffmpeg command to extract xml.gz report
+        full_command = f'ffmpeg -dump_attachment:t:0 {report_file_output} -i {qctools_output_path}'
+
+        logger.debug(f'Running command: {full_command}\n')
+        subprocess.run(full_command, shell=True, env=env)
+
+        if os.path.isfile(report_file_output):
+            startObj = report_file_output
+        else:
+            logger.critical(f'Unable to extract XML from QCTools mkv report file\n')
+            startObj = None
+            return
+    else:
+        startObj = qctools_output_path
+
+    # Set parentDir and baseName
+    parentDir = os.path.dirname(startObj)
+    baseName = (os.path.basename(startObj)).split('.')[0]
 
     # Initialize thumbExport delay, will be updated per use case
     thumbDelay = 9000
     thumbExportDelay = thumbDelay
-
-    # Set parentDir and baseName
-    parentDir = os.path.dirname(startObj)
-    baseName = os.path.basename(startObj)
-    baseName = baseName.replace(".qctools.xml.gz", "")
 
     # initialize the start and end duration times variables
     durationStart = 0
@@ -963,7 +985,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         else:
             logger.critical("Cannot run color bars evaluation without running Bars Detection.")
 
-    logger.info(f"qct-parse finished processing file: {baseName}.qctools.xml.gz \n")
+    logger.info(f"qct-parse finished processing file: {os.path.basename(startObj)} \n")
 
     return
 
