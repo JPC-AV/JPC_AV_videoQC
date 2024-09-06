@@ -825,18 +825,31 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     qctools_ext = command_config.command_dict['outputs']['qctools_ext']
 
     if qctools_ext.lower().endswith('mkv'):
-        # Get the current PATH environment variable
-        env = os.environ.copy()
-        env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
 
         report_file_output = qctools_output_path.replace(".qctools.mkv", ".qctools.xml.gz")
-        
-        # Run ffmpeg command to extract xml.gz report
-        # Keeping -loglevel panic instead of just capturing all of the output to retain ffmpeg's built in "overwrite y/n" option
-        full_command = f'ffmpeg -hide_banner -loglevel panic -dump_attachment:t:0 {report_file_output} -i {qctools_output_path}'
 
-        logger.debug(f'Running command: {full_command}\n')
-        subprocess.run(full_command, shell=True, env=env)
+        if os.path.isfile(report_file_output):
+            while True:
+                user_input = input(f"The file {os.path.basename(report_file_output)} already exists. \nExtract xml.gz from {os.path.basename(qctools_output_path)} and overwrite existing file? \n(y/n):\n")
+                if user_input.lower() in ["yes", "y"]:
+                    os.remove(report_file_output)
+                    # Run ffmpeg command to extract xml.gz report
+                    full_command = [
+                        'ffmpeg', 
+                        '-hide_banner', 
+                        '-loglevel', 'panic', 
+                        '-dump_attachment:t:0', report_file_output, 
+                        '-i', qctools_output_path
+                    ]
+                    logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
+                    logger.debug(f'Running command: {" ".join(full_command)}\n')
+                    subprocess.run(full_command)
+                    break
+                elif user_input.lower() in ["no", "n"]:
+                    logger.debug('Processing existing qctools report, not extracting file\n')
+                    break
+                else:
+                    print("Invalid input. Please enter yes/no.\n")
 
         if os.path.isfile(report_file_output):
             startObj = report_file_output
