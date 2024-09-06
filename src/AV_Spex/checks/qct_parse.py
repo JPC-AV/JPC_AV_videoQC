@@ -168,13 +168,10 @@ def printThumb(video_path, tag, profile_name, startObj, thumbPath, tagValue, tim
         tag (str): Attribute tag of the frame, used for naming the thumbnail.
         startObj
     """
-    inputVid = video_path
-    if os.path.isfile(inputVid):
-        baseName = os.path.basename(startObj)
-        baseName = baseName.replace(".qctools.xml.gz", "")
-        if baseName.endswith(".mkv"):
-            baseName = baseName.replace(".mkv", "")
-        outputFramePath = os.path.join(thumbPath, baseName + "." + profile_name + "." + tag + "." + str(tagValue) + "." + timeStampString + ".png")
+    if os.path.isfile(video_path):
+        video_basename = os.path.basename(video_path)
+        video_id = os.path.splitext(video_basename)[0]
+        outputFramePath = os.path.join(thumbPath, video_id + "." + profile_name + "." + tag + "." + str(tagValue) + "." + timeStampString + ".png")
         ffoutputFramePath = outputFramePath.replace(":", ".")
         # for windows we gotta see if that first : for the drive has been replaced by a dot and put it back
         match = ''
@@ -182,13 +179,13 @@ def printThumb(video_path, tag, profile_name, startObj, thumbPath, tagValue, tim
         if match:
             ffoutputFramePath = ffoutputFramePath.replace(".", ":", 1) # replace first instance of "." in string ffoutputFramePath
         if tag == "TOUT":
-            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=tout:color=yellow -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + video_path +  '" -vf signalstats=out=tout:color=yellow -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
         elif tag == "VREP":
-            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=vrep:color=pink -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + video_path +  '" -vf signalstats=out=vrep:color=pink -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
         else:
-            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=brng:color=cyan -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + video_path +  '" -vf signalstats=out=brng:color=cyan -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
         # Removing logging statement for now - too much clutter in output
-        # logger.warning(f"Exporting thumbnail image of {baseName} to {os.path.basename(ffoutputFramePath)}\n")
+        # logger.warning(f"Exporting thumbnail image of {video_id} to {os.path.basename(ffoutputFramePath)}\n")
         output = subprocess.Popen(ffmpegString, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     else:
         logger.critical("Input video file not found when attempting to create thumbnail for report. Ensure video file is in the '_qc_metadata' directory as the QCTools report and report file name contains video file extension.")
@@ -835,7 +832,8 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         report_file_output = qctools_output_path.replace(".qctools.mkv", ".qctools.xml.gz")
         
         # Run ffmpeg command to extract xml.gz report
-        full_command = f'ffmpeg -dump_attachment:t:0 {report_file_output} -i {qctools_output_path}'
+        # Keeping -loglevel panic instead of just capturing all of the output to retain ffmpeg's built in "overwrite y/n" option
+        full_command = f'ffmpeg -hide_banner -loglevel panic -dump_attachment:t:0 {report_file_output} -i {qctools_output_path}'
 
         logger.debug(f'Running command: {full_command}\n')
         subprocess.run(full_command, shell=True, env=env)
