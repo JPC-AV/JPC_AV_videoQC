@@ -207,8 +207,10 @@ def write_to_csv(diff_dict, tool_name, writer):
 
 
 def parse_arguments():
+    pyproject_file = 'pyproject.toml'
+    pyproject_path = os.path.join(os.path.dirname(config_path.config_dir), pyproject_file)
     # Read the pyproject.toml file
-    with open('pyproject.toml', 'r') as f:
+    with open(pyproject_path, 'r') as f:
         toml_dict = toml.load(f)
 
     version_string = toml_dict['project']['version']
