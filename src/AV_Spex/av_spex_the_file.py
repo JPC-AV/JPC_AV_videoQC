@@ -10,6 +10,7 @@ import shutil
 import argparse
 import importlib.metadata
 import time
+import toml
 from art import art, text2art
 from datetime import datetime
 
@@ -206,7 +207,11 @@ def write_to_csv(diff_dict, tool_name, writer):
 
 
 def parse_arguments():
-    version_string = importlib.metadata.version('AV_Spex')
+    # Read the pyproject.toml file
+    with open('pyproject.toml', 'r') as f:
+        toml_dict = toml.load(f)
+
+    version_string = toml_dict['project']['version']
     parser = argparse.ArgumentParser(
         description=f"""\
 %(prog)s {version_string}
