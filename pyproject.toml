@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "AV_Spex"
-version = "0.4.8"
+version = "0.4.9"
 description = "A Python project written for NMAAHC media conservation lab"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -21,7 +21,8 @@ dependencies = [
     "art==6.1",
     "lxml==5.2.0",
     "pandas==2.2.2",
-    "plotly==5.23.0"
+    "plotly==5.23.0",
+    "toml==0.10.2"
 ]
 
 [project.urls]
