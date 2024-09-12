@@ -1,6 +1,6 @@
 from ruamel.yaml import YAML
 from ruamel.yaml.compat import StringIO
-from nicegui import ui
+from nicegui import ui, app
 
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -46,4 +46,6 @@ with ui.column():
 
 ui.button('update yaml', on_click=lambda: apply_profile(command_dict))
 
-ui.run()
+ui.button('shutdown', on_click=app.shutdown)
+
+ui.run(reload=False)
