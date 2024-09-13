@@ -208,40 +208,122 @@ def write_to_csv(diff_dict, tool_name, writer):
 
 
 def run_gui():
-    ui.label('outputs:')
+    with ui.row():
+        with ui.column():
+            ui.label('outputs:') # Section header
+            with ui.row():
+                s1 = ui.switch(value=command_config.command_dict['outputs']['access_file'])
+                s1.bind_value(command_config.command_dict['outputs'], 'access_file')  # Bind to dictionary
+                ui.button('access file', on_click=lambda: s1.set_value(not s1.value))
 
-    with ui.column():  # Group checkboxes under "outputs"
-        ui.checkbox('access_file')
-        ui.checkbox('report')
+            with ui.row():
+                s2 = ui.switch(value=command_config.command_dict['outputs']['report'])
+                s2.bind_value(command_config.command_dict['outputs'], 'report')  
+                ui.button('report', on_click=lambda: s2.set_value(not s2.value))
 
-    ui.label('fixity:')  # Section header, no checkbox
+            ui.label('fixity:')  # Section header
+            with ui.row():
+                s3 = ui.switch(value=command_config.command_dict['outputs']['fixity']['check_fixity'])
+                s3.bind_value(command_config.command_dict['outputs']['fixity'], 'check_fixity')  
+                ui.button('check fixity', on_click=lambda: s3.set_value(not s3.value))
 
-    # Create checkboxes and bind them to command_dict
-    with ui.column():
-        for option in ['access_file', 'report']:
-            checkbox = ui.checkbox(option, value=command_config.command_dict['outputs'][option] == 'yes')
-            checkbox.id = f'outputs.{option}'
-            # Bind checkbox value to command_dict
-            checkbox.bind_value(command_config.command_dict['outputs'], option, forward=lambda val: 'yes' if val else 'no') 
+            with ui.row():
+                s4 = ui.switch(value=command_config.command_dict['outputs']['fixity']['check_stream_fixity'])
+                s4.bind_value(command_config.command_dict['outputs']['fixity'], 'check_stream_fixity')  
+                ui.button('check stream fixity', on_click=lambda: s4.set_value(not s4.value))
 
-    # Fixity options
-    with ui.column():
-        ui.checkbox('check_fixity')
-        ui.checkbox('check_stream_fixity')
-        ui.checkbox('embed_stream_fixity')
-        ui.checkbox('output_fixity')
-        ui.checkbox('overwrite_stream_fixity')
+            with ui.row():
+                s5 = ui.switch(value=command_config.command_dict['outputs']['fixity']['embed_stream_fixity'])
+                s5.bind_value(command_config.command_dict['outputs']['fixity'], 'embed_stream_fixity')  
+                ui.button('embed stream fixity', on_click=lambda: s5.set_value(not s5.value))
 
-    with ui.column():
-        for option in ['check_fixity', 'check_stream_fixity', 'embed_stream_fixity', 'output_fixity', 'overwrite_stream_fixity']:
-            checkbox = ui.checkbox(option, value=command_config.command_dict['outputs']['fixity'][option] == 'yes')
-            checkbox.id = f'fixity.{option}'
-            # Bind checkbox value to command_dict
-            checkbox.bind_value(command_config.command_dict['outputs']['fixity'], option, forward=lambda val: 'yes' if val else 'no')
+            with ui.row():
+                s6 = ui.switch(value=command_config.command_dict['outputs']['fixity']['output_fixity'])
+                s6.bind_value(command_config.command_dict['outputs']['fixity'], 'output_fixity')  
+                ui.button('output fixity', on_click=lambda: s6.set_value(not s6.value))
 
-    ui.button('update yaml', on_click=lambda: yaml_profiles.apply_profile(command_config,command_config.command_dict))
+            with ui.row():
+                s7 = ui.switch(value=command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'])
+                s7.bind_value(command_config.command_dict['outputs']['fixity'], 'overwrite_stream_fixity')  
+                ui.button('overwrite stream fixity', on_click=lambda: s7.set_value(not s7.value))
 
-    ui.button('shutdown', on_click=app.shutdown)
+        with ui.column():
+            ui.label('tools:')  # Section header
+
+            with ui.card():
+                ui.label('Exiftool')
+                with ui.row():
+                    s8 = ui.switch(value=command_config.command_dict['tools']['exiftool']['check_exiftool'])
+                    s8.bind_value(command_config.command_dict['tools']['exiftool'], 'check_exiftool')  # Bind to dictionary
+                    ui.button('check exiftool', on_click=lambda: s8.set_value(not s8.value))
+                with ui.row():
+                    s9 = ui.switch(value=command_config.command_dict['tools']['exiftool']['run_exiftool'])
+                    s9.bind_value(command_config.command_dict['tools']['exiftool'], 'run_exiftool')  
+                    ui.button('run exiftool', on_click=lambda: s9.set_value(not s9.value))
+
+            with ui.card():
+                ui.label('FFprobe')
+                with ui.row():
+                    s10 = ui.switch(value=command_config.command_dict['tools']['ffprobe']['check_ffprobe'])
+                    s10.bind_value(command_config.command_dict['tools']['ffprobe'], 'check_ffprobe')  
+                    ui.button('check ffprobe', on_click=lambda: s10.set_value(not s10.value))
+                with ui.row():
+                    s11 = ui.switch(value=command_config.command_dict['tools']['ffprobe']['run_ffprobe'])
+                    s11.bind_value(command_config.command_dict['tools']['ffprobe'], 'run_ffprobe')  
+                    ui.button('run ffprobe', on_click=lambda: s11.set_value(not s11.value))
+
+            with ui.card():
+                ui.label('Mediaconch')
+                with ui.row():
+                    s12 = ui.switch(value=command_config.command_dict['tools']['mediaconch']['run_mediaconch'])
+                    s12.bind_value(command_config.command_dict['tools']['mediaconch'], 'run_mediaconch')  
+                    ui.button('run_mediaconch', on_click=lambda: s12.set_value(not s12.value))
+                ui.label('mediaconch policy:')
+                with ui.row():
+                    t2 = ui.input(value=command_config.command_dict['tools']['mediaconch']['mediaconch_policy'])
+                    t2.bind_value(command_config.command_dict['tools']['mediaconch'], 'mediaconch_policy')
+
+            with ui.card():
+                ui.label('MediaInfo')
+                with ui.row():
+                    s13 = ui.switch(value=command_config.command_dict['tools']['mediainfo']['check_mediainfo'])
+                    s13.bind_value(command_config.command_dict['tools']['mediainfo'], 'check_mediainfo')  
+                    ui.button('check mediainfo', on_click=lambda: s13.set_value(not s13.value))
+                with ui.row():
+                    s14 = ui.switch(value=command_config.command_dict['tools']['mediainfo']['run_mediainfo'])
+                    s14.bind_value(command_config.command_dict['tools']['mediainfo'], 'run_mediainfo')  
+                    ui.button('run mediainfo', on_click=lambda: s14.set_value(not s14.value))
+
+            with ui.card():
+                ui.label('Mediatrace')
+                with ui.row():
+                    s15 = ui.switch(value=command_config.command_dict['tools']['mediatrace']['check_mediatrace'])
+                    s15.bind_value(command_config.command_dict['tools']['mediatrace'], 'check_mediatrace')  
+                    ui.button('check mediatrace', on_click=lambda: s15.set_value(not s15.value))
+                with ui.row():
+                    s16 = ui.switch(value=command_config.command_dict['tools']['mediatrace']['run_mediatrace'])
+                    s16.bind_value(command_config.command_dict['tools']['mediainfo'], 'run_mediatrace')  
+                    ui.button('run mediatrace', on_click=lambda: s16.set_value(not s16.value))
+
+            with ui.card():
+                ui.label('QCTools')
+                with ui.row():
+                    s17 = ui.switch(value=command_config.command_dict['tools']['qctools']['check_qctools'])
+                    s17.bind_value(command_config.command_dict['tools']['qctools'], 'check_qctools')  
+                    ui.button('check qctools', on_click=lambda: s17.set_value(not s17.value))
+                with ui.row():
+                    s18 = ui.switch(value=command_config.command_dict['tools']['qctools']['run_qctools'])
+                    s18.bind_value(command_config.command_dict['tools']['qctools'], 'run_qctools')  
+                    ui.button('run qctools', on_click=lambda: s18.set_value(not s18.value))
+                ui.label('qctools extension:')
+                with ui.row():
+                    t1 = ui.input(value=command_config.command_dict['outputs']['qctools_ext'])
+                    t1.bind_value(command_config.command_dict['outputs'], 'qctools_ext')
+
+        with ui.column():
+            updated_profile = command_config.command_dict
+            ui.button('update yaml', on_click=lambda: yaml_profiles.apply_profile(command_config, updated_profile))
+            ui.button('shutdown', on_click=app.shutdown)
 
     ui.run(reload=False)
 
@@ -453,7 +535,7 @@ def main():
                 access_file_found = None      # sets var to None, so access file will only be created if none is found.
 
         # Embed stream md5 hashes into MKV tags 
-        if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+        if command_config.command_dict['outputs']['fixity']['embed_stream_fixity']:
             existing_tags = extract_tags(video_path)
             if existing_tags:
                 existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
@@ -465,10 +547,10 @@ def main():
                 embed_fixity(video_path)
             else:
                 logger.critical("Existing stream hashes found!")
-                if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+                if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity']:
                     logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
                     embed_fixity(video_path)
-                elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
+                elif not command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity']:
                     logger.error('Not writing stream hashes to MKV\n')
                 elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
                     # User input for handling existing stream hashes
@@ -485,24 +567,24 @@ def main():
                             print("Invalid input. Please enter yes/no.")
 
         # Validate stream hashes
-        if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
+        if command_config.command_dict['outputs']['fixity']['check_stream_fixity']:
             validate_embedded_md5(video_path)
 
         # Initialize md5_checksum variable, so if it is not assigned in output_fixity, it is 'None' if run in check_fixity
         md5_checksum = None 
 
         # Create checksum for video file output results to '{video_id}_YYYY_MM_DD_fixity.txt' 
-        if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
+        if command_config.command_dict['outputs']['fixity']['output_fixity']:
             md5_checksum = output_fixity(source_directory, video_path)
 
         # Search for file with the suffix '_checksums.md5', verify stored checksum, and write result to '{video_id}_YYYY_MM_DD_fixity_check.txt' 
-        if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
+        if command_config.command_dict['outputs']['fixity']['check_fixity']:
             check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
 
         # Run mediaconch on the video file and save the output to a csv file
         mediaconch_output_path = None
         # need to initialize path for report
-        if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
+        if command_config.command_dict['tools']['mediaconch']['run_mediaconch']:
             mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
             run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
 
@@ -536,10 +618,10 @@ def main():
 
         # Run exiftool, mediainfo and ffprobe using the 'run_command' function
         exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
-        if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
+        if command_config.command_dict['tools']['exiftool']['run_exiftool']:
             run_command('exiftool', video_path, '>', exiftool_output_path)
 
-        if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
+        if command_config.command_dict['tools']['exiftool']['check_exiftool']:
             # If check_exfitool is set to 'yes' in command_config.yaml then
             exiftool_differences = parse_exiftool(exiftool_output_path)
             # Run parse functions defined in the '_check.py' scripts
@@ -549,10 +631,10 @@ def main():
             # reset variable if no output is created, so that it won't print in the report
 
         mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
-        if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
+        if command_config.command_dict['tools']['mediainfo']['run_mediainfo']:
             run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
 
-        if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
+        if command_config.command_dict['tools']['mediainfo']['check_mediainfo']:
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             mediainfo_differences = parse_mediainfo(mediainfo_output_path)
             # Run parse functions defined in the '_check.py' scripts
@@ -562,20 +644,20 @@ def main():
             # reset variable if no output is created, so that it won't print in the report
 
         mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
-        if command_config.command_dict['tools']['mediatrace']['run_mediatrace'] == 'yes':
+        if command_config.command_dict['tools']['mediatrace']['run_mediatrace']:
             logger.debug(f"Creating MediaTrace XML file to check custom MKV Tag metadata fields:")
             # If check_mediainfo is set to 'yes' in command_config.yaml then
             run_command("mediainfo --Details=1 --Output=XML", video_path, '>', mediatrace_output_path)
 
-        if command_config.command_dict['tools']['mediatrace']['check_mediatrace'] == 'yes':
+        if command_config.command_dict['tools']['mediatrace']['check_mediatrace']:
             mediatrace_differences = parse_mediatrace(mediatrace_output_path)
             # Run parse functions defined in the '_check.py' scripts
 
         ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
-        if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
+        if command_config.command_dict['tools']['ffprobe']['run_ffprobe']:
             run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
 
-        if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
+        if command_config.command_dict['tools']['ffprobe']['check_ffprobe']:
             # If check_ffprobe is set to 'yes' in command_config.yaml then
             ffprobe_differences = parse_ffprobe(ffprobe_output_path)
             # Run parse functions defined in the '_check.py' scripts
@@ -588,7 +670,7 @@ def main():
         report_directory = make_report_dir(source_directory, video_id) 
         diff_csv_path = None
         # need to initialize path for report
-        if command_config.command_dict['outputs']['report'] == 'yes':
+        if command_config.command_dict['outputs']['report']:
             # if any of the 'differences' lists are not None, then::
             if None not in (exiftool_differences, mediainfo_differences, ffprobe_differences, mediatrace_differences):
                 # Create CSV for storing differences between expected metadata values and actual values
@@ -614,11 +696,11 @@ def main():
 
         qctools_ext = command_config.command_dict['outputs']['qctools_ext']
         qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
-        if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
+        if command_config.command_dict['tools']['qctools']['run_qctools']:
             run_command('qcli -i', video_path, '-o', qctools_output_path)
             logger.debug('')  # adding a new line under qcli output for cleaner terminal output
 
-        if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
+        if command_config.command_dict['tools']['qctools']['check_qctools']:
             if not os.path.isfile(qctools_output_path):
                 logger.critical(f"Unable to check qctools report. No file found at this path: {qctools_output_path}.\n")
                 qctools_check_output = None
@@ -628,13 +710,13 @@ def main():
             qctools_check_output = None
 
         access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
-        if command_config.command_dict['outputs']['access_file'] == 'yes':
+        if command_config.command_dict['outputs']['access_file']:
             if os.path.isfile(access_output_path):
                 logger.critical(f"Access file already exists, not running ffmpeg")
             else:
                 make_access_file(video_path, access_output_path)
 
-        if command_config.command_dict['outputs']['report'] == 'yes':
+        if command_config.command_dict['outputs']['report']:
             html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
             write_html_report(video_id,report_directory,destination_directory,html_report_path)
 

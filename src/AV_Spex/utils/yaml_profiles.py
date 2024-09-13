@@ -36,7 +36,7 @@ def apply_by_name(command_config, tool_names):
         # Check if the tool exists in the command_config
         if tool in command_config.command_dict["tools"]:
             tool_profile["tools"][tool] = {
-                subfield: "yes" for subfield in command_config.command_dict["tools"][tool]
+                subfield: True for subfield in command_config.command_dict["tools"][tool]
             }
             logger.debug(f"{tool} set to 'on'")
 
@@ -51,7 +51,7 @@ def toggle_on(command_config, tool_names):
         # Check if the tool exists in the command_config
         if tool in command_config.command_dict["tools"]:
             tool_profile["tools"][tool] = {
-                subfield: "yes" for subfield in command_config.command_dict["tools"][tool]
+                subfield: True for subfield in command_config.command_dict["tools"][tool]
             }
             logger.debug(f"{tool} set to 'on'")
 
@@ -66,7 +66,7 @@ def toggle_off(command_config, tool_names):
         # Check if the tool exists in the command_config
         if tool in command_config.command_dict["tools"]:
             tool_profile["tools"][tool] = {
-                subfield: "no" for subfield in command_config.command_dict["tools"][tool]
+                subfield: False for subfield in command_config.command_dict["tools"][tool]
             }
             logger.debug(f"{tool} set to 'off'")
 
@@ -129,37 +129,37 @@ def save_profile_to_file(config, new_file_path):
 profile_step1 = {
     "tools": {
         "qctools": {
-            "run_qctools": 'no',
-            "check_qctools": 'no'   
+            "run_qctools": False,
+            "check_qctools": False   
         },
         "exiftool": {
-            "check_exiftool": 'yes',
-            "run_exiftool": 'yes'
+            "check_exiftool": True,
+            "run_exiftool": True
         },
         "ffprobe": {
-            "check_ffprobe": 'no',
-            "run_ffprobe": 'yes'
+            "check_ffprobe": False,
+            "run_ffprobe": True
         },
         "mediaconch": {
-            "run_mediaconch": 'yes'
+            "run_mediaconch": True
         },
         "mediainfo": {
-            "check_mediainfo": 'yes',
-            "run_mediainfo": 'yes'
+            "check_mediainfo": True,
+            "run_mediainfo": True
         },
         "mediatrace": {
-            "check_mediatrace": 'yes',
-            "run_mediatrace": 'yes'
+            "check_mediatrace": True,
+            "run_mediatrace": True
         },
     },
     "outputs": {
-        "report": 'no',
-        "access_file": 'no',
+        "report": False,
+        "access_file": False,
         "fixity": {
-            "output_fixity": 'yes',
-            "check_fixity": 'no',
-            "embed_stream_fixity": 'yes',
-            "check_stream_fixity": 'no'
+            "output_fixity": True,
+            "check_fixity": False,
+            "embed_stream_fixity": True,
+            "check_stream_fixity": False
         }
     }
 }
@@ -167,27 +167,27 @@ profile_step1 = {
 profile_step2 = {
     "tools": {
         "exiftool": {
-            "check_exiftool": 'yes',
-            "run_exiftool": 'no'
+            "check_exiftool": True,
+            "run_exiftool": False
         },
         "ffprobe": {
-            "check_ffprobe": 'yes',
-            "run_ffprobe": 'no'
+            "check_ffprobe": True,
+            "run_ffprobe": False
         },
         "mediaconch": {
-            "run_mediaconch": 'yes'
+            "run_mediaconch": True
         },
         "mediatrace": {
-            "check_mediatrace": 'yes',
-            "run_mediatrace": 'no'
+            "check_mediatrace": True,
+            "run_mediatrace": False
         },
         "mediainfo": {
-            "check_mediainfo": 'yes',
-            "run_mediainfo": 'no'
+            "check_mediainfo": True,
+            "run_mediainfo": False
         },
         "qctools": {
-            "run_qctools": 'yes',
-            "check_qctools": 'yes'
+            "run_qctools": True,
+            "check_qctools": True
         },
         "qct-parse": {
             "barsDetection": True,
@@ -198,13 +198,13 @@ profile_step2 = {
         }
     },
     "outputs": {
-        "report": 'yes',
-        "access_file": 'no',
+        "report": True,
+        "access_file": False,
         "fixity": {
-            "output_fixity": 'no',
-            "check_fixity": 'yes',
-            "embed_stream_fixity": 'no',
-            "check_stream_fixity": 'yes'
+            "output_fixity": False,
+            "check_fixity": True,
+            "embed_stream_fixity": False,
+            "check_stream_fixity": True
         }
     }
 }
@@ -212,27 +212,27 @@ profile_step2 = {
 profile_allOff = {
     "tools": {
         "exiftool": {
-            "check_exiftool": 'no',
-            "run_exiftool": 'no'
+            "check_exiftool": False,
+            "run_exiftool": False
         },
         "ffprobe": {
-            "check_ffprobe": 'no',
-            "run_ffprobe": 'no'
+            "check_ffprobe": False,
+            "run_ffprobe": False
         },
         "mediaconch": {
-            "run_mediaconch": 'no'
+            "run_mediaconch": False
         },
         "mediatrace": {
-            "check_mediatrace": 'no',
-            "run_mediatrace": 'no'
+            "check_mediatrace": False,
+            "run_mediatrace": False
         },
         "mediainfo": {
-            "check_mediainfo": 'no',
-            "run_mediainfo": 'no'
+            "check_mediainfo": False,
+            "run_mediainfo": False
         },
         "qctools": {
-            "run_qctools": 'no',
-            "check_qctools": 'no'
+            "run_qctools": False,
+            "check_qctools": False
         },
         "qct-parse": {
             "barsDetection": None,
@@ -243,13 +243,13 @@ profile_allOff = {
         }
     },
     "outputs": {
-        "report": 'no',
-        "access_file": 'no',
+        "report": False,
+        "access_file": False,
         "fixity": {
-            "output_fixity": 'no',
-            "check_fixity": 'no',
-            "embed_stream_fixity": 'no',
-            "check_stream_fixity": 'no'
+            "output_fixity": False,
+            "check_fixity": False,
+            "embed_stream_fixity": False,
+            "check_stream_fixity": False
         }
     }
 }
