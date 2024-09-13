@@ -11,6 +11,7 @@ import argparse
 import importlib.metadata
 import time
 import toml
+from nicegui import ui, app
 from art import art, text2art
 from datetime import datetime
 
@@ -206,9 +207,50 @@ def write_to_csv(diff_dict, tool_name, writer):
         })
 
 
+def run_gui():
+    ui.label('outputs:')
+
+    with ui.column():  # Group checkboxes under "outputs"
+        ui.checkbox('access_file')
+        ui.checkbox('report')
+
+    ui.label('fixity:')  # Section header, no checkbox
+
+    # Create checkboxes and bind them to command_dict
+    with ui.column():
+        for option in ['access_file', 'report']:
+            checkbox = ui.checkbox(option, value=command_config.command_dict['outputs'][option] == 'yes')
+            checkbox.id = f'outputs.{option}'
+            # Bind checkbox value to command_dict
+            checkbox.bind_value(command_config.command_dict['outputs'], option, forward=lambda val: 'yes' if val else 'no') 
+
+    # Fixity options
+    with ui.column():
+        ui.checkbox('check_fixity')
+        ui.checkbox('check_stream_fixity')
+        ui.checkbox('embed_stream_fixity')
+        ui.checkbox('output_fixity')
+        ui.checkbox('overwrite_stream_fixity')
+
+    with ui.column():
+        for option in ['check_fixity', 'check_stream_fixity', 'embed_stream_fixity', 'output_fixity', 'overwrite_stream_fixity']:
+            checkbox = ui.checkbox(option, value=command_config.command_dict['outputs']['fixity'][option] == 'yes')
+            checkbox.id = f'fixity.{option}'
+            # Bind checkbox value to command_dict
+            checkbox.bind_value(command_config.command_dict['outputs']['fixity'], option, forward=lambda val: 'yes' if val else 'no')
+
+    ui.button('update yaml', on_click=lambda: yaml_profiles.apply_profile(command_config,command_config.command_dict))
+
+    ui.button('shutdown', on_click=app.shutdown)
+
+    ui.run(reload=False)
+
+
 def parse_arguments():
+    pyproject_file = 'pyproject.toml'
+    pyproject_path = os.path.join(os.path.dirname(config_path.config_dir), pyproject_file)
     # Read the pyproject.toml file
-    with open('pyproject.toml', 'r') as f:
+    with open(pyproject_path, 'r') as f:
         toml_dict = toml.load(f)
 
     version_string = toml_dict['project']['version']
@@ -361,6 +403,8 @@ def main():
 
     if save_config_type:
         yaml_profiles.save_profile_to_file(save_config_type, user_profile_config)
+
+    run_gui()
 
     if dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
