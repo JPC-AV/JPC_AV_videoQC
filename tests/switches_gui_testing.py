@@ -1,6 +1,7 @@
 from ruamel.yaml import YAML
 from ruamel.yaml.compat import StringIO
 from nicegui import ui, app
+from nicegui.events import ValueChangeEventArguments
 
 yaml = YAML()
 yaml.preserve_quotes = True
@@ -52,8 +53,75 @@ with ui.row():
     s7.bind_value(command_dict['outputs']['fixity'], 'overwrite_stream_fixity')  
     ui.button('overwrite stream fixity', on_click=lambda: s7.set_value(not s7.value))
 
+ui.label('qctools extension:')
+with ui.row():
+    t1 = ui.input(value=command_dict['outputs']['qctools_ext'])
+    t1.bind_value(command_dict['outputs'], 'qctools_ext')
+
+ui.label('tools:')  # Section header
+
+with ui.row():
+    s8 = ui.switch(value=command_dict['tools']['exiftool']['check_exiftool'])
+    s8.bind_value(command_dict['tools']['exiftool'], 'check_exiftool')  # Bind to dictionary
+    ui.button('check exiftool', on_click=lambda: s8.set_value(not s8.value))
+
+with ui.row():
+    s9 = ui.switch(value=command_dict['tools']['exiftool']['run_exiftool'])
+    s9.bind_value(command_dict['tools']['exiftool'], 'run_exiftool')  
+    ui.button('run exiftool', on_click=lambda: s9.set_value(not s9.value))
+
+with ui.row():
+    s10 = ui.switch(value=command_dict['tools']['ffprobe']['check_ffprobe'])
+    s10.bind_value(command_dict['tools']['ffprobe'], 'check_ffprobe')  
+    ui.button('check ffprobe', on_click=lambda: s10.set_value(not s10.value))
+
+with ui.row():
+    s11 = ui.switch(value=command_dict['tools']['ffprobe']['run_ffprobe'])
+    s11.bind_value(command_dict['tools']['ffprobe'], 'run_ffprobe')  
+    ui.button('run ffprobe', on_click=lambda: s11.set_value(not s11.value))
+
+with ui.row():
+    s12 = ui.switch(value=command_dict['tools']['mediaconch']['run_mediaconch'])
+    s12.bind_value(command_dict['tools']['mediaconch'], 'run_mediaconch')  
+    ui.button('run_mediaconch', on_click=lambda: s12.set_value(not s12.value))
+
+ui.label('mediaconch policy:')
+with ui.row():
+    t2 = ui.input(value=command_dict['tools']['mediaconch']['mediaconch_policy'])
+    t2.bind_value(command_dict['tools']['mediaconch'], 'mediaconch_policy')
+
+with ui.row():
+    s13 = ui.switch(value=command_dict['tools']['mediainfo']['check_mediainfo'])
+    s13.bind_value(command_dict['tools']['mediainfo'], 'check_mediainfo')  
+    ui.button('check mediainfo', on_click=lambda: s13.set_value(not s13.value))
+
+with ui.row():
+    s14 = ui.switch(value=command_dict['tools']['mediainfo']['run_mediainfo'])
+    s14.bind_value(command_dict['tools']['mediainfo'], 'run_mediainfo')  
+    ui.button('run mediainfo', on_click=lambda: s14.set_value(not s14.value))
+
+with ui.row():
+    s15 = ui.switch(value=command_dict['tools']['mediatrace']['check_mediatrace'])
+    s15.bind_value(command_dict['tools']['mediatrace'], 'check_mediatrace')  
+    ui.button('check mediatrace', on_click=lambda: s15.set_value(not s15.value))
+
+with ui.row():
+    s16 = ui.switch(value=command_dict['tools']['mediatrace']['run_mediatrace'])
+    s16.bind_value(command_dict['tools']['mediainfo'], 'run_mediatrace')  
+    ui.button('run mediatrace', on_click=lambda: s16.set_value(not s16.value))
+
+with ui.row():
+    s17 = ui.switch(value=command_dict['tools']['qctools']['check_qctools'])
+    s17.bind_value(command_dict['tools']['qctools'], 'check_qctools')  
+    ui.button('check qctools', on_click=lambda: s17.set_value(not s17.value))
+
+with ui.row():
+    s18 = ui.switch(value=command_dict['tools']['qctools']['run_qctools'])
+    s18.bind_value(command_dict['tools']['qctools'], 'run_qctools')  
+    ui.button('run qctools', on_click=lambda: s18.set_value(not s18.value))
+
 ui.button('update yaml', on_click=lambda: apply_profile(command_dict))
 
 ui.button('shutdown', on_click=app.shutdown)
 
-ui.run()(reload=False)
+ui.run(reload=False)
