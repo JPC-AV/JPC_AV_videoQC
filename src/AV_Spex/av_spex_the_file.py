@@ -207,9 +207,20 @@ def write_to_csv(diff_dict, tool_name, writer):
         })
 
 
+def profile_selected(profile_name, notification_message):
+    selected_profile = getattr(yaml_profiles, profile_name)  # Dynamically access the profile attribute
+    yaml_profiles.apply_profile(command_config, selected_profile)
+    logger.info(f'command_config.yaml updated to match selected tool profile\n')
+    ui.notify(notification_message)
+
+
 def run_gui():
     with ui.row():
         with ui.column():
+            with ui.dropdown_button('Select profile', auto_close=True):
+                ui.item('step 1', on_click=lambda: profile_selected('profile_step1', 'Step 1 selected'))
+                ui.item('step 2', on_click=lambda: profile_selected('profile_step2', 'Step 2 selected'))
+                ui.item('profile off', on_click=lambda: profile_selected('profile_allOff', 'All options set to off'))
             ui.label('outputs:') # Section header
             with ui.row():
                 s1 = ui.switch(value=command_config.command_dict['outputs']['access_file'])

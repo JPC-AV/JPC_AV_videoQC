@@ -36,7 +36,7 @@ def apply_by_name(command_config, tool_names):
         # Check if the tool exists in the command_config
         if tool in command_config.command_dict["tools"]:
             tool_profile["tools"][tool] = {
-                subfield: True for subfield in command_config.command_dict["tools"][tool]
+                subfield: True for subfield in command_config.command_dict["tools"][tool] 
             }
             logger.debug(f"{tool} set to 'on'")
 
