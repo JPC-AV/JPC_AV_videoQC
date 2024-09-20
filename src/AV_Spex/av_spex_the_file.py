@@ -205,6 +205,24 @@ def write_to_csv(diff_dict, tool_name, writer):
             'Actual Value': actual_value
         })
 
+def format_config_value(value, indent=0):
+    """
+    Recursively formats dictionaries and lists for better presentation.
+    """
+    spacer = " " * indent
+    if isinstance(value, dict):
+        formatted_str = ""
+        for nested_key, nested_value in value.items():
+            formatted_str += f"{spacer}{nested_key}:\n{format_config_value(nested_value, indent + 2)}"
+        return formatted_str
+    elif isinstance(value, list):
+        # Join list elements with commas, no brackets
+        formatted_str = f"{spacer}{', '.join(str(item) for item in value)}\n"
+        return formatted_str
+    else:
+        # Handle non-dictionary, non-list values directly
+        return f"{spacer}{value}\n"
+
 
 def parse_arguments():
     pyproject_file = 'pyproject.toml'
@@ -363,6 +381,12 @@ def main():
 
     if save_config_type:
         yaml_profiles.save_profile_to_file(save_config_type, user_profile_config)
+
+    command_config.reload()
+    for key, value in command_config.command_dict.items():
+        logging.info(f"{key}:")
+        logging.info(format_config_value(value, indent=2))  # Start with an indent of 2 spaces
+        logging.info("")
 
     if dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
