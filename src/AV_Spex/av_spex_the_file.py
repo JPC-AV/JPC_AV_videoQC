@@ -401,7 +401,6 @@ def main():
         for key, value in command_config.command_dict.items():
             logging.warning(f"{key}:")
             logging.info(f"{format_config_value(value, indent=2)}")
-            logging.info("")  # Add an extra line after each section
 
     if dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
