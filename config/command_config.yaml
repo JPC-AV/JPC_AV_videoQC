@@ -21,7 +21,7 @@ tools:
     run_ffprobe: 'yes'
   mediaconch:
 ##  mediaconch policy file name from any xml file in the config directory
-    mediaconch_policy: JPC_AV_NTSC_MKV_2024-07-31.xml
+    mediaconch_policy: JPC_AV_NTSC_MKV_2024-09-20.xml
 ##  'yes' or 'no'
     run_mediaconch: 'yes'
   mediainfo:
