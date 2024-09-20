@@ -205,23 +205,32 @@ def write_to_csv(diff_dict, tool_name, writer):
             'Actual Value': actual_value
         })
 
-def format_config_value(value, indent=0):
+
+def format_config_value(value, indent=0, is_nested=False):
     """
     Recursively formats dictionaries and lists for better presentation.
     """
     spacer = " " * indent
+    formatted_str = ""
+
     if isinstance(value, dict):
-        formatted_str = ""
+        # Only add a newline before nested dictionaries, not for top-level keys
+        if is_nested:
+            formatted_str += "\n"
         for nested_key, nested_value in value.items():
-            formatted_str += f"{spacer}{nested_key}:{format_config_value(nested_value, indent)}"
+            formatted_str += f"{spacer}{nested_key}: {format_config_value(nested_value, indent + 2, is_nested=True)}\n"
         return formatted_str
     elif isinstance(value, list):
         # Join list elements with commas, no brackets
-        formatted_str = f"{spacer}{', '.join(str(item) for item in value)}\n"
+        formatted_str = f"{', '.join(str(item) for item in value)}"
         return formatted_str
+    elif value == 'yes':
+        return "✅"  # Inline formatting for 'yes'
+    elif value == 'no':
+        return "❌"  # Inline formatting for 'no'
     else:
         # Handle non-dictionary, non-list values directly
-        return f"{spacer}{value}\n"
+        return f"{value}"
 
 
 def parse_arguments():
@@ -387,12 +396,12 @@ def main():
         yaml_profiles.save_profile_to_file(save_config_type, user_profile_config)
 
     if print_config_profile:
-        logger.debug("The current config profile seetings are:")
+        logger.debug("The current config profile seetings are:\n")
         command_config.reload()
         for key, value in command_config.command_dict.items():
             logging.warning(f"{key}:")
-            logging.info(format_config_value(value, indent=2))  # Start with an indent of 2 spaces
-            logging.info("")
+            logging.info(f"{format_config_value(value, indent=2)}")
+            logging.info("")  # Add an extra line after each section
 
     if dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
