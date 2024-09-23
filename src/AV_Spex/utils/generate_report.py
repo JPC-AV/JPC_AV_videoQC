@@ -126,6 +126,7 @@ def find_report_csvs(report_directory):
     qctools_profile_check_output = None
     qctools_profile_timestamps = None
     profile_fails_csv = None
+    tags_check_output = None
     tag_fails_csv = None
     colorbars_eval_fails_csv = None
     difference_csv = None
