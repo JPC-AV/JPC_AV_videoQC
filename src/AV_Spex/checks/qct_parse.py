@@ -31,7 +31,6 @@ operator_mapping = {
 # init variable for config list of QCTools tags
 fullTagList = config_path.config_dict['qct-parse']['fullTagList']
 
-
 def parse_frame_data(startObj, pkt):
     '''
     Parses the XML file and extracts frame data into a list of dictionaries.
@@ -169,11 +168,10 @@ def printThumb(video_path, tag, profile_name, startObj, thumbPath, tagValue, tim
         tag (str): Attribute tag of the frame, used for naming the thumbnail.
         startObj
     """
-    inputVid = video_path
-    if os.path.isfile(inputVid):
-        baseName = os.path.basename(startObj)
-        baseName = baseName.replace(".qctools.xml.gz", "")
-        outputFramePath = os.path.join(thumbPath, baseName + "." + profile_name + "." + tag + "." + str(tagValue) + "." + timeStampString + ".png")
+    if os.path.isfile(video_path):
+        video_basename = os.path.basename(video_path)
+        video_id = os.path.splitext(video_basename)[0]
+        outputFramePath = os.path.join(thumbPath, video_id + "." + profile_name + "." + tag + "." + str(tagValue) + "." + timeStampString + ".png")
         ffoutputFramePath = outputFramePath.replace(":", ".")
         # for windows we gotta see if that first : for the drive has been replaced by a dot and put it back
         match = ''
@@ -181,13 +179,13 @@ def printThumb(video_path, tag, profile_name, startObj, thumbPath, tagValue, tim
         if match:
             ffoutputFramePath = ffoutputFramePath.replace(".", ":", 1) # replace first instance of "." in string ffoutputFramePath
         if tag == "TOUT":
-            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=tout:color=yellow -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + video_path +  '" -vf signalstats=out=tout:color=yellow -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
         elif tag == "VREP":
-            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=vrep:color=pink -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + video_path +  '" -vf signalstats=out=vrep:color=pink -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
         else:
-            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + inputVid +  '" -vf signalstats=out=brng:color=cyan -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
+            ffmpegString = "ffmpeg -ss " + timeStampString + ' -i "' + video_path +  '" -vf signalstats=out=brng:color=cyan -vframes 1 -s 720x486 -y "' + ffoutputFramePath + '"' # Hardcoded output frame size to 720x486 for now, need to infer from input eventually
         # Removing logging statement for now - too much clutter in output
-        # logger.warning(f"Exporting thumbnail image of {baseName} to {os.path.basename(ffoutputFramePath)}\n")
+        # logger.warning(f"Exporting thumbnail image of {video_id} to {os.path.basename(ffoutputFramePath)}\n")
         output = subprocess.Popen(ffmpegString, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     else:
         logger.critical("Input video file not found when attempting to create thumbnail for report. Ensure video file is in the '_qc_metadata' directory as the QCTools report and report file name contains video file extension.")
@@ -824,16 +822,51 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     ###### Initialize variables ######
     qct_parse = command_config.command_dict['tools']['qct-parse']
 
-    startObj = qctools_output_path
+    qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+
+    if qctools_ext.lower().endswith('mkv'):
+
+        report_file_output = qctools_output_path.replace(".qctools.mkv", ".qctools.xml.gz")
+
+        if os.path.isfile(report_file_output):
+            while True:
+                user_input = input(f"The file {os.path.basename(report_file_output)} already exists. \nExtract xml.gz from {os.path.basename(qctools_output_path)} and overwrite existing file? \n(y/n):\n")
+                if user_input.lower() in ["yes", "y"]:
+                    os.remove(report_file_output)
+                    # Run ffmpeg command to extract xml.gz report
+                    full_command = [
+                        'ffmpeg', 
+                        '-hide_banner', 
+                        '-loglevel', 'panic', 
+                        '-dump_attachment:t:0', report_file_output, 
+                        '-i', qctools_output_path
+                    ]
+                    logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
+                    logger.debug(f'Running command: {" ".join(full_command)}\n')
+                    subprocess.run(full_command)
+                    break
+                elif user_input.lower() in ["no", "n"]:
+                    logger.debug('Processing existing qctools report, not extracting file\n')
+                    break
+                else:
+                    print("Invalid input. Please enter yes/no.\n")
+
+        if os.path.isfile(report_file_output):
+            startObj = report_file_output
+        else:
+            logger.critical(f'Unable to extract XML from QCTools mkv report file\n')
+            startObj = None
+            return
+    else:
+        startObj = qctools_output_path
+
+    # Set parentDir and baseName
+    parentDir = os.path.dirname(startObj)
+    baseName = (os.path.basename(startObj)).split('.')[0]
 
     # Initialize thumbExport delay, will be updated per use case
     thumbDelay = 9000
     thumbExportDelay = thumbDelay
-
-    # Set parentDir and baseName
-    parentDir = os.path.dirname(startObj)
-    baseName = os.path.basename(startObj)
-    baseName = baseName.replace(".qctools.xml.gz", "")
 
     # initialize the start and end duration times variables
     durationStart = 0
@@ -963,7 +996,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         else:
             logger.critical("Cannot run color bars evaluation without running Bars Detection.")
 
-    logger.info(f"qct-parse finished processing file: {baseName}.qctools.xml.gz \n")
+    logger.info(f"qct-parse finished processing file: {os.path.basename(startObj)} \n")
 
     return
 
