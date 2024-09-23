@@ -20,7 +20,7 @@ from .utils.find_config import config_path, command_config, yaml
 from .utils import yaml_profiles
 from .utils.generate_report import write_html_report
 from .checks.fixity_check import check_fixity, output_fixity
-from .checks.filename_check import check_filenames
+from .checks.filename_check import is_valid_filename
 from .checks.mediainfo_check import parse_mediainfo
 from .checks.mediatrace_check import parse_mediatrace
 from .checks.exiftool_check import parse_exiftool
@@ -184,7 +184,7 @@ def find_mkv(source_directory):
     if found_mkvs:
         if len(found_mkvs) == 1:
             video_path = os.path.join(source_directory, found_mkvs[0])
-            logger.info(f'Input video file found in {source_directory}: {video_path}')
+            logger.info(f'Input video file found in {source_directory}: {video_path}\n')
         else:
             logger.critical(f'More than 1 mkv found in {source_directory}: {found_mkvs}\n')
             return None
@@ -410,8 +410,6 @@ def main():
     config_path.reload()
     command_config.reload()
 
-    check_filenames(source_directories)
-
     overall_start_time = time.time()
 
     for source_directory in source_directories:
@@ -423,7 +421,13 @@ def main():
         video_path = find_mkv(source_directory)
 
         if video_path is None:
-            logger.warning(f"Skipping {source_directory} due to error.")
+            logger.warning(f"Skipping {source_directory} due to error.\n")
+            continue  # Skip to the next source_directory if an error occurred
+
+        valid_filename = is_valid_filename(video_path)
+
+        if valid_filename is False:
+            logger.warning(f"Skipping {source_directory} due to error.\n")
             continue  # Skip to the next source_directory if an error occurred
 
         tape_icon = art('cassette1')
