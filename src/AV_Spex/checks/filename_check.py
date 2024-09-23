@@ -7,14 +7,11 @@ from ..utils.find_config import config_path, command_config
 
 
 def find_all_filenames(source_directory, found_mkvs):
+    found_mkvs = []
     # Create empty list to store any found mkv files
     for filename in os.listdir(source_directory):
         if filename.lower().endswith('.mkv') and 'qctools' not in filename.lower():
             found_mkvs.append(os.path.basename(filename))
-    # check if found_mkvs is empty
-    if not found_mkvs:
-        logger.critical("Error: No mkv video files found in the directory.")
-        sys.exit(1)
 
     return found_mkvs
 
@@ -60,7 +57,6 @@ def check_filenames(source_directories):
     failed_mkvs = []
 
     for source_directory in source_directories:
-
         found_mkvs = find_all_filenames(source_directory, found_mkvs)
 
     for video_filename in found_mkvs:

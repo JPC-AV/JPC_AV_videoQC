@@ -184,13 +184,13 @@ def find_mkv(source_directory):
     if found_mkvs:
         if len(found_mkvs) == 1:
             video_path = os.path.join(source_directory, found_mkvs[0])
-            logger.info(f'Input video file found: {video_path}')
+            logger.info(f'Input video file found in {source_directory}: {video_path}')
         else:
-            logger.critical(f'More than 1 mkv found in {source_directory}: {found_mkvs}')
-            sys.exit(1)
+            logger.critical(f'More than 1 mkv found in {source_directory}: {found_mkvs}\n')
+            return None
     else:
-        logger.critical("Error: No mkv video file found in the directory.")
-        sys.exit(1)
+        logger.critical(f"Error: No mkv video file found in the directory: {source_directory}\n")
+        return None
 
     return video_path
 
@@ -421,6 +421,10 @@ def main():
         # sanitize user input directory path
 
         video_path = find_mkv(source_directory)
+
+        if video_path is None:
+            logger.warning(f"Skipping {source_directory} due to error.")
+            continue  # Skip to the next source_directory if an error occurred
 
         tape_icon = art('cassette1')
 
