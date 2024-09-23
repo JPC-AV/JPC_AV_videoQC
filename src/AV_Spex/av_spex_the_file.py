@@ -31,14 +31,12 @@ from .checks.qct_parse import run_qctparse
 
 
 def check_directory(source_directory, video_id):
-    # Assuming DigitalGeneration is always prefixed with an underscore and is the last part before the file extension
-    base_video_id = video_id.rsplit('_', 1)[0]  # Splits off the DigitalGeneration part
     directory_name = os.path.basename(source_directory)
     # Check if the directory name starts with the base_video_id string
-    if directory_name.startswith(base_video_id):
-        logger.info(f'Directory name "{directory_name}" correctly starts with "{base_video_id}".\n')
+    if directory_name.startswith(video_id):
+        logger.info(f'Directory name "{directory_name}" correctly matches video file name "{video_id}".\n')
     else:
-        logger.critical(f'Directory name "{directory_name}" does not correctly start with the expected "{base_video_id}" derived from the video ID "{video_id}".\n')    
+        logger.critical(f'Directory name "{directory_name}" does not correctly match the expected "{video_id}".\n')    
 
 
 def make_qc_output_dir(source_directory, video_id):
