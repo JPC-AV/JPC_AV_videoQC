@@ -206,6 +206,33 @@ def write_to_csv(diff_dict, tool_name, writer):
         })
 
 
+def format_config_value(value, indent=0, is_nested=False):
+    """
+    Recursively formats dictionaries and lists for better presentation.
+    """
+    spacer = " " * indent
+    formatted_str = ""
+
+    if isinstance(value, dict):
+        # Only add a newline before nested dictionaries, not for top-level keys
+        if is_nested:
+            formatted_str += "\n"
+        for nested_key, nested_value in value.items():
+            formatted_str += f"{spacer}{nested_key}: {format_config_value(nested_value, indent + 2, is_nested=True)}\n"
+        return formatted_str
+    elif isinstance(value, list):
+        # Join list elements with commas, no brackets
+        formatted_str = f"{', '.join(str(item) for item in value)}"
+        return formatted_str
+    elif value == 'yes':
+        return "✅"  # Inline formatting for 'yes'
+    elif value == 'no':
+        return "❌"  # Inline formatting for 'no'
+    else:
+        # Handle non-dictionary, non-list values directly
+        return f"{value}"
+
+
 def parse_arguments():
     pyproject_file = 'pyproject.toml'
     pyproject_path = os.path.join(os.path.dirname(config_path.config_dir), pyproject_file)
@@ -236,12 +263,12 @@ The scripts will confirm that the digital files conform to predetermined specifi
     parser.add_argument("--off", choices=["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"], 
                         action='append',
                         help="Select specific tools to turn off") 
-    parser.add_argument("-sn", "--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
-    parser.add_argument("-fn", "--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
-    parser.add_argument("-sp", "--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference.")
-    parser.add_argument("-d", "--directory", action="store_true", help="Flag to indicate input is a directory")
-    parser.add_argument("-f", "--file", action="store_true", help="Flag to indicate input is a video file")
-    # make "turn off" which toggles checks on and leaves everything else the same
+    parser.add_argument("-sn","--signalflow", choices=["JPC_AV_SVHS", "BVH3100"], help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
+    parser.add_argument("-fn","--filename", choices=["jpc", "bowser"], help="Select file name config type (jpc or bowser)")
+    parser.add_argument("-sp","--saveprofile", choices=["config", "command"], help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference.")
+    parser.add_argument("-pp","--printprofile", action="store_true", help="Show current config profile.")
+    parser.add_argument("-d","--directory", action="store_true", help="Flag to indicate input is a directory")
+    parser.add_argument("-f","--file", action="store_true", help="Flag to indicate input is a video file")
 
     args = parser.parse_args()
 
@@ -299,6 +326,10 @@ The scripts will confirm that the digital files conform to predetermined specifi
         elif args.filename == "bowser":
             fn_config_changes = yaml_profiles.bowser_filename
 
+    print_config_profile = False
+    if args.printprofile:
+        print_config_profile = True
+
     dry_run_only = args.dryrun
 
     save_config_type = None
@@ -313,7 +344,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
             config_dir = command_config.config_dir
             user_profile_config = os.path.join(config_dir, f"command_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
 
-    return source_directories, selected_profile, tool_names, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config, tools_on_names, tools_off_names
+    return source_directories, selected_profile, tool_names, sn_config_changes, fn_config_changes, print_config_profile, dry_run_only, save_config_type, user_profile_config, tools_on_names, tools_off_names
 
 
 def main():
@@ -326,7 +357,7 @@ def main():
     avspex_icon = text2art("A-V Spex", font='5lineoblique')
     print(f'{avspex_icon}\n')
 
-    source_directories, selected_profile, tool_names, sn_config_changes, fn_config_changes, dry_run_only, save_config_type, user_profile_config, tools_on_names, tools_off_names = parse_arguments()
+    source_directories, selected_profile, tool_names, sn_config_changes, fn_config_changes, print_config_profile, dry_run_only, save_config_type, user_profile_config, tools_on_names, tools_off_names = parse_arguments()
 
     check_py_version()
 
@@ -363,6 +394,13 @@ def main():
 
     if save_config_type:
         yaml_profiles.save_profile_to_file(save_config_type, user_profile_config)
+
+    if print_config_profile:
+        logger.debug("The current config profile seetings are:\n")
+        command_config.reload()
+        for key, value in command_config.command_dict.items():
+            logging.warning(f"{key}:")
+            logging.info(f"{format_config_value(value, indent=2)}")
 
     if dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
