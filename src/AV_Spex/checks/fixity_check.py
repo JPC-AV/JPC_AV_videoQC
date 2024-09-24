@@ -1,28 +1,39 @@
 import os
 import sys
 import hashlib
+import shutil
 from datetime import datetime
 from ..utils.log_setup import logger
 
 
 def check_fixity(directory, video_id, actual_checksum=None):
-    fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity_check.txt')
+    fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d_%H_%M")}_fixity_check.txt')
 
     # Store paths to checksum files
     checksum_files = []  
 
-    # Walks files of the source directory looking for file with '_checksums.md5' suffix
+    # Walk files of the source directory looking for file with '_checksums.md5' or '_fixity.txt' suffix
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith('_checksums.md5') or file.endswith('_fixity.txt'):
                 checksum_file_path = os.path.join(root, file)
                 try:
-                    # Extract date from filename (YYYY_MM_DD format)
-                    file_date_str = file.split('_')[3:6]  # Adjust if naming convention differs
-                    file_date = datetime.strptime("_".join(file_date_str), "%Y_%m_%d").date()
+                    # Extract date from filename (YYYY_MM_DD or YYYY_MM_DD_HH_MM format)
+                    file_date_str = file.split('_')[3:6]  # First try to get the date part (YYYY_MM_DD)
+
+                    # Try parsing the date with only the date part (YYYY_MM_DD)
+                    try:
+                        file_date = datetime.strptime("_".join(file_date_str), "%Y_%m_%d").date()
+                    except ValueError:
+                        # If it fails, try with the full date and time (YYYY_MM_DD_HH_MM)
+                        file_date_str = file.split('_')[3:8]  # Now include time part (YYYY_MM_DD_HH_MM)
+                        file_date = datetime.strptime("_".join(file_date_str), "%Y_%m_%d_%H_%M").date()
+
                     checksum_files.append((checksum_file_path, file_date))
-                except ValueError:
+                
+                except (ValueError, IndexError):
                     logger.warning(f"Skipping checksum file with invalid date format: {file}")
+    
     # Sort checksum files by date (descending)
     checksum_files.sort(key=lambda x: x[1], reverse=True)
 
@@ -30,6 +41,7 @@ def check_fixity(directory, video_id, actual_checksum=None):
         logger.error("Unable to validate fixity against previous md5 checksum. No file ending in '_checksums.md5' or '_fixity.txt' found.\n")
 
     video_file_path = os.path.join(directory, f'{video_id}.mkv')
+    
     # If video file exists, then:
     if os.path.exists(video_file_path):   
         # If checksum has not yet been calculated, then:
@@ -77,8 +89,9 @@ def check_fixity(directory, video_id, actual_checksum=None):
 def output_fixity(source_directory, video_path):
     # Parse video_id from video file path
     video_id = os.path.splitext(os.path.basename(os.path.basename(video_path)))[0]
-    # Create fixity results file
-    fixity_result_file = os.path.join(source_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d")}_fixity.txt')
+    # Create fixity results files
+    fixity_result_file = os.path.join(source_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d_%H_%M")}_fixity.txt')
+    fixity_md5_file = os.path.join(source_directory, f'{video_id}_{datetime.now().strftime("%Y_%m_%d_%H_%M")}_fixity.md5')
     # Calculate the MD5 checksum of the video file
     md5_checksum = hashlib_md5(video_path)
     # Open fixity_result_file
@@ -87,6 +100,7 @@ def output_fixity(source_directory, video_path):
     print(f'{md5_checksum}  {os.path.basename(video_path)}', file = result_file)
     # Close fixity_result_file
     result_file.close()
+    shutil.copy(fixity_result_file, fixity_md5_file)
     logger.debug(f'MD5 checksum written to {fixity_result_file}\n')
     return md5_checksum
 
