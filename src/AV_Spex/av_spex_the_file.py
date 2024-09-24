@@ -586,12 +586,11 @@ def main():
             ffprobe_output_path = None
             # reset variable if no output is created, so that it won't print in the report
 
-        # Create 'report directory' for csv files in html report
-        report_directory = make_report_dir(source_directory, video_id) 
-        diff_csv_path = None
-        # need to initialize path for report
         if command_config.command_dict['outputs']['report'] == 'yes':
-            # if any of the 'differences' lists are not None, then::
+            # Create 'report directory' for csv files in html report
+            report_directory = make_report_dir(source_directory, video_id) 
+            diff_csv_path = None
+            # if any of the 'differences' lists are not None, then:
             if None not in (exiftool_differences, mediainfo_differences, ffprobe_differences, mediatrace_differences):
                 # Create CSV for storing differences between expected metadata values and actual values
                 csv_name = video_id + '_' + 'metadata_difference'
