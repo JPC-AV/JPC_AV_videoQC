@@ -850,6 +850,18 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                     break
                 else:
                     print("Invalid input. Please enter yes/no.\n")
+        else:
+            # Run ffmpeg command to extract xml.gz report
+            full_command = [
+                'ffmpeg', 
+                '-hide_banner', 
+                '-loglevel', 'panic', 
+                '-dump_attachment:t:0', report_file_output, 
+                '-i', qctools_output_path
+            ]
+            logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
+            logger.debug(f'Running command: {" ".join(full_command)}\n')
+            subprocess.run(full_command)
 
         if os.path.isfile(report_file_output):
             startObj = report_file_output
