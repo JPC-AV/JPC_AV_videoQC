@@ -35,8 +35,11 @@ from PyQt6.QtWidgets import (
     QVBoxLayout, 
     QCheckBox,
     QLabel,
-    QGroupBox
+    QGroupBox,
+    QGridLayout
 )
+
+from PyQt6.QtGui import QFont
 
 def create_checkbox(layout, command_dict, key_prefix=''):
     """
@@ -252,6 +255,77 @@ def write_to_csv(diff_dict, tool_name, writer):
             'Actual Value': actual_value
         })
 
+def create_checkbox(layout, command_dict, column=0, row=0, key_prefix=''):
+    """
+    Recursively creates checkboxes for each key in a nested dictionary and adds them to the layout.
+    Each nested dictionary is wrapped in a collapsible QGroupBox and placed in a new column if using QGridLayout.
+    """
+    is_grid_layout = isinstance(layout, QGridLayout)
+
+    for key, value in command_dict.items():
+        # Create a unique key for nested items by combining keys with a delimiter (e.g., ".")
+        full_key = f"{key_prefix}.{key}" if key_prefix else key
+
+        if isinstance(value, dict):
+            # Create a group box for the nested dictionary section
+            group_box = QGroupBox(key)
+            group_box_layout = QVBoxLayout()
+
+            # Recursively call create_checkbox for nested dictionaries
+            create_checkbox(group_box_layout, value, 0, row + 1, full_key)
+
+            # Set the layout for the group box
+            group_box.setLayout(group_box_layout)
+
+            # Place the group box in the grid layout or add directly if it's a vertical layout
+            if is_grid_layout:
+                layout.addWidget(group_box, row, column)
+                column += 1  # Move to the next column for each top-level dictionary
+            else:
+                layout.addWidget(group_box)
+        else:
+            # Create a checkbox for non-dictionary items
+            checkbox = QCheckBox(key)
+            checkbox.setChecked(value == 'yes')  # Assume 'yes' means True, 'no' means False
+            checkbox.stateChanged.connect(lambda state, fk=full_key: update_command_dict(command_dict, fk, state == 2))
+
+            # Add checkbox to layout
+            if is_grid_layout:
+                layout.addWidget(checkbox, row, column)
+                row += 1  # Move to the next row within the same column for each checkbox
+            else:
+                layout.addWidget(checkbox)
+
+def update_command_dict(command_dict, full_key, state):
+    """
+    Updates the command_dict with the new checkbox state.
+    """
+    keys = full_key.split(".")
+    sub_dict = command_dict
+    for k in keys[:-1]:
+        sub_dict = sub_dict[k]
+    sub_dict[keys[-1]] = 'yes' if state else 'no'
+
+
+def setup_ui(command_dict):
+    app = QApplication([])
+    main_window = QWidget()
+    main_window.setWindowTitle("Command Dictionary Checkboxes")
+
+    # Set up the grid layout for the main window
+    grid_layout = QGridLayout(main_window)
+    
+    # Iterate through the main sections of the command_dict and add each to a new column
+    column = 0
+    for section, sub_dict in command_dict.items():
+        create_checkbox(grid_layout, sub_dict, column)
+        column += 1
+
+    main_window.setLayout(grid_layout)
+    main_window.resize(800, 600)
+    main_window.show()
+    sys.exit(app.exec())
+
 
 def parse_arguments():
     pyproject_file = 'pyproject.toml'
@@ -377,8 +451,6 @@ def main():
 
     check_py_version()
 
-    app = QApplication([])
-
     for command in required_commands:
         if not check_external_dependency(command):
             print(f"Error: {command} not found. Please install it.")
@@ -425,19 +497,9 @@ def main():
 
     overall_start_time = time.time()
 
-    window = QWidget()
-    layout = QVBoxLayout()
-    window.setLayout(layout)
-
     command_dict = command_config.command_dict
 
-    print(command_dict)
-
-    for key, value in command_dict.items():
-        create_checkbox(layout, command_dict, key) 
-
-    window.show()
-    app.exec()
+    setup_ui(command_dict)
 
     for source_directory in source_directories:
         dir_start_time = time.time()
