@@ -624,6 +624,8 @@ def main():
                 logger.critical(f"Unable to check qctools report. No file found at this path: {qctools_output_path}.\n")
                 qctools_check_output = None
             else:
+                if not report_directory:
+                    report_directory = make_report_dir(source_directory, video_id)
                 run_qctparse(video_path, qctools_output_path, report_directory)
         else:
             qctools_check_output = None
