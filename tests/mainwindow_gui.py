@@ -3,13 +3,15 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton
 )
 from PyQt6.QtCore import Qt
+from ruamel.yaml import YAML
+import os
 import sys
 
 
 class ConfigWindow(QWidget):
-    def __init__(self, config_dict):
+    def __init__(self, command_config_dict):
         super().__init__()
-        self.config_dict = config_dict
+        self.command_config_dict = command_config_dict
         self.init_ui()
 
     def init_ui(self):
@@ -17,7 +19,7 @@ class ConfigWindow(QWidget):
         main_layout = QVBoxLayout(self)
         
         # Populate the GUI based on the nested dictionary
-        for section, items in self.config_dict.items():
+        for section, items in self.command_config_dict.items():
             section_box = self.create_section(section, items)
             main_layout.addWidget(section_box)
         
@@ -71,6 +73,10 @@ class CollapsibleSection(QGroupBox):
         self.toggle_button.clicked.connect(self.toggle_content)
         self.layout().addWidget(self.toggle_button)
         
+        # Convert content_text (which is a dict) to a string representation
+        if isinstance(content_text, dict):
+            content_text = self.dict_to_string(content_text)
+        
         # Add content inside collapsible section
         self.content_widget = QLabel(content_text)
         self.content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
@@ -85,9 +91,14 @@ class CollapsibleSection(QGroupBox):
         self.content_widget.setVisible(is_expanded)
         self.toggle_button.setText("Collapse Section" if is_expanded else "Expand Section")
 
+    def dict_to_string(self, content_dict):
+        """Convert a dictionary to a string representation for display."""
+        content_str = "\n".join(f"{key}: {value}" for key, value in content_dict.items())
+        return content_str
+
 
 class MainWindow(QMainWindow):
-    def __init__(self, config_dict):
+    def __init__(self, command_config_dict, config_dict):
         super().__init__()
         self.setWindowTitle("Main Application")
         
@@ -115,17 +126,20 @@ class MainWindow(QMainWindow):
 
         # Second column: Checkboxes (ConfigWidget)
         config_scroll_area = QScrollArea()
-        self.config_widget = ConfigWindow(config_dict)
+        self.config_widget = ConfigWindow(command_config_dict)
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
         horizontal_layout.addWidget(config_scroll_area)
 
-        # Third column: Selected expected values
+        # Third column: Selected expected values (Collapsible Sections)
         expected_values_column = QVBoxLayout()
         expected_values_column.addWidget(QLabel("Selected Expected Values:"))
-        expected_values_column.addWidget(CollapsibleSection("mediainfo", "resolution: 1920x1080"))
-        expected_values_column.addWidget(CollapsibleSection("ffprobe", "resolution: 1920x1080"))
-        expected_values_column.addWidget(CollapsibleSection("exiftool", "resolution: 1920x1080"))
+
+        # Dynamically add collapsible sections from config_dict
+        for section, content in config_dict.items():
+            collapsible_section = CollapsibleSection(section, content)
+            expected_values_column.addWidget(collapsible_section)
+
         horizontal_layout.addLayout(expected_values_column)
 
         # Add the horizontal layout to the main layout
@@ -152,8 +166,16 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
 
-    # Example dictionary structure
-    config_dict = {
+    # Load config_dict from a YAML file
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    config_yml = os.path.join('/Users/eddycolloton/git/JPC_AV/JPC_AV_videoQC/config/', 'config.yaml')
+
+    with open(config_yml) as f:
+        config_dict = yaml.load(f)
+
+    # Example command_config_dict for checkboxes section
+    command_config_dict = {
         'outputs': {
             'access_file': 'no',
             'report': 'no',
@@ -185,7 +207,7 @@ if __name__ == "__main__":
     }
 
     # Create and display the main window
-    window = MainWindow(config_dict)
+    window = MainWindow(command_config_dict, config_dict)
     window.show()
 
     sys.exit(app.exec())
