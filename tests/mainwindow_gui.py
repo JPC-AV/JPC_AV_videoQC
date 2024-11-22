@@ -55,7 +55,7 @@ class ConfigWindow(QWidget):
 
 
 class CollapsibleSection(QGroupBox):
-    def __init__(self, title, content_text):
+    def __init__(self, title, content):
         super().__init__()
         self.setTitle("")  # Remove the default group box title
         self.setLayout(QVBoxLayout())
@@ -73,15 +73,23 @@ class CollapsibleSection(QGroupBox):
         self.toggle_button.clicked.connect(self.toggle_content)
         self.layout().addWidget(self.toggle_button)
         
-        # Convert content_text (which is a dict) to a string representation
-        if isinstance(content_text, dict):
-            content_text = self.dict_to_string(content_text)
+        # Convert the content dictionary to a string before passing to QLabel
+        content_text = self.dict_to_string(content)
         
         # Add content inside collapsible section
         self.content_widget = QLabel(content_text)
         self.content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
         self.content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
         self.layout().addWidget(self.content_widget)
+
+         # Create a QScrollArea and set the content_widget as the scrollable widget
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)  # Correct constant usage for horizontal scroll
+        self.scroll_area.setWidget(self.content_widget)  # Set the content_widget inside the scroll area
+        
+        # Add the scroll area to the layout
+        self.layout().addWidget(self.scroll_area)
         
         self.toggle_content()  # Set the initial state
 
@@ -89,6 +97,7 @@ class CollapsibleSection(QGroupBox):
         # Show/hide the content widget
         is_expanded = self.toggle_button.isChecked()
         self.content_widget.setVisible(is_expanded)
+        self.scroll_area.setVisible(is_expanded)
         self.toggle_button.setText("Collapse Section" if is_expanded else "Expand Section")
 
     def dict_to_string(self, content_dict):
@@ -114,8 +123,14 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
+        # Scroll Area for Vertical Scrolling of Entire Layout
+        main_scroll_area = QScrollArea(self)
+        main_scroll_area.setWidgetResizable(True)
+        main_widget = QWidget(self)
+        main_scroll_area.setWidget(main_widget)
+        
         # Horizontal layout for the main content
-        horizontal_layout = QHBoxLayout()
+        horizontal_layout = QHBoxLayout(main_widget)
 
         # First column: Selected directories
         directory_column = QVBoxLayout()
@@ -140,10 +155,15 @@ class MainWindow(QMainWindow):
             collapsible_section = CollapsibleSection(section, content)
             expected_values_column.addWidget(collapsible_section)
 
-        horizontal_layout.addLayout(expected_values_column)
+        # Set a fixed width for the expected values section
+        expected_values_column_widget = QWidget()
+        expected_values_column_widget.setLayout(expected_values_column)
+        expected_values_column_widget.setFixedWidth(300)  # Set a fixed width for the column
+
+        horizontal_layout.addWidget(expected_values_column_widget)
 
         # Add the horizontal layout to the main layout
-        self.main_layout.addLayout(horizontal_layout)
+        self.main_layout.addWidget(main_scroll_area)
 
         # Bottom row with "Check Spex!" button
         bottom_row = QHBoxLayout()
