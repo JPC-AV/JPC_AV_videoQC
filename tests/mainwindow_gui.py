@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
-    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton
+    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox
 )
 from PyQt6.QtCore import Qt
 from ruamel.yaml import YAML
@@ -104,7 +104,7 @@ class CollapsibleSection(QGroupBox):
         """Convert a dictionary to a string representation for display."""
         content_str = "\n".join(f"{key}: {value}" for key, value in content_dict.items())
         return content_str
-
+    
 
 class MainWindow(QMainWindow):
     def __init__(self, command_config_dict, config_dict):
@@ -139,16 +139,48 @@ class MainWindow(QMainWindow):
         directory_column.addWidget(self.directory_list)
         horizontal_layout.addLayout(directory_column)
 
-        # Second column: Checkboxes (ConfigWidget)
+        # Second column: Command Profile Dropdown + Checkboxes (ConfigWidget)
+        config_column = QVBoxLayout()
+        
+        # Add a dropdown menu for command profiles
+        command_profile_label = QLabel("Command profiles:")
+        self.command_profile_dropdown = QComboBox()
+        self.command_profile_dropdown.addItem("step1")
+        self.command_profile_dropdown.addItem("step2")
+        self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
+
+        # Add the dropdown to the config column
+        config_column.addWidget(command_profile_label)
+        config_column.addWidget(self.command_profile_dropdown)
+
+        # Checkboxes (ConfigWidget) section
+        command_checks_label = QLabel("Command options:")
         config_scroll_area = QScrollArea()
         self.config_widget = ConfigWindow(command_config_dict)
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
-        horizontal_layout.addWidget(config_scroll_area)
+
+        # Add checkboxes and label to config column
+        config_column.addWidget(command_checks_label)
+        config_column.addWidget(config_scroll_area)
+
+        # Set a minimum width for the config widget to ensure legibility
+        config_scroll_area.setMinimumWidth(400)  # Set minimum width for the center column
+        
+        horizontal_layout.addLayout(config_column)
 
         # Third column: Selected expected values (Collapsible Sections)
         expected_values_column = QVBoxLayout()
-        expected_values_column.addWidget(QLabel("Selected Expected Values:"))
+        # Add a dropdown menu for command profiles
+        values_profile_label = QLabel("Expected values options:")
+        self.values_profile_dropdown = QComboBox()
+        self.values_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
+        self.values_profile_dropdown.addItem("BVH3100 Signal Flow")
+        self.values_profile_dropdown.addItem("Bowser file names")
+        self.values_profile_dropdown.addItem("JPC file names")
+        expected_values_column.addWidget(self.values_profile_dropdown)
+
+        expected_values_column.addWidget(QLabel("Expected Values:"))
 
         # Dynamically add collapsible sections from config_dict
         for section, content in config_dict.items():
@@ -161,6 +193,8 @@ class MainWindow(QMainWindow):
         expected_values_column_widget.setFixedWidth(300)  # Set a fixed width for the column
 
         horizontal_layout.addWidget(expected_values_column_widget)
+
+        main_scroll_area.setMinimumWidth(1200)
 
         # Add the horizontal layout to the main layout
         self.main_layout.addWidget(main_scroll_area)
@@ -181,6 +215,19 @@ class MainWindow(QMainWindow):
         if directory and directory not in self.selected_directories:
             self.selected_directories.append(directory)
             self.directory_list.addItem(directory)
+
+    def on_profile_selected(self, index):
+        # Handle the dropdown menu selection change
+        selected_profile = self.command_profile_dropdown.currentText()
+        print(f"Selected profile: {selected_profile}")
+        # You can perform different actions based on the selected profile here
+        # For example, update other parts of the GUI or load different data
+        # For now, we just print the selected profile to the console
+        if selected_profile == "step1":
+            print("Step 1 profile selected.")
+        elif selected_profile == "step2":
+            print("Step 2 profile selected.")
+
 
 
 if __name__ == "__main__":
