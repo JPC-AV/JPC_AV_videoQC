@@ -115,10 +115,29 @@ class CollapsibleSection(QGroupBox):
         self.new_window.resize(600, 400)  # Set an appropriate size
         self.new_window.show()
 
-    def dict_to_string(self, content_dict):
-        """Convert a dictionary to a string representation for display."""
-        content_str = "\n".join(f"{key}: {value}" for key, value in content_dict.items())
-        return content_str
+    def dict_to_string(self, content_dict, indent_level=0):
+        """Convert a dictionary to a string representation for display.
+        
+        Handles nested dictionaries and lists with proper formatting and indentation.
+        """
+        content_lines = []
+        indent = "  " * indent_level  # Two spaces per indent level
+
+        for key, value in content_dict.items():
+            if isinstance(value, dict):  # If the value is a nested dictionary
+                content_lines.append(f"{indent}{key}:")
+                # Recursively process the nested dictionary
+                content_lines.append(self.dict_to_string(value, indent_level + 1))
+            elif isinstance(value, list):  # If the value is a list
+                content_lines.append(f"{indent}{key}:")
+                # Add each list item on a new line with additional indentation
+                for item in value:
+                    content_lines.append(f"{indent}{indent}  {item}")
+            else:  # For all other types (e.g., strings, numbers)
+                content_lines.append(f"{indent}{key}: {value}")
+
+        return "\n".join(content_lines)
+
 
 
 class MainWindow(QMainWindow):
