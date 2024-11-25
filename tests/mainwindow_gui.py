@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
-    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox
+    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget
 )
 from PyQt6.QtCore import Qt
 from ruamel.yaml import YAML
@@ -63,48 +63,63 @@ class CollapsibleSection(QGroupBox):
         # Create a label to display the section name
         section_label = QLabel(f"<b>{title}</b>")
         self.layout().addWidget(section_label)
-        
-        # Create a collapsible toggle button
-        self.toggle_button = QToolButton()
-        self.toggle_button.setText("Expand Section")
-        self.toggle_button.setCheckable(True)
-        self.toggle_button.setChecked(False)
-        self.toggle_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.toggle_button.clicked.connect(self.toggle_content)
+
+        if title == 'filename_values':
+            # Add a dropdown menu for command profiles
+            filenames_profile_label = QLabel("Expected filename options:")
+            self.filename_profile_dropdown = QComboBox()
+            self.filename_profile_dropdown.addItem("Bowser file names")
+            self.filename_profile_dropdown.addItem("JPC file names")
+            self.layout().addWidget(self.filename_profile_dropdown)
+
+        if title == 'mediatrace':
+            # Add a dropdown menu for command profiles
+            signalflow_profile_label = QLabel("Expected Signalflow options:")
+            self.signalflow_profile_dropdown = QComboBox()
+            self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
+            self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
+            self.layout().addWidget(self.signalflow_profile_dropdown)
+
+        # Create a toggle button to open a new window
+        self.toggle_button = QPushButton("Open Section")
+        self.toggle_button.clicked.connect(self.open_new_window)
         self.layout().addWidget(self.toggle_button)
-        
-        # Convert the content dictionary to a string before passing to QLabel
-        content_text = self.dict_to_string(content)
-        
-        # Add content inside collapsible section
-        self.content_widget = QLabel(content_text)
-        self.content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
-        self.content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
-        self.layout().addWidget(self.content_widget)
 
-         # Create a QScrollArea and set the content_widget as the scrollable widget
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)  # Correct constant usage for horizontal scroll
-        self.scroll_area.setWidget(self.content_widget)  # Set the content_widget inside the scroll area
-        
-        # Add the scroll area to the layout
-        self.layout().addWidget(self.scroll_area)
-        
-        self.toggle_content()  # Set the initial state
+        # Convert the content dictionary to a string for display in the new window
+        self.content_text = self.dict_to_string(content)
+        self.title = title
 
-    def toggle_content(self):
-        # Show/hide the content widget
-        is_expanded = self.toggle_button.isChecked()
-        self.content_widget.setVisible(is_expanded)
-        self.scroll_area.setVisible(is_expanded)
-        self.toggle_button.setText("Collapse Section" if is_expanded else "Expand Section")
+        # Keep a reference to the new window to prevent it from being garbage-collected
+        self.new_window = None
+
+    def open_new_window(self):
+        # Create a new window to display the section's content
+        self.new_window = QWidget()
+        self.new_window.setWindowTitle(self.title)
+        self.new_window.setLayout(QVBoxLayout())
+
+        # Add the content in a scrollable area
+        scroll_area = QScrollArea(self.new_window)
+        scroll_area.setWidgetResizable(True)
+
+        # Create a content widget for detailed content
+        content_widget = QLabel(self.content_text)
+        content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
+        content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
+        scroll_area.setWidget(content_widget)
+
+        # Add the scroll area to the new window
+        self.new_window.layout().addWidget(scroll_area)
+
+        # Show the new window
+        self.new_window.resize(600, 400)  # Set an appropriate size
+        self.new_window.show()
 
     def dict_to_string(self, content_dict):
         """Convert a dictionary to a string representation for display."""
         content_str = "\n".join(f"{key}: {value}" for key, value in content_dict.items())
         return content_str
-    
+
 
 class MainWindow(QMainWindow):
     def __init__(self, command_config_dict, config_dict):
@@ -123,13 +138,22 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
-        # Scroll Area for Vertical Scrolling of Entire Layout
+        # Create a QTabWidget for tabs
+        self.tabs = QTabWidget()
+        self.main_layout.addWidget(self.tabs)
+
+        # First tab: "checks"
+        checks_tab = QWidget()
+        checks_layout = QVBoxLayout(checks_tab)
+        self.tabs.addTab(checks_tab, "Checks")
+
+        # Scroll Area for Vertical Scrolling in "Checks" Tab
         main_scroll_area = QScrollArea(self)
         main_scroll_area.setWidgetResizable(True)
         main_widget = QWidget(self)
         main_scroll_area.setWidget(main_widget)
         
-        # Horizontal layout for the main content
+        # Horizontal layout for the main content in "Checks"
         horizontal_layout = QHBoxLayout(main_widget)
 
         # First column: Selected directories
@@ -169,42 +193,26 @@ class MainWindow(QMainWindow):
         
         horizontal_layout.addLayout(config_column)
 
-        # Third column: Selected expected values (Collapsible Sections)
-        expected_values_column = QVBoxLayout()
-        # Add a dropdown menu for command profiles
-        values_profile_label = QLabel("Expected values options:")
-        self.values_profile_dropdown = QComboBox()
-        self.values_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
-        self.values_profile_dropdown.addItem("BVH3100 Signal Flow")
-        self.values_profile_dropdown.addItem("Bowser file names")
-        self.values_profile_dropdown.addItem("JPC file names")
-        expected_values_column.addWidget(self.values_profile_dropdown)
-
-        expected_values_column.addWidget(QLabel("Expected Values:"))
-
-        # Dynamically add collapsible sections from config_dict
-        for section, content in config_dict.items():
-            collapsible_section = CollapsibleSection(section, content)
-            expected_values_column.addWidget(collapsible_section)
-
-        # Set a fixed width for the expected values section
-        expected_values_column_widget = QWidget()
-        expected_values_column_widget.setLayout(expected_values_column)
-        expected_values_column_widget.setFixedWidth(300)  # Set a fixed width for the column
-
-        horizontal_layout.addWidget(expected_values_column_widget)
-
-        main_scroll_area.setMinimumWidth(1200)
-
-        # Add the horizontal layout to the main layout
-        self.main_layout.addWidget(main_scroll_area)
+        # Add the horizontal layout to the "checks" tab layout
+        checks_layout.addWidget(main_scroll_area)
 
         # Bottom row with "Check Spex!" button
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
         check_spex_button = QPushButton("Check Spex!")
         bottom_row.addWidget(check_spex_button)
-        self.main_layout.addLayout(bottom_row)
+        checks_layout.addLayout(bottom_row)
+
+        # Second tab: "spex"
+        spex_tab = QWidget()
+        spex_layout = QVBoxLayout(spex_tab)
+        self.tabs.addTab(spex_tab, "Spex")
+
+        # Dynamically add collapsible sections from config_dict
+        spex_layout.addWidget(QLabel("Expected Values:"))
+        for section, content in config_dict.items():
+            collapsible_section = CollapsibleSection(section, content)
+            spex_layout.addWidget(collapsible_section)
 
         # Directory storage
         self.selected_directories = []
@@ -220,14 +228,10 @@ class MainWindow(QMainWindow):
         # Handle the dropdown menu selection change
         selected_profile = self.command_profile_dropdown.currentText()
         print(f"Selected profile: {selected_profile}")
-        # You can perform different actions based on the selected profile here
-        # For example, update other parts of the GUI or load different data
-        # For now, we just print the selected profile to the console
         if selected_profile == "step1":
             print("Step 1 profile selected.")
         elif selected_profile == "step2":
             print("Step 2 profile selected.")
-
 
 
 if __name__ == "__main__":
