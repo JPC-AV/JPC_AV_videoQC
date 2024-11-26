@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
-    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget
+    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
+    QTextEdit
 )
 from PyQt6.QtCore import Qt
 from ruamel.yaml import YAML
@@ -103,9 +104,11 @@ class CollapsibleSection(QGroupBox):
         scroll_area.setWidgetResizable(True)
 
         # Create a content widget for detailed content
-        content_widget = QLabel(self.content_text)
+        content_widget = QTextEdit(self.content_text)
+        content_widget.setReadOnly(True)  # Make the text widget read-only
         content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
         content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
+        content_widget.setPlainText(self.content_text)  # Set content as plain text with newlines
         scroll_area.setWidget(content_widget)
 
         # Add the scroll area to the new window
