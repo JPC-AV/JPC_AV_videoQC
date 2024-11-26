@@ -30,54 +30,309 @@ from .checks.make_access import make_access_file
 from .checks.qct_parse import run_qctparse
 
 from PyQt6.QtWidgets import (
-    QApplication, 
-    QWidget, 
-    QVBoxLayout, 
-    QCheckBox,
-    QLabel,
-    QGroupBox,
-    QGridLayout
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
+    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
+    QTextEdit
 )
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap
 
-from PyQt6.QtGui import QFont
 
-def create_checkbox(layout, command_dict, key_prefix=''):
-    """
-    Recursively creates checkboxes for each key in a nested dictionary and adds them to the layout.
-    Each nested dictionary is wrapped in a collapsible QGroupBox.
-    """
-    for key, value in command_dict.items():
-        # Create a unique key for nested items by combining keys with a delimiter (e.g., ".")
-        full_key = f"{key_prefix}.{key}" if key_prefix else key
+class ConfigWindow(QWidget):
+    def __init__(self, command_config_dict, command_config):
+        super().__init__()
+        self.command_config_dict = command_config_dict
+        self.command_config = command_config  # Pass the CommandConfig instance
+        self.init_ui()
 
-        if isinstance(value, dict):
-            # Create a group box for the nested dictionary section
-            group_box = QGroupBox(key)
-            group_box_layout = QVBoxLayout()
+    def init_ui(self):
+        # Create the main layout
+        main_layout = QVBoxLayout(self)
+        
+        # Populate the GUI based on the nested dictionary
+        for section, items in self.command_config_dict.items():
+            section_box = self.create_section(section, items)
+            main_layout.addWidget(section_box)
+        
+        # Spacer for remaining space
+        main_layout.addStretch()
 
-            # Recursively call create_checkbox for nested dictionaries
-            create_checkbox(group_box_layout, value, full_key)
+    def create_section(self, section_name, items):
+        # Create a QGroupBox for each main section
+        group_box = QGroupBox(section_name)
+        layout = QVBoxLayout()
+        
+        for key, value in items.items():
+            if isinstance(value, dict):  # Nested dictionary
+                sub_section = self.create_section(key, value)
+                layout.addWidget(sub_section)
+            elif isinstance(value, str):
+                if value in ("yes", "no"):  # Checkbox for yes/no values
+                    checkbox = QCheckBox(key)
+                    checkbox.setChecked(value == "yes")
+                    # Connect stateChanged signal to handle_checkbox_change
+                    checkbox.stateChanged.connect(lambda state, name=key: self.handle_checkbox_change(state, name))
+                    layout.addWidget(checkbox)
+                else:  # QLineEdit for text fields
+                    label = QLabel(key)
+                    text_field = QLineEdit(value)
+                    layout.addWidget(label)
+                    layout.addWidget(text_field)
+            elif isinstance(value, bool):  # Checkbox for True/False values
+                checkbox = QCheckBox(key)
+                checkbox.setChecked(value)
+                # Connect stateChanged signal to handle_checkbox_change
+                checkbox.stateChanged.connect(lambda state, name=key: self.handle_checkbox_change(state, name))
+                layout.addWidget(checkbox)
 
-            # Set the layout for the group box and add it to the main layout
-            group_box.setLayout(group_box_layout)
-            layout.addWidget(group_box)
+        group_box.setLayout(layout)
+        return group_box
+
+    def handle_checkbox_change(self, state, command_name):
+        """Handle changes in checkbox state."""
+        # Print debugging information to ensure the function is called
+        print(f"Checkbox '{command_name}' state changed. State: {state}")
+        
+        # Correct state handling: Qt.CheckState.Checked = 2, Qt.CheckState.Unchecked = 0
+        if state == Qt.CheckState.Checked:
+            state_str = 'on'
+            print(f"Setting {command_name} to 'on'")  # Debugging
+        elif state == Qt.CheckState.Unchecked:
+            state_str = 'off'
+            print(f"Setting {command_name} to 'off'")  # Debugging
         else:
-            # Create a checkbox for non-dictionary items
-            checkbox = QCheckBox(key)
-            checkbox.setChecked(value == 'yes')  # Assume 'yes' means True, 'no' means False
-            checkbox.stateChanged.connect(lambda state, fk=full_key: update_command_dict(command_dict, fk, state == 2))
-            layout.addWidget(checkbox)
+            print(f"Unexpected state: {state}")  # Debugging
+            return
+        
+        # Call the backend function to apply the state change
+        try:
+            print(f"Calling yaml_profiles.checkbox_on with command_name={command_name}, state={state_str}")
+            yaml_profiles.checkbox_on(self.command_config, command_name, state_str)
+        except Exception as e:
+            print(f"Error calling checkbox_on: {e}")  # Debugging error handling
 
 
-def update_command_dict(command_dict, full_key, state):
-    """
-    Updates the command_dict with the new checkbox state.
-    """
-    keys = full_key.split(".")
-    sub_dict = command_dict
-    for k in keys[:-1]:
-        sub_dict = sub_dict[k]
-    sub_dict[keys[-1]] = 'yes' if state else 'no'
+class CollapsibleSection(QGroupBox):
+    def __init__(self, title, content):
+        super().__init__()
+        self.setTitle("")  # Remove the default group box title
+        self.setLayout(QVBoxLayout())
+        
+        # Create a label to display the section name
+        section_label = QLabel(f"<b>{title}</b>")
+        self.layout().addWidget(section_label)
+
+        if title == 'filename_values':
+            # Add a dropdown menu for command profiles
+            filenames_profile_label = QLabel("Expected filename options:")
+            self.filename_profile_dropdown = QComboBox()
+            self.filename_profile_dropdown.addItem("Bowser file names")
+            self.filename_profile_dropdown.addItem("JPC file names")
+            self.layout().addWidget(self.filename_profile_dropdown)
+
+        if title == 'mediatrace':
+            # Add a dropdown menu for command profiles
+            signalflow_profile_label = QLabel("Expected Signalflow options:")
+            self.signalflow_profile_dropdown = QComboBox()
+            self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
+            self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
+            self.layout().addWidget(self.signalflow_profile_dropdown)
+
+        # Create a toggle button to open a new window
+        self.toggle_button = QPushButton("Open Section")
+        self.toggle_button.clicked.connect(self.open_new_window)
+        self.layout().addWidget(self.toggle_button)
+
+        # Convert the content dictionary to a string for display in the new window
+        self.content_text = self.dict_to_string(content)
+        self.title = title
+
+        # Keep a reference to the new window to prevent it from being garbage-collected
+        self.new_window = None
+
+    def open_new_window(self):
+        # Create a new window to display the section's content
+        self.new_window = QWidget()
+        self.new_window.setWindowTitle(self.title)
+        self.new_window.setLayout(QVBoxLayout())
+
+        # Add the content in a scrollable area
+        scroll_area = QScrollArea(self.new_window)
+        scroll_area.setWidgetResizable(True)
+
+        # Create a content widget for detailed content
+        content_widget = QTextEdit(self.content_text)
+        content_widget.setReadOnly(True)  # Make the text widget read-only
+        content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
+        content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
+        content_widget.setPlainText(self.content_text)  # Set content as plain text with newlines
+        scroll_area.setWidget(content_widget)
+
+        # Add the scroll area to the new window
+        self.new_window.layout().addWidget(scroll_area)
+
+        # Show the new window
+        self.new_window.resize(600, 400)  # Set an appropriate size
+        self.new_window.show()
+
+    def dict_to_string(self, content_dict, indent_level=0):
+        """Convert a dictionary to a string representation for display.
+        
+        Handles nested dictionaries and lists with proper formatting and indentation.
+        """
+        content_lines = []
+        indent = "  " * indent_level  # Two spaces per indent level
+
+        for key, value in content_dict.items():
+            if isinstance(value, dict):  # If the value is a nested dictionary
+                content_lines.append(f"{indent}{key}:")
+                # Recursively process the nested dictionary
+                content_lines.append(self.dict_to_string(value, indent_level + 1))
+            elif isinstance(value, list):  # If the value is a list
+                content_lines.append(f"{indent}{key}:")
+                # Add each list item on a new line with additional indentation
+                for item in value:
+                    content_lines.append(f"{indent}{indent}  {item}")
+            else:  # For all other types (e.g., strings, numbers)
+                content_lines.append(f"{indent}{key}: {value}")
+
+        return "\n".join(content_lines)
+
+
+
+class MainWindow(QMainWindow):
+    def __init__(self, command_config, command_config_dict, config_path, config_dict):
+        super().__init__()
+        self.setWindowTitle("Main Application")
+        
+        # Set up menu bar
+        self.menu_bar = QMenuBar(self)
+        self.setMenuBar(self.menu_bar)
+        self.file_menu = self.menu_bar.addMenu("File")
+        self.import_action = self.file_menu.addAction("Import Directory")
+        self.import_action.triggered.connect(self.import_directory)
+
+        # Main layout
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.main_layout = QVBoxLayout(self.central_widget)
+
+         # Add images at the top of the GUI
+        self.add_images_to_top()
+
+        # Create a QTabWidget for tabs
+        self.tabs = QTabWidget()
+        self.main_layout.addWidget(self.tabs)
+
+        # First tab: "checks"
+        checks_tab = QWidget()
+        checks_layout = QVBoxLayout(checks_tab)
+        self.tabs.addTab(checks_tab, "Checks")
+
+        # Scroll Area for Vertical Scrolling in "Checks" Tab
+        main_scroll_area = QScrollArea(self)
+        main_scroll_area.setWidgetResizable(True)
+        main_widget = QWidget(self)
+        main_scroll_area.setWidget(main_widget)
+        
+        # Horizontal layout for the main content in "Checks"
+        horizontal_layout = QHBoxLayout(main_widget)
+
+        # First column: Selected directories
+        directory_column = QVBoxLayout()
+        directory_column.addWidget(QLabel("Selected Directories:"))
+        self.directory_list = QListWidget()
+        directory_column.addWidget(self.directory_list)
+        horizontal_layout.addLayout(directory_column)
+
+        # Second column: Command Profile Dropdown + Checkboxes (ConfigWidget)
+        config_column = QVBoxLayout()
+        
+        # Add a dropdown menu for command profiles
+        command_profile_label = QLabel("Command profiles:")
+        self.command_profile_dropdown = QComboBox()
+        self.command_profile_dropdown.addItem("step1")
+        self.command_profile_dropdown.addItem("step2")
+        self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
+
+        # Add the dropdown to the config column
+        config_column.addWidget(command_profile_label)
+        config_column.addWidget(self.command_profile_dropdown)
+
+        # Checkboxes (ConfigWidget) section
+        command_checks_label = QLabel("Command options:")
+        config_scroll_area = QScrollArea()
+        self.config_widget = ConfigWindow(command_config_dict, command_config)
+        config_scroll_area.setWidgetResizable(True)
+        config_scroll_area.setWidget(self.config_widget)
+
+        # Add checkboxes and label to config column
+        config_column.addWidget(command_checks_label)
+        config_column.addWidget(config_scroll_area)
+
+        # Set a minimum width for the config widget to ensure legibility
+        config_scroll_area.setMinimumWidth(400)  # Set minimum width for the center column
+        
+        horizontal_layout.addLayout(config_column)
+
+        # Add the horizontal layout to the "checks" tab layout
+        checks_layout.addWidget(main_scroll_area)
+
+        # Bottom row with "Check Spex!" button
+        bottom_row = QHBoxLayout()
+        bottom_row.addStretch()
+        check_spex_button = QPushButton("Check Spex!")
+        bottom_row.addWidget(check_spex_button)
+        checks_layout.addLayout(bottom_row)
+
+        # Second tab: "spex"
+        spex_tab = QWidget()
+        spex_layout = QVBoxLayout(spex_tab)
+        self.tabs.addTab(spex_tab, "Spex")
+
+        # Dynamically add collapsible sections from config_dict
+        spex_layout.addWidget(QLabel("Expected Values:"))
+        for section, content in config_dict.items():
+            collapsible_section = CollapsibleSection(section, content)
+            spex_layout.addWidget(collapsible_section)
+
+        # Directory storage
+        self.selected_directories = []
+
+    def add_images_to_top(self):
+        """Add three images to the top of the main layout."""
+        image_layout = QHBoxLayout()
+        image_files = [
+            "jpc_logo_purple.png",
+            "av_spex_the_logo.png",
+            "nmaahc_vert_purple.png"
+        ]
+
+        for image_file in image_files:
+            pixmap = QPixmap(image_file).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            label = QLabel()
+            label.setPixmap(pixmap)
+            image_layout.addWidget(label)
+
+        self.main_layout.addLayout(image_layout)
+
+    def import_directory(self):
+        # Open a file dialog to select a directory
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+        if directory and directory not in self.selected_directories:
+            self.selected_directories.append(directory)
+            self.directory_list.addItem(directory)
+
+    def on_profile_selected(self, index):
+        # Get the selected profile from the dropdown
+        selected_profile = self.command_profile_dropdown.currentText()
+        try:
+            # Call the backend function to apply the selected profile
+            yaml_profiles.apply_selected_profile(selected_profile, command_config)
+            print(f"Profile '{selected_profile}' applied successfully.")
+        except ValueError as e:
+            print(f"Error: {e}")
+
 
 
 def check_directory(source_directory, video_id):
@@ -255,46 +510,6 @@ def write_to_csv(diff_dict, tool_name, writer):
             'Actual Value': actual_value
         })
 
-def create_checkbox(layout, command_dict, column=0, row=0, key_prefix=''):
-    """
-    Recursively creates checkboxes for each key in a nested dictionary and adds them to the layout.
-    Each nested dictionary is wrapped in a collapsible QGroupBox and placed in a new column if using QGridLayout.
-    """
-    is_grid_layout = isinstance(layout, QGridLayout)
-
-    for key, value in command_dict.items():
-        # Create a unique key for nested items by combining keys with a delimiter (e.g., ".")
-        full_key = f"{key_prefix}.{key}" if key_prefix else key
-
-        if isinstance(value, dict):
-            # Create a group box for the nested dictionary section
-            group_box = QGroupBox(key)
-            group_box_layout = QVBoxLayout()
-
-            # Recursively call create_checkbox for nested dictionaries
-            create_checkbox(group_box_layout, value, 0, row + 1, full_key)
-
-            # Set the layout for the group box
-            group_box.setLayout(group_box_layout)
-
-            # Place the group box in the grid layout or add directly if it's a vertical layout
-            if is_grid_layout:
-                layout.addWidget(group_box, row, column)
-                column += 1  # Move to the next column for each top-level dictionary
-            else:
-                layout.addWidget(group_box)
-        else:
-            # Create a checkbox for non-dictionary items
-            checkbox = QCheckBox(key)
-            checkbox.setChecked(value == 'yes')  # Assume 'yes' means True, 'no' means False
-            checkbox.stateChanged.connect(lambda state, fk=full_key: update_command_dict(command_dict, fk, state == 2))
-
-            # Add checkbox to layout
-            if is_grid_layout:
-                layout.addWidget(checkbox, row, column)
-                row += 1  # Move to the next row within the same column for each checkbox
-            else:
-                layout.addWidget(checkbox)
 
 def update_command_dict(command_dict, full_key, state):
     """
@@ -305,26 +520,6 @@ def update_command_dict(command_dict, full_key, state):
     for k in keys[:-1]:
         sub_dict = sub_dict[k]
     sub_dict[keys[-1]] = 'yes' if state else 'no'
-
-
-def setup_ui(command_dict):
-    app = QApplication([])
-    main_window = QWidget()
-    main_window.setWindowTitle("Command Dictionary Checkboxes")
-
-    # Set up the grid layout for the main window
-    grid_layout = QGridLayout(main_window)
-    
-    # Iterate through the main sections of the command_dict and add each to a new column
-    column = 0
-    for section, sub_dict in command_dict.items():
-        create_checkbox(grid_layout, sub_dict, column)
-        column += 1
-
-    main_window.setLayout(grid_layout)
-    main_window.resize(800, 600)
-    main_window.show()
-    sys.exit(app.exec())
 
 
 def parse_arguments():
@@ -443,6 +638,13 @@ def main():
     av-spex <input_directory> (or -f <input_file.mkv>)
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
+    
+    app = QApplication(sys.argv)
+    # Create and display the main window
+    window = MainWindow(command_config, command_config.command_dict, config_path, config_path.config_dict)
+    window.show()
+    app.exec()
+
 
     avspex_icon = text2art("A-V Spex", font='5lineoblique')
     print(f'{avspex_icon}\n')
@@ -496,10 +698,6 @@ def main():
     check_filenames(source_directories)
 
     overall_start_time = time.time()
-
-    command_dict = command_config.command_dict
-
-    setup_ui(command_dict)
 
     for source_directory in source_directories:
         dir_start_time = time.time()
