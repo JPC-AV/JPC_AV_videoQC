@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QTextEdit
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QPixmap
 from ruamel.yaml import YAML
 import os
 import sys
@@ -160,6 +161,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
+         # Add images at the top of the GUI
+        self.add_images_to_top()
+
         # Create a QTabWidget for tabs
         self.tabs = QTabWidget()
         self.main_layout.addWidget(self.tabs)
@@ -238,6 +242,23 @@ class MainWindow(QMainWindow):
 
         # Directory storage
         self.selected_directories = []
+
+    def add_images_to_top(self):
+        """Add three images to the top of the main layout."""
+        image_layout = QHBoxLayout()
+        image_files = [
+            "jpc_logo_purple.png",
+            "av_spex_the_logo.png",
+            "nmaahc_vert_purple.png"
+        ]
+
+        for image_file in image_files:
+            pixmap = QPixmap(image_file).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            label = QLabel()
+            label.setPixmap(pixmap)
+            image_layout.addWidget(label)
+
+        self.main_layout.addLayout(image_layout)
 
     def import_directory(self):
         # Open a file dialog to select a directory
