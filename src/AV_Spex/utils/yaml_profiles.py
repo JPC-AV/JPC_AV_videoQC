@@ -79,7 +79,7 @@ def checkbox_on(command_config, command_name, state):
                 update_dict(value)
             elif key == command_name:  # If the key matches, update the value.
                 d[key] = new_value
-                print(f"{command_name} set to '{state}'")  # Use logging if needed.
+                logger.info(f"{command_name} set to '{state}'")  # Use logging if needed.
 
     # Update the command_dict
     update_dict(command_config.command_dict)

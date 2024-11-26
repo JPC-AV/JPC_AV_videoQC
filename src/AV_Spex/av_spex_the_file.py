@@ -37,7 +37,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 
-
 class ConfigWindow(QWidget):
     def __init__(self, command_config_dict, command_config):
         super().__init__()
@@ -70,8 +69,7 @@ class ConfigWindow(QWidget):
                 if value in ("yes", "no"):  # Checkbox for yes/no values
                     checkbox = QCheckBox(key)
                     checkbox.setChecked(value == "yes")
-                    # Connect stateChanged signal to handle_checkbox_change
-                    checkbox.stateChanged.connect(lambda state, name=key: self.handle_checkbox_change(state, name))
+                    checkbox.stateChanged.connect(lambda state, name=key: self.on_checkbox_changed(state, name))
                     layout.addWidget(checkbox)
                 else:  # QLineEdit for text fields
                     label = QLabel(key)
@@ -81,35 +79,26 @@ class ConfigWindow(QWidget):
             elif isinstance(value, bool):  # Checkbox for True/False values
                 checkbox = QCheckBox(key)
                 checkbox.setChecked(value)
-                # Connect stateChanged signal to handle_checkbox_change
-                checkbox.stateChanged.connect(lambda state, name=key: self.handle_checkbox_change(state, name))
+                checkbox.stateChanged.connect(lambda state, name=key: self.on_checkbox_changed(state, name))
                 layout.addWidget(checkbox)
 
         group_box.setLayout(layout)
         return group_box
 
-    def handle_checkbox_change(self, state, command_name):
+    def on_checkbox_changed(self, value, command_name):
         """Handle changes in checkbox state."""
-        # Print debugging information to ensure the function is called
-        print(f"Checkbox '{command_name}' state changed. State: {state}")
+        # Convert the state to a Qt CheckState
+        state = Qt.CheckState(value)
         
-        # Correct state handling: Qt.CheckState.Checked = 2, Qt.CheckState.Unchecked = 0
         if state == Qt.CheckState.Checked:
-            state_str = 'on'
-            print(f"Setting {command_name} to 'on'")  # Debugging
+            logger.debug(f"Checkbox '{command_name}' is Checked.")
+            # Call the backend function for 'on' state
+            yaml_profiles.checkbox_on(self.command_config, command_name, 'on')
         elif state == Qt.CheckState.Unchecked:
-            state_str = 'off'
-            print(f"Setting {command_name} to 'off'")  # Debugging
-        else:
-            print(f"Unexpected state: {state}")  # Debugging
-            return
-        
-        # Call the backend function to apply the state change
-        try:
-            print(f"Calling yaml_profiles.checkbox_on with command_name={command_name}, state={state_str}")
-            yaml_profiles.checkbox_on(self.command_config, command_name, state_str)
-        except Exception as e:
-            print(f"Error calling checkbox_on: {e}")  # Debugging error handling
+            logger.debug(f"Checkbox '{command_name}' is Unchecked.")
+            # Call the backend function for 'off' state
+            yaml_profiles.checkbox_on(self.command_config, command_name, 'off')
+
 
 
 class CollapsibleSection(QGroupBox):
@@ -329,9 +318,9 @@ class MainWindow(QMainWindow):
         try:
             # Call the backend function to apply the selected profile
             yaml_profiles.apply_selected_profile(selected_profile, command_config)
-            print(f"Profile '{selected_profile}' applied successfully.")
+            logger.debug(f"Profile '{selected_profile}' applied successfully.")
         except ValueError as e:
-            print(f"Error: {e}")
+            logger.critical(f"Error: {e}")
 
 
 
