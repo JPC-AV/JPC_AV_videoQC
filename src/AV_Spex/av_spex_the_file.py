@@ -122,10 +122,17 @@ class ConfigWindow(QWidget):
             yaml_profiles.checkbox_on(self.command_config, command_name, 'off')
 
 class CollapsibleSection(QGroupBox):
-    def __init__(self, title, content):
+    def __init__(self, title, content, backend_callback=None):
+        """
+        Initialize the collapsible section.
+        :param title: Title of the section.
+        :param content: Dictionary content to display.
+        :param backend_callback: Optional function to handle backend updates.
+        """
         super().__init__()
         self.setTitle("")  # Remove the default group box title
         self.setLayout(QVBoxLayout())
+        self.backend_callback = backend_callback  # Save the callback for later use
         
         # Create a label to display the section name
         section_label = QLabel(f"<b>{title}</b>")
@@ -134,14 +141,19 @@ class CollapsibleSection(QGroupBox):
         if title == 'filename_values':
             # Add a dropdown menu for command profiles
             filenames_profile_label = QLabel("Expected filename options:")
+            self.layout().addWidget(filenames_profile_label)
+
             self.filename_profile_dropdown = QComboBox()
             self.filename_profile_dropdown.addItem("Bowser file names")
             self.filename_profile_dropdown.addItem("JPC file names")
+            self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
             self.layout().addWidget(self.filename_profile_dropdown)
 
         if title == 'mediatrace':
             # Add a dropdown menu for command profiles
             signalflow_profile_label = QLabel("Expected Signalflow options:")
+            self.layout().addWidget(signalflow_profile_label)
+
             self.signalflow_profile_dropdown = QComboBox()
             self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
             self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
@@ -158,6 +170,19 @@ class CollapsibleSection(QGroupBox):
 
         # Keep a reference to the new window to prevent it from being garbage-collected
         self.new_window = None
+
+    def on_filename_profile_changed(self, index):
+        """
+        Handle changes in the filename profile dropdown.
+        :param index: The index of the selected item.
+        """
+        selected_option = self.filename_profile_dropdown.itemText(index)
+        print(f"Selected filename profile: {selected_option}")
+        if self.backend_callback:
+            # Call the backend function with necessary arguments
+            fn_config_changes = {'selected_option': selected_option}
+            config_path = "path/to/config"  # Replace with the actual config path
+            self.backend_callback(config_path, 'filename_values', fn_config_changes)
 
     def open_new_window(self):
         # Create a new window to display the section's content
@@ -206,7 +231,6 @@ class CollapsibleSection(QGroupBox):
                 content_lines.append(f"{indent}{key}: {value}")
 
         return "\n".join(content_lines)
-
 
 
 class MainWindow(QMainWindow):
