@@ -41,26 +41,29 @@ class ConfigWindow(QWidget):
     def __init__(self, command_config_dict, command_config):
         super().__init__()
         self.command_config_dict = command_config_dict
-        self.command_config = command_config  # Pass the CommandConfig instance
+        self.command_config = command_config
+
+        # Create the main layout only once
+        self.main_layout = QVBoxLayout(self)
+        self.setLayout(self.main_layout)  # Assign layout at initialization
+
+        # Populate the UI
         self.init_ui()
 
     def init_ui(self):
-        # Create the main layout
-        main_layout = QVBoxLayout(self)
-        
-        # Populate the GUI based on the nested dictionary
+        # Populate the layout with widgets based on the config dictionary
         for section, items in self.command_config_dict.items():
             section_box = self.create_section(section, items)
-            main_layout.addWidget(section_box)
-        
-        # Spacer for remaining space
-        main_layout.addStretch()
+            self.main_layout.addWidget(section_box)
+
+        # Add spacer to use any remaining space
+        self.main_layout.addStretch()
 
     def create_section(self, section_name, items):
-        # Create a QGroupBox for each main section
+        # Create a QGroupBox for each section
         group_box = QGroupBox(section_name)
         layout = QVBoxLayout()
-        
+
         for key, value in items.items():
             if isinstance(value, dict):  # Nested dictionary
                 sub_section = self.create_section(key, value)
@@ -69,7 +72,9 @@ class ConfigWindow(QWidget):
                 if value in ("yes", "no"):  # Checkbox for yes/no values
                     checkbox = QCheckBox(key)
                     checkbox.setChecked(value == "yes")
-                    checkbox.stateChanged.connect(lambda state, name=key: self.on_checkbox_changed(state, name))
+                    checkbox.stateChanged.connect(
+                        lambda state, name=key: self.on_checkbox_changed(state, name)
+                    )
                     layout.addWidget(checkbox)
                 else:  # QLineEdit for text fields
                     label = QLabel(key)
@@ -79,11 +84,28 @@ class ConfigWindow(QWidget):
             elif isinstance(value, bool):  # Checkbox for True/False values
                 checkbox = QCheckBox(key)
                 checkbox.setChecked(value)
-                checkbox.stateChanged.connect(lambda state, name=key: self.on_checkbox_changed(state, name))
+                checkbox.stateChanged.connect(
+                    lambda state, name=key: self.on_checkbox_changed(state, name)
+                )
                 layout.addWidget(checkbox)
 
         group_box.setLayout(layout)
         return group_box
+
+    def refresh_checkboxes(self, updated_config_dict):
+        """Clear and repopulate the widgets based on the updated config."""
+        self.command_config_dict = updated_config_dict
+
+        # Remove all widgets from the main layout
+        while self.main_layout.count():
+            child = self.main_layout.takeAt(0)
+            if child.widget():
+                child.widget().deleteLater()
+            elif child.layout():
+                child.layout().deleteLater()
+
+        # Rebuild the UI
+        self.init_ui()
 
     def on_checkbox_changed(self, value, command_name):
         """Handle changes in checkbox state."""
@@ -98,8 +120,6 @@ class ConfigWindow(QWidget):
             logger.debug(f"Checkbox '{command_name}' is Unchecked.")
             # Call the backend function for 'off' state
             yaml_profiles.checkbox_on(self.command_config, command_name, 'off')
-
-
 
 class CollapsibleSection(QGroupBox):
     def __init__(self, title, content):
@@ -319,6 +339,8 @@ class MainWindow(QMainWindow):
             # Call the backend function to apply the selected profile
             yaml_profiles.apply_selected_profile(selected_profile, command_config)
             logger.debug(f"Profile '{selected_profile}' applied successfully.")
+            command_config.reload()
+            self.config_widget.refresh_checkboxes(command_config.command_dict)
         except ValueError as e:
             logger.critical(f"Error: {e}")
 
