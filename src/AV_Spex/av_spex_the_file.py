@@ -157,6 +157,7 @@ class CollapsibleSection(QGroupBox):
             self.signalflow_profile_dropdown = QComboBox()
             self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
             self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
+            self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
             self.layout().addWidget(self.signalflow_profile_dropdown)
 
         # Create a toggle button to open a new window
@@ -177,12 +178,34 @@ class CollapsibleSection(QGroupBox):
         :param index: The index of the selected item.
         """
         selected_option = self.filename_profile_dropdown.itemText(index)
-        print(f"Selected filename profile: {selected_option}")
-        if self.backend_callback:
-            # Call the backend function with necessary arguments
-            fn_config_changes = {'selected_option': selected_option}
-            config_path = "path/to/config"  # Replace with the actual config path
-            self.backend_callback(config_path, 'filename_values', fn_config_changes)
+        logger.debug(f"Selected filename profile: {selected_option}")
+        if selected_option == "JPC file names":
+            fn_config_changes = yaml_profiles.JPCAV_filename
+        elif selected_option == "Bowser file names":
+            fn_config_changes = yaml_profiles.bowser_filename
+        else:
+            fn_config_changes = None
+        if fn_config_changes:
+            yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)    
+
+
+    def on_signalflow_profile_changed(self, index):
+        # Get the selected profile from the dropdown
+        selected_option = self.signalflow_profile_dropdown.itemText(index)
+        logger.debug(f"Selected signal flow profile: {selected_option}")
+        if selected_option == "JPC_AV_SVHS Signal Flow":
+            sn_config_changes = yaml_profiles.JPC_AV_SVHS
+        elif selected_option == "BVH3100 Signal Flow":
+            sn_config_changes = yaml_profiles.BVH3100
+        else:
+            sn_config_changes = None
+        if sn_config_changes:    
+            yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+            yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
+        else:
+            logger.error("Signal flow identifier not recognized, config not updated")
+        
+
 
     def open_new_window(self):
         # Create a new window to display the section's content

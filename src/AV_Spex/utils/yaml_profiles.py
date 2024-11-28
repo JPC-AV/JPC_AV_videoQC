@@ -133,7 +133,10 @@ def update_config(config_path, nested_key, value_dict):
 
         with open(config_path.config_yml, 'w') as y:
             yaml.dump(config_dict, y)
-            logger.info(f'config.yaml updated to match profile {last_key}\n')
+            if last_key == keys[0]:
+                logger.info(f'config.yaml updated in the section: {last_key}\n')
+            else:
+                logger.info(f'config.yaml updated in the section: {keys[0]} - {last_key}\n')
 
 
 # Function to save the current state of the command_config.yaml to a dictionary (profile)
