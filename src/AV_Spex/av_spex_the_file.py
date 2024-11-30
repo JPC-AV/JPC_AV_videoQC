@@ -13,6 +13,7 @@ import time
 import toml
 from art import art, text2art
 from datetime import datetime
+from functools import partial
 
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
@@ -211,77 +212,74 @@ class MainWindow(QMainWindow):
         # Second tab: "spex"
         spex_tab = QWidget()
         spex_layout = QVBoxLayout(spex_tab)
+        spex_tab.setLayout(spex_layout)
         self.tabs.addTab(spex_tab, "Spex")
 
         spex_layout.addWidget(QLabel("Expected Values:"))
         # Create a label to display the section name
-        section_label = QLabel(f"<b>Filename Values</b>")
-        spex_tab.layout().addWidget(section_label)
+        filename_section_label = QLabel(f"<b>Filename Values</b>")
+        spex_layout.addWidget(filename_section_label)
          # Create a toggle button to open a new window
-        self.toggle_button = QPushButton("Open Section")
-        self.toggle_button.clicked.connect(self.open_new_window(config_dict['filename_values']))
-        self.layout().addWidget(self.toggle_button)
+        filename_button = QPushButton("Open Section")
+        filename_button.clicked.connect(partial(self.open_new_window, 'Filename Values', config_dict['filename_values']))
+        spex_layout.addWidget(filename_button)
 
         # Add a dropdown menu for command profiles
         filenames_profile_label = QLabel("Expected filename options:")
-        self.layout().addWidget(filenames_profile_label)
+        spex_layout.addWidget(filenames_profile_label)
 
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
-        self.layout().addWidget(self.filename_profile_dropdown)
+        spex_layout.addWidget(self.filename_profile_dropdown)
 
         # Create a label to display the section name
-        section_label = QLabel(f"<b>MediaInfo Values</b>")
-        spex_tab.layout().addWidget(section_label)
+        mediainfo_section_label = QLabel(f"<b>MediaInfo Values</b>")
+        spex_layout.addWidget(mediainfo_section_label)
          # Create a toggle button to open a new window
-        self.toggle_button = QPushButton("Open Section")
-        self.toggle_button.clicked.connect(self.open_new_window(config_dict['mediainfo_values']))
-        self.layout().addWidget(self.toggle_button)
+        mediainfo_toggle_button = QPushButton("Open Section")
+        mediainfo_toggle_button.clicked.connect(partial(self.open_new_window, 'MediaInfo Values', config_dict['mediainfo_values']))
+        spex_layout.addWidget(mediainfo_toggle_button)
 
         # Create a label to display the section name
-        section_label = QLabel(f"<b>Exiftool Values</b>")
-        spex_tab.layout().addWidget(section_label)
+        exiftool_section_label = QLabel(f"<b>Exiftool Values</b>")
+        spex_layout.addWidget(exiftool_section_label)
          # Create a toggle button to open a new window
-        self.toggle_button = QPushButton("Open Section")
-        self.toggle_button.clicked.connect(self.open_new_window(config_dict['exiftool_values']))
-        self.layout().addWidget(self.toggle_button)
+        exiftool_toggle_button = QPushButton("Open Section")
+        exiftool_toggle_button.clicked.connect(partial(self.open_new_window, 'Exiftool Values', config_dict['exiftool_values']))
+        spex_layout.addWidget(exiftool_toggle_button)
 
         # Create a label to display the section name
-        section_label = QLabel(f"<b>FFprobe Values</b>")
-        spex_tab.layout().addWidget(section_label)
+        ffprobe_section_label = QLabel(f"<b>FFprobe Values</b>")
+        spex_layout.addWidget(ffprobe_section_label)
          # Create a toggle button to open a new window
-        self.toggle_button = QPushButton("Open Section")
-        self.toggle_button.clicked.connect(self.open_new_window(config_dict['ffmpeg_values']))
-        self.layout().addWidget(self.toggle_button)
+        ffprobe_toggle_button = QPushButton("Open Section")
+        ffprobe_toggle_button.clicked.connect(partial(self.open_new_window, 'FFprobe Values', config_dict['ffmpeg_values']))
+        spex_layout.addWidget(ffprobe_toggle_button)
 
         # Create a label to display the section name
-        section_label = QLabel(f"<b>Mediatrace Values</b>")
-        spex_tab.layout().addWidget(section_label)
+        mediatrace_section_label = QLabel(f"<b>Mediatrace Values</b>")
+        spex_layout.addWidget(mediatrace_section_label)
          # Create a toggle button to open a new window
-        self.toggle_button = QPushButton("Open Section")
-        self.toggle_button.clicked.connect(self.open_new_window(config_dict['mediatrace']))
-        self.layout().addWidget(self.toggle_button)
+        mediatrace_toggle_button = QPushButton("Open Section")
+        mediatrace_toggle_button.clicked.connect(partial(self.open_new_window, 'Mediatrace Values', config_dict['mediatrace']))
+        spex_layout.addWidget(mediatrace_toggle_button)
 
         # Add a dropdown menu for command profiles
         signalflow_profile_label = QLabel("Expected Signalflow options:")
-        self.layout().addWidget(signalflow_profile_label)
+        spex_layout.addWidget(signalflow_profile_label)
 
         self.signalflow_profile_dropdown = QComboBox()
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
-        spex_tab.layout().addWidget(self.signalflow_profile_dropdown)
+        spex_layout.addWidget(self.signalflow_profile_dropdown)
 
         # Create a toggle button to open a new window
-        self.toggle_button = QPushButton("Open Section")
-        self.toggle_button.clicked.connect(self.open_new_window(config_dict['qct-parse']))
-        self.layout().addWidget(self.toggle_button)
-
-        # Convert the content dictionary to a string for display in the new window
-        self.content_text = self.dict_to_string(content)
-        self.title = title
+        qct_toggle_button = QPushButton("Open Section")
+        qct_toggle_button.clicked.connect(partial(self.open_new_window, 'Expected qct-parse options', config_dict['qct-parse']))
+        spex_layout.addWidget(qct_toggle_button)
 
         # Directory storage
         self.selected_directories = []
@@ -340,7 +338,8 @@ class MainWindow(QMainWindow):
         else:
             fn_config_changes = None
         if fn_config_changes:
-            yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)    
+            yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)
+            config_path.reload()
 
 
     def on_signalflow_profile_changed(self, index):
@@ -356,14 +355,22 @@ class MainWindow(QMainWindow):
         if sn_config_changes:    
             yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
             yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
+            config_path.reload()
         else:
             logger.error("Signal flow identifier not recognized, config not updated")
 
 
-    def open_new_window(self):
-        # Create a new window to display the section's content
+    def open_new_window(self, title, nested_dict):
+        """
+        Create and open a new window to display the section's content.
+        Dynamically processes the nested_dict to avoid precomputing it.
+        """
+        # Process the nested_dict into a string representation
+        content_text = self.dict_to_string(nested_dict)
+
+        # Create a new window to display the processed content
         self.new_window = QWidget()
-        self.new_window.setWindowTitle(self.title)
+        self.new_window.setWindowTitle(title)
         self.new_window.setLayout(QVBoxLayout())
 
         # Add the content in a scrollable area
@@ -371,11 +378,10 @@ class MainWindow(QMainWindow):
         scroll_area.setWidgetResizable(True)
 
         # Create a content widget for detailed content
-        content_widget = QTextEdit(self.content_text)
+        content_widget = QTextEdit(content_text)
         content_widget.setReadOnly(True)  # Make the text widget read-only
         content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
         content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
-        content_widget.setPlainText(self.content_text)  # Set content as plain text with newlines
         scroll_area.setWidget(content_widget)
 
         # Add the scroll area to the new window
@@ -384,6 +390,7 @@ class MainWindow(QMainWindow):
         # Show the new window
         self.new_window.resize(600, 400)  # Set an appropriate size
         self.new_window.show()
+
 
     def dict_to_string(self, content_dict, indent_level=0):
         """Convert a dictionary to a string representation for display.
