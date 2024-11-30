@@ -121,139 +121,6 @@ class ConfigWindow(QWidget):
             # Call the backend function for 'off' state
             yaml_profiles.checkbox_on(self.command_config, command_name, 'off')
 
-class CollapsibleSection(QGroupBox):
-    def __init__(self, title, content, backend_callback=None):
-        """
-        Initialize the collapsible section.
-        :param title: Title of the section.
-        :param content: Dictionary content to display.
-        :param backend_callback: Optional function to handle backend updates.
-        """
-        super().__init__()
-        self.setTitle("")  # Remove the default group box title
-        self.setLayout(QVBoxLayout())
-        self.backend_callback = backend_callback  # Save the callback for later use
-        
-        # Create a label to display the section name
-        section_label = QLabel(f"<b>{title}</b>")
-        self.layout().addWidget(section_label)
-
-        if title == 'filename_values':
-            # Add a dropdown menu for command profiles
-            filenames_profile_label = QLabel("Expected filename options:")
-            self.layout().addWidget(filenames_profile_label)
-
-            self.filename_profile_dropdown = QComboBox()
-            self.filename_profile_dropdown.addItem("Bowser file names")
-            self.filename_profile_dropdown.addItem("JPC file names")
-            self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
-            self.layout().addWidget(self.filename_profile_dropdown)
-
-        if title == 'mediatrace':
-            # Add a dropdown menu for command profiles
-            signalflow_profile_label = QLabel("Expected Signalflow options:")
-            self.layout().addWidget(signalflow_profile_label)
-
-            self.signalflow_profile_dropdown = QComboBox()
-            self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
-            self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
-            self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
-            self.layout().addWidget(self.signalflow_profile_dropdown)
-
-        # Create a toggle button to open a new window
-        self.toggle_button = QPushButton("Open Section")
-        self.toggle_button.clicked.connect(self.open_new_window)
-        self.layout().addWidget(self.toggle_button)
-
-        # Convert the content dictionary to a string for display in the new window
-        self.content_text = self.dict_to_string(content)
-        self.title = title
-
-        # Keep a reference to the new window to prevent it from being garbage-collected
-        self.new_window = None
-
-    def on_filename_profile_changed(self, index):
-        """
-        Handle changes in the filename profile dropdown.
-        :param index: The index of the selected item.
-        """
-        selected_option = self.filename_profile_dropdown.itemText(index)
-        logger.debug(f"Selected filename profile: {selected_option}")
-        if selected_option == "JPC file names":
-            fn_config_changes = yaml_profiles.JPCAV_filename
-        elif selected_option == "Bowser file names":
-            fn_config_changes = yaml_profiles.bowser_filename
-        else:
-            fn_config_changes = None
-        if fn_config_changes:
-            yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)    
-
-
-    def on_signalflow_profile_changed(self, index):
-        # Get the selected profile from the dropdown
-        selected_option = self.signalflow_profile_dropdown.itemText(index)
-        logger.debug(f"Selected signal flow profile: {selected_option}")
-        if selected_option == "JPC_AV_SVHS Signal Flow":
-            sn_config_changes = yaml_profiles.JPC_AV_SVHS
-        elif selected_option == "BVH3100 Signal Flow":
-            sn_config_changes = yaml_profiles.BVH3100
-        else:
-            sn_config_changes = None
-        if sn_config_changes:    
-            yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
-            yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
-        else:
-            logger.error("Signal flow identifier not recognized, config not updated")
-        
-
-
-    def open_new_window(self):
-        # Create a new window to display the section's content
-        self.new_window = QWidget()
-        self.new_window.setWindowTitle(self.title)
-        self.new_window.setLayout(QVBoxLayout())
-
-        # Add the content in a scrollable area
-        scroll_area = QScrollArea(self.new_window)
-        scroll_area.setWidgetResizable(True)
-
-        # Create a content widget for detailed content
-        content_widget = QTextEdit(self.content_text)
-        content_widget.setReadOnly(True)  # Make the text widget read-only
-        content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
-        content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
-        content_widget.setPlainText(self.content_text)  # Set content as plain text with newlines
-        scroll_area.setWidget(content_widget)
-
-        # Add the scroll area to the new window
-        self.new_window.layout().addWidget(scroll_area)
-
-        # Show the new window
-        self.new_window.resize(600, 400)  # Set an appropriate size
-        self.new_window.show()
-
-    def dict_to_string(self, content_dict, indent_level=0):
-        """Convert a dictionary to a string representation for display.
-        
-        Handles nested dictionaries and lists with proper formatting and indentation.
-        """
-        content_lines = []
-        indent = "  " * indent_level  # Two spaces per indent level
-
-        for key, value in content_dict.items():
-            if isinstance(value, dict):  # If the value is a nested dictionary
-                content_lines.append(f"{indent}{key}:")
-                # Recursively process the nested dictionary
-                content_lines.append(self.dict_to_string(value, indent_level + 1))
-            elif isinstance(value, list):  # If the value is a list
-                content_lines.append(f"{indent}{key}:")
-                # Add each list item on a new line with additional indentation
-                for item in value:
-                    content_lines.append(f"{indent}{indent}  {item}")
-            else:  # For all other types (e.g., strings, numbers)
-                content_lines.append(f"{indent}{key}: {value}")
-
-        return "\n".join(content_lines)
 
 
 class MainWindow(QMainWindow):
@@ -346,14 +213,79 @@ class MainWindow(QMainWindow):
         spex_layout = QVBoxLayout(spex_tab)
         self.tabs.addTab(spex_tab, "Spex")
 
-        # Dynamically add collapsible sections from config_dict
         spex_layout.addWidget(QLabel("Expected Values:"))
-        for section, content in config_dict.items():
-            collapsible_section = CollapsibleSection(section, content)
-            spex_layout.addWidget(collapsible_section)
+        # Create a label to display the section name
+        section_label = QLabel(f"<b>Filename Values</b>")
+        spex_tab.layout().addWidget(section_label)
+         # Create a toggle button to open a new window
+        self.toggle_button = QPushButton("Open Section")
+        self.toggle_button.clicked.connect(self.open_new_window(config_dict['filename_values']))
+        self.layout().addWidget(self.toggle_button)
+
+        # Add a dropdown menu for command profiles
+        filenames_profile_label = QLabel("Expected filename options:")
+        self.layout().addWidget(filenames_profile_label)
+
+        self.filename_profile_dropdown = QComboBox()
+        self.filename_profile_dropdown.addItem("Bowser file names")
+        self.filename_profile_dropdown.addItem("JPC file names")
+        self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
+        self.layout().addWidget(self.filename_profile_dropdown)
+
+        # Create a label to display the section name
+        section_label = QLabel(f"<b>MediaInfo Values</b>")
+        spex_tab.layout().addWidget(section_label)
+         # Create a toggle button to open a new window
+        self.toggle_button = QPushButton("Open Section")
+        self.toggle_button.clicked.connect(self.open_new_window(config_dict['mediainfo_values']))
+        self.layout().addWidget(self.toggle_button)
+
+        # Create a label to display the section name
+        section_label = QLabel(f"<b>Exiftool Values</b>")
+        spex_tab.layout().addWidget(section_label)
+         # Create a toggle button to open a new window
+        self.toggle_button = QPushButton("Open Section")
+        self.toggle_button.clicked.connect(self.open_new_window(config_dict['exiftool_values']))
+        self.layout().addWidget(self.toggle_button)
+
+        # Create a label to display the section name
+        section_label = QLabel(f"<b>FFprobe Values</b>")
+        spex_tab.layout().addWidget(section_label)
+         # Create a toggle button to open a new window
+        self.toggle_button = QPushButton("Open Section")
+        self.toggle_button.clicked.connect(self.open_new_window(config_dict['ffmpeg_values']))
+        self.layout().addWidget(self.toggle_button)
+
+        # Create a label to display the section name
+        section_label = QLabel(f"<b>Mediatrace Values</b>")
+        spex_tab.layout().addWidget(section_label)
+         # Create a toggle button to open a new window
+        self.toggle_button = QPushButton("Open Section")
+        self.toggle_button.clicked.connect(self.open_new_window(config_dict['mediatrace']))
+        self.layout().addWidget(self.toggle_button)
+
+        # Add a dropdown menu for command profiles
+        signalflow_profile_label = QLabel("Expected Signalflow options:")
+        self.layout().addWidget(signalflow_profile_label)
+
+        self.signalflow_profile_dropdown = QComboBox()
+        self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
+        self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
+        self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
+        spex_tab.layout().addWidget(self.signalflow_profile_dropdown)
+
+        # Create a toggle button to open a new window
+        self.toggle_button = QPushButton("Open Section")
+        self.toggle_button.clicked.connect(self.open_new_window(config_dict['qct-parse']))
+        self.layout().addWidget(self.toggle_button)
+
+        # Convert the content dictionary to a string for display in the new window
+        self.content_text = self.dict_to_string(content)
+        self.title = title
 
         # Directory storage
         self.selected_directories = []
+
 
     def add_images_to_top(self):
         """Add three images to the top of the main layout."""
@@ -372,12 +304,14 @@ class MainWindow(QMainWindow):
 
         self.main_layout.addLayout(image_layout)
 
+
     def import_directory(self):
         # Open a file dialog to select a directory
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
         if directory and directory not in self.selected_directories:
             self.selected_directories.append(directory)
             self.directory_list.addItem(directory)
+
 
     def on_profile_selected(self, index):
         # Get the selected profile from the dropdown
@@ -390,6 +324,89 @@ class MainWindow(QMainWindow):
             self.config_widget.refresh_checkboxes(command_config.command_dict)
         except ValueError as e:
             logger.critical(f"Error: {e}")
+
+
+    def on_filename_profile_changed(self, index):
+        """
+        Handle changes in the filename profile dropdown.
+        :param index: The index of the selected item.
+        """
+        selected_option = self.filename_profile_dropdown.itemText(index)
+        logger.debug(f"Selected filename profile: {selected_option}")
+        if selected_option == "JPC file names":
+            fn_config_changes = yaml_profiles.JPCAV_filename
+        elif selected_option == "Bowser file names":
+            fn_config_changes = yaml_profiles.bowser_filename
+        else:
+            fn_config_changes = None
+        if fn_config_changes:
+            yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)    
+
+
+    def on_signalflow_profile_changed(self, index):
+        # Get the selected profile from the dropdown
+        selected_option = self.signalflow_profile_dropdown.itemText(index)
+        logger.debug(f"Selected signal flow profile: {selected_option}")
+        if selected_option == "JPC_AV_SVHS Signal Flow":
+            sn_config_changes = yaml_profiles.JPC_AV_SVHS
+        elif selected_option == "BVH3100 Signal Flow":
+            sn_config_changes = yaml_profiles.BVH3100
+        else:
+            sn_config_changes = None
+        if sn_config_changes:    
+            yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+            yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
+        else:
+            logger.error("Signal flow identifier not recognized, config not updated")
+
+
+    def open_new_window(self):
+        # Create a new window to display the section's content
+        self.new_window = QWidget()
+        self.new_window.setWindowTitle(self.title)
+        self.new_window.setLayout(QVBoxLayout())
+
+        # Add the content in a scrollable area
+        scroll_area = QScrollArea(self.new_window)
+        scroll_area.setWidgetResizable(True)
+
+        # Create a content widget for detailed content
+        content_widget = QTextEdit(self.content_text)
+        content_widget.setReadOnly(True)  # Make the text widget read-only
+        content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
+        content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
+        content_widget.setPlainText(self.content_text)  # Set content as plain text with newlines
+        scroll_area.setWidget(content_widget)
+
+        # Add the scroll area to the new window
+        self.new_window.layout().addWidget(scroll_area)
+
+        # Show the new window
+        self.new_window.resize(600, 400)  # Set an appropriate size
+        self.new_window.show()
+
+    def dict_to_string(self, content_dict, indent_level=0):
+        """Convert a dictionary to a string representation for display.
+        
+        Handles nested dictionaries and lists with proper formatting and indentation.
+        """
+        content_lines = []
+        indent = "  " * indent_level  # Two spaces per indent level
+
+        for key, value in content_dict.items():
+            if isinstance(value, dict):  # If the value is a nested dictionary
+                content_lines.append(f"{indent}{key}:")
+                # Recursively process the nested dictionary
+                content_lines.append(self.dict_to_string(value, indent_level + 1))
+            elif isinstance(value, list):  # If the value is a list
+                content_lines.append(f"{indent}{key}:")
+                # Add each list item on a new line with additional indentation
+                for item in value:
+                    content_lines.append(f"{indent}{indent}  {item}")
+            else:  # For all other types (e.g., strings, numbers)
+                content_lines.append(f"{indent}{key}: {value}")
+
+        return "\n".join(content_lines)
 
 
 
