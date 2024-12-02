@@ -126,7 +126,7 @@ class ConfigWindow(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self, command_config, command_config_dict, config_path):
         super().__init__()
-        self.setWindowTitle("Main Application")
+        self.setWindowTitle("AV Spex")
         
         # Set up menu bar
         self.menu_bar = QMenuBar(self)
@@ -160,6 +160,10 @@ class MainWindow(QMainWindow):
         
         # Vertical layout for the main content in "Checks"
         vertical_layout = QVBoxLayout(main_widget)
+
+        import_directories_button = QPushButton("Import Directory...")
+        import_directories_button.clicked.connect(self.import_directory)
+        vertical_layout.addWidget(import_directories_button)
 
         # Selected directories section
         directory_label = QLabel("Selected Directories:")
