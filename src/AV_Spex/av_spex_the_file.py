@@ -140,7 +140,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
-         # Add images at the top of the GUI
+        # Add images at the top of the GUI
         self.add_images_to_top()
 
         # Create a QTabWidget for tabs
@@ -158,29 +158,23 @@ class MainWindow(QMainWindow):
         main_widget = QWidget(self)
         main_scroll_area.setWidget(main_widget)
         
-        # Horizontal layout for the main content in "Checks"
-        horizontal_layout = QHBoxLayout(main_widget)
+        # Vertical layout for the main content in "Checks"
+        vertical_layout = QVBoxLayout(main_widget)
 
-        # First column: Selected directories
-        directory_column = QVBoxLayout()
-        directory_column.addWidget(QLabel("Selected Directories:"))
+        # Selected directories section
+        directory_label = QLabel("Selected Directories:")
         self.directory_list = QListWidget()
-        directory_column.addWidget(self.directory_list)
-        horizontal_layout.addLayout(directory_column)
+        vertical_layout.addWidget(directory_label)
+        vertical_layout.addWidget(self.directory_list)
 
-        # Second column: Command Profile Dropdown + Checkboxes (ConfigWidget)
-        config_column = QVBoxLayout()
-        
-        # Add a dropdown menu for command profiles
+        # Command Profile Dropdown section
         command_profile_label = QLabel("Command profiles:")
         self.command_profile_dropdown = QComboBox()
         self.command_profile_dropdown.addItem("step1")
         self.command_profile_dropdown.addItem("step2")
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
-
-        # Add the dropdown to the config column
-        config_column.addWidget(command_profile_label)
-        config_column.addWidget(self.command_profile_dropdown)
+        vertical_layout.addWidget(command_profile_label)
+        vertical_layout.addWidget(self.command_profile_dropdown)
 
         # Checkboxes (ConfigWidget) section
         command_checks_label = QLabel("Command options:")
@@ -189,16 +183,14 @@ class MainWindow(QMainWindow):
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
 
-        # Add checkboxes and label to config column
-        config_column.addWidget(command_checks_label)
-        config_column.addWidget(config_scroll_area)
+        # Add checkboxes and label to the vertical layout
+        vertical_layout.addWidget(command_checks_label)
+        vertical_layout.addWidget(config_scroll_area)
 
         # Set a minimum width for the config widget to ensure legibility
-        config_scroll_area.setMinimumWidth(400)  # Set minimum width for the center column
-        
-        horizontal_layout.addLayout(config_column)
+        config_scroll_area.setMinimumWidth(400)
 
-        # Add the horizontal layout to the "checks" tab layout
+        # Add the vertical layout to the scroll area
         checks_layout.addWidget(main_scroll_area)
 
         # Bottom row with "Check Spex!" button
