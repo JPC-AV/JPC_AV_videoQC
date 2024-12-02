@@ -123,9 +123,8 @@ class ConfigWindow(QWidget):
             yaml_profiles.checkbox_on(self.command_config, command_name, 'off')
 
 
-
 class MainWindow(QMainWindow):
-    def __init__(self, command_config, command_config_dict, config_path, config_dict):
+    def __init__(self, command_config, command_config_dict, config_path):
         super().__init__()
         self.setWindowTitle("Main Application")
         
@@ -215,17 +214,12 @@ class MainWindow(QMainWindow):
         spex_tab.setLayout(spex_layout)
         self.tabs.addTab(spex_tab, "Spex")
 
-        spex_layout.addWidget(QLabel("Expected Values:"))
         # Create a label to display the section name
         filename_section_label = QLabel(f"<b>Filename Values</b>")
         spex_layout.addWidget(filename_section_label)
-         # Create a toggle button to open a new window
-        filename_button = QPushButton("Open Section")
-        filename_button.clicked.connect(partial(self.open_new_window, 'Filename Values', config_dict['filename_values']))
-        spex_layout.addWidget(filename_button)
 
         # Add a dropdown menu for command profiles
-        filenames_profile_label = QLabel("Expected filename options:")
+        filenames_profile_label = QLabel("Expected filename profiles:")
         spex_layout.addWidget(filenames_profile_label)
 
         self.filename_profile_dropdown = QComboBox()
@@ -234,12 +228,23 @@ class MainWindow(QMainWindow):
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
         spex_layout.addWidget(self.filename_profile_dropdown)
 
+        # Set dropdown based on condition
+        if config_path.config_dict["filename_values"]["Collection"] == "JPC":
+            self.filename_profile_dropdown.setCurrentText("JPC file names")
+        elif config_path.config_dict["filename_values"]["Collection"] == "2012_79":
+            self.filename_profile_dropdown.setCurrentText("Bowser file names")
+
+        # Create a toggle button to open a new window
+        filename_button = QPushButton("Open Section")
+        filename_button.clicked.connect(lambda: self.open_new_window('Filename Values', config_path.config_dict['filename_values']))
+        spex_layout.addWidget(filename_button)
+        
         # Create a label to display the section name
         mediainfo_section_label = QLabel(f"<b>MediaInfo Values</b>")
         spex_layout.addWidget(mediainfo_section_label)
          # Create a toggle button to open a new window
         mediainfo_toggle_button = QPushButton("Open Section")
-        mediainfo_toggle_button.clicked.connect(partial(self.open_new_window, 'MediaInfo Values', config_dict['mediainfo_values']))
+        mediainfo_toggle_button.clicked.connect(lambda: self.open_new_window('MediaInfo Values', config_path.config_dict['mediainfo_values']))
         spex_layout.addWidget(mediainfo_toggle_button)
 
         # Create a label to display the section name
@@ -247,7 +252,7 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(exiftool_section_label)
          # Create a toggle button to open a new window
         exiftool_toggle_button = QPushButton("Open Section")
-        exiftool_toggle_button.clicked.connect(partial(self.open_new_window, 'Exiftool Values', config_dict['exiftool_values']))
+        exiftool_toggle_button.clicked.connect(lambda: self.open_new_window('Exiftool Values', config_path.config_dict['exiftool_values']))
         spex_layout.addWidget(exiftool_toggle_button)
 
         # Create a label to display the section name
@@ -255,19 +260,15 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(ffprobe_section_label)
          # Create a toggle button to open a new window
         ffprobe_toggle_button = QPushButton("Open Section")
-        ffprobe_toggle_button.clicked.connect(partial(self.open_new_window, 'FFprobe Values', config_dict['ffmpeg_values']))
+        ffprobe_toggle_button.clicked.connect(lambda: self.open_new_window('FFprobe Values', config_path.config_dict['ffmpeg_values']))
         spex_layout.addWidget(ffprobe_toggle_button)
 
         # Create a label to display the section name
         mediatrace_section_label = QLabel(f"<b>Mediatrace Values</b>")
         spex_layout.addWidget(mediatrace_section_label)
-         # Create a toggle button to open a new window
-        mediatrace_toggle_button = QPushButton("Open Section")
-        mediatrace_toggle_button.clicked.connect(partial(self.open_new_window, 'Mediatrace Values', config_dict['mediatrace']))
-        spex_layout.addWidget(mediatrace_toggle_button)
 
         # Add a dropdown menu for command profiles
-        signalflow_profile_label = QLabel("Expected Signalflow options:")
+        signalflow_profile_label = QLabel("Expected Signalflow profiles:")
         spex_layout.addWidget(signalflow_profile_label)
 
         self.signalflow_profile_dropdown = QComboBox()
@@ -276,9 +277,23 @@ class MainWindow(QMainWindow):
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
         spex_layout.addWidget(self.signalflow_profile_dropdown)
 
+        # Set dropdown based on condition
+        if "SVO5800" in config_path.config_dict["mediatrace"]["ENCODER_SETTINGS"]["Source VTR"]:
+            self.signalflow_profile_dropdown.setCurrentText("JPC_AV_SVHS Signal Flow")
+        elif "Sony BVH3100" in config_path.config_dict["mediatrace"]["ENCODER_SETTINGS"]["Source VTR"]:
+            self.signalflow_profile_dropdown.setCurrentText("BVH3100 Signal Flow")
+
+        # Create a toggle button to open a new window
+        mediatrace_toggle_button = QPushButton("Open Section")
+        mediatrace_toggle_button.clicked.connect(lambda: self.open_new_window('Mediatrace Values', config_path.config_dict['mediatrace']))
+        spex_layout.addWidget(mediatrace_toggle_button)
+
+        # Create a label to display the section name
+        qct_section_label = QLabel(f"<b>qct-parse Values</b>")
+        spex_layout.addWidget(qct_section_label)
         # Create a toggle button to open a new window
         qct_toggle_button = QPushButton("Open Section")
-        qct_toggle_button.clicked.connect(partial(self.open_new_window, 'Expected qct-parse options', config_dict['qct-parse']))
+        qct_toggle_button.clicked.connect(lambda: self.open_new_window('Expected qct-parse options', config_path.config_dict['qct-parse']))
         spex_layout.addWidget(qct_toggle_button)
 
         # Directory storage
@@ -365,6 +380,7 @@ class MainWindow(QMainWindow):
         Create and open a new window to display the section's content.
         Dynamically processes the nested_dict to avoid precomputing it.
         """
+
         # Process the nested_dict into a string representation
         content_text = self.dict_to_string(nested_dict)
 
@@ -378,7 +394,8 @@ class MainWindow(QMainWindow):
         scroll_area.setWidgetResizable(True)
 
         # Create a content widget for detailed content
-        content_widget = QTextEdit(content_text)
+        content_widget = QTextEdit()
+        content_widget.setPlainText(content_text)  # Use plain-text mode
         content_widget.setReadOnly(True)  # Make the text widget read-only
         content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
         content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
@@ -409,12 +426,11 @@ class MainWindow(QMainWindow):
                 content_lines.append(f"{indent}{key}:")
                 # Add each list item on a new line with additional indentation
                 for item in value:
-                    content_lines.append(f"{indent}{indent}  {item}")
+                    content_lines.append(f"{indent}  - {item}")
             else:  # For all other types (e.g., strings, numbers)
                 content_lines.append(f"{indent}{key}: {value}")
 
         return "\n".join(content_lines)
-
 
 
 def check_directory(source_directory, video_id):
@@ -723,7 +739,7 @@ def main():
     
     app = QApplication(sys.argv)
     # Create and display the main window
-    window = MainWindow(command_config, command_config.command_dict, config_path, config_path.config_dict)
+    window = MainWindow(command_config, command_config.command_dict, config_path)
     window.show()
     app.exec()
 
