@@ -171,6 +171,9 @@ class MainWindow(QMainWindow):
         vertical_layout.addWidget(directory_label)
         vertical_layout.addWidget(self.directory_list)
 
+        # Directory storage
+        self.selected_directories = []
+
         # Command Profile Dropdown section
         command_profile_label = QLabel("Command profiles:")
         self.command_profile_dropdown = QComboBox()
@@ -201,6 +204,7 @@ class MainWindow(QMainWindow):
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
         check_spex_button = QPushButton("Check Spex!")
+        check_spex_button.clicked.connect(self.on_check_spex_clicked)
         bottom_row.addWidget(check_spex_button)
         checks_layout.addLayout(bottom_row)
 
@@ -292,9 +296,6 @@ class MainWindow(QMainWindow):
         qct_toggle_button.clicked.connect(lambda: self.open_new_window('Expected qct-parse options', config_path.config_dict['qct-parse']))
         spex_layout.addWidget(qct_toggle_button)
 
-        # Directory storage
-        self.selected_directories = []
-
 
     def add_images_to_top(self):
         """Add three images to the top of the main layout."""
@@ -320,6 +321,23 @@ class MainWindow(QMainWindow):
         if directory and directory not in self.selected_directories:
             self.selected_directories.append(directory)
             self.directory_list.addItem(directory)
+
+
+    def update_selected_directories(self):
+        """Update source_directories from the QListWidget."""
+        self.source_directories = [self.directory_list.item(i).text() for i in range(self.directory_list.count())]
+
+
+    def get_source_directories(self):
+        """Return the current list of selected directories."""
+        self.update_selected_directories()
+        return self.source_directories
+
+
+    def on_check_spex_clicked(self):
+        """Handle the Start button click."""
+        self.update_selected_directories()
+        self.close()  # Close the GUI if needed, signaling readiness
 
 
     def on_profile_selected(self, index):
@@ -656,14 +674,18 @@ The scripts will confirm that the digital files conform to predetermined specifi
     args = parser.parse_args()
 
     # Validate arguments
-    if not args.dryrun and not args.paths:
-        parser.error("the following arguments are required: paths")
+    #if not args.dryrun and not args.paths:
+    #    parser.error("the following arguments are required: paths")
+
+    source_directories = []
+
+    if not args.paths:  # If no paths are provided, skip parsing
+        source_directories = None
 
     if args.dryrun:
         input_paths = []
     else:
         input_paths = args.paths
-    source_directories = []
 
     for input_path in input_paths:
         if args.file:
@@ -732,13 +754,6 @@ def main():
     av-spex <input_directory> (or -f <input_file.mkv>)
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
-    
-    app = QApplication(sys.argv)
-    # Create and display the main window
-    window = MainWindow(command_config, command_config.command_dict, config_path)
-    window.show()
-    app.exec()
-
 
     avspex_icon = text2art("A-V Spex", font='5lineoblique')
     print(f'{avspex_icon}\n')
@@ -751,6 +766,20 @@ def main():
         if not check_external_dependency(command):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
+
+    # If no arguments provided, switch to GUI
+    if source_directories is None:
+        app = QApplication(sys.argv)
+        window = MainWindow(command_config, command_config.command_dict, config_path)
+        window.show()
+        app.exec()  # Start the event loop
+
+        # After GUI closes, get the selected directories
+        source_directories = window.get_source_directories()
+
+    if not source_directories:
+        print("No directories provided. Exiting.")
+        sys.exit(1)
 
     if selected_profile:
         yaml_profiles.apply_profile(command_config, selected_profile)
