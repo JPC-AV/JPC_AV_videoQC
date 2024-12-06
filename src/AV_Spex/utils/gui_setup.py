@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
-    QTextEdit
+    QTextEdit, QListView, QTreeView, QAbstractItemView
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
@@ -108,7 +108,7 @@ class MainWindow(QMainWindow):
         self.setMenuBar(self.menu_bar)
         self.file_menu = self.menu_bar.addMenu("File")
         self.import_action = self.file_menu.addAction("Import Directory")
-        self.import_action.triggered.connect(self.import_directory)
+        self.import_action.triggered.connect(self.import_directories)
 
         # Main layout
         self.central_widget = QWidget()
@@ -143,7 +143,7 @@ class MainWindow(QMainWindow):
         vertical_layout = QVBoxLayout(main_widget)
 
         import_directories_button = QPushButton("Import Directory...")
-        import_directories_button.clicked.connect(self.import_directory)
+        import_directories_button.clicked.connect(self.import_directories)
         vertical_layout.addWidget(import_directories_button)
 
         # Selected directories section
@@ -294,12 +294,28 @@ class MainWindow(QMainWindow):
         self.main_layout.addLayout(image_layout)
 
 
-    def import_directory(self):
-        # Open a file dialog to select a directory
-        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
-        if directory and directory not in self.selected_directories:
-            self.selected_directories.append(directory)
-            self.directory_list.addItem(directory)
+    def import_directories(self):
+        # Open a file dialog to select directories
+        file_dialog = QFileDialog(self, "Select Directories")
+        file_dialog.setFileMode(QFileDialog.FileMode.Directory)  # Set directory mode
+        file_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)  # Show only directories
+        file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)  # Enable multiple selection
+
+        file_view = file_dialog.findChild(QListView, 'listView')
+
+        # to make it possible to select multiple directories:
+        if file_view:
+            file_view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        f_tree_view = file_dialog.findChild(QTreeView)
+        if f_tree_view:
+            f_tree_view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+
+        if file_dialog.exec():
+            directories = file_dialog.selectedFiles()  # Get selected directories
+            for directory in directories:
+                if directory not in self.selected_directories:
+                    self.selected_directories.append(directory)
+                    self.directory_list.addItem(directory)
 
 
     def update_selected_directories(self):
