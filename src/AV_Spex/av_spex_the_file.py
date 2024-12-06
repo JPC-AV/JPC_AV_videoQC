@@ -13,12 +13,16 @@ import time
 import toml
 from art import art, text2art
 from datetime import datetime
+from PyQt6.QtWidgets import (
+    QApplication
+)
 
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
 from .utils import yaml_profiles
 from .utils.generate_report import write_html_report
+from .utils.gui_setup import ConfigWindow, MainWindow
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import is_valid_filename
 from .checks.mediainfo_check import parse_mediainfo
@@ -271,14 +275,18 @@ The scripts will confirm that the digital files conform to predetermined specifi
     args = parser.parse_args()
 
     # Validate arguments
-    if not args.dryrun and not args.paths:
-        parser.error("the following arguments are required: paths")
+   # if not args.dryrun and not args.paths:
+    #    parser.error("the following arguments are required: paths")
+
+    source_directories = []
+
+    if not args.paths:  # If no paths are provided, skip parsing
+        source_directories = None
 
     if args.dryrun:
         input_paths = []
     else:
         input_paths = args.paths
-    source_directories = []
 
     for input_path in input_paths:
         if args.file:
@@ -363,6 +371,21 @@ def main():
         if not check_external_dependency(command):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
+
+    # If no arguments provided, switch to GUI
+    if source_directories is None:
+        print("DEBUGGING conditional met")
+        app = QApplication(sys.argv)
+        window = MainWindow(command_config, command_config.command_dict, config_path)
+        window.show()
+        app.exec()  # Start the event loop
+
+        # After GUI closes, get the selected directories
+        source_directories = window.get_source_directories()
+
+    if not source_directories:
+        print("No directories provided. Exiting.")
+        sys.exit(1)
 
     if selected_profile:
         yaml_profiles.apply_profile(command_config, selected_profile)
