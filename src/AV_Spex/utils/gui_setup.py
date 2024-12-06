@@ -206,14 +206,13 @@ class MainWindow(QMainWindow):
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
-        self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
-        spex_layout.addWidget(self.filename_profile_dropdown)
-
         # Set dropdown based on condition
         if config_path.config_dict["filename_values"]["Collection"] == "JPC":
             self.filename_profile_dropdown.setCurrentText("JPC file names")
         elif config_path.config_dict["filename_values"]["Collection"] == "2012_79":
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
+        self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
+        spex_layout.addWidget(self.filename_profile_dropdown)
 
         # Create a toggle button to open a new window
         filename_button = QPushButton("Open Section")
@@ -255,14 +254,13 @@ class MainWindow(QMainWindow):
         self.signalflow_profile_dropdown = QComboBox()
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
-        self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
-        spex_layout.addWidget(self.signalflow_profile_dropdown)
-
         # Set dropdown based on condition
         if "SVO5800" in config_path.config_dict["mediatrace"]["ENCODER_SETTINGS"]["Source VTR"]:
             self.signalflow_profile_dropdown.setCurrentText("JPC_AV_SVHS Signal Flow")
         elif "Sony BVH3100" in config_path.config_dict["mediatrace"]["ENCODER_SETTINGS"]["Source VTR"]:
             self.signalflow_profile_dropdown.setCurrentText("BVH3100 Signal Flow")
+        self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
+        spex_layout.addWidget(self.signalflow_profile_dropdown)
 
         # Create a toggle button to open a new window
         mediatrace_toggle_button = QPushButton("Open Section")
