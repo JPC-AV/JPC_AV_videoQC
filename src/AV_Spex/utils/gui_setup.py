@@ -152,6 +152,11 @@ class MainWindow(QMainWindow):
         vertical_layout.addWidget(directory_label)
         vertical_layout.addWidget(self.directory_list)
 
+        # Remove directory button
+        delete_button = QPushButton("Delete Selected")
+        delete_button.clicked.connect(self.delete_selected_directory)
+        vertical_layout.addWidget(delete_button)
+
         # Directory storage
         self.selected_directories = []
 
@@ -327,6 +332,24 @@ class MainWindow(QMainWindow):
         """Return the current list of selected directories."""
         self.update_selected_directories()
         return self.source_directories
+    
+    def delete_selected_directory(self):
+        """Delete the selected directory from the list widget and the selected_directories list."""
+        # Get the selected items
+        selected_items = self.directory_list.selectedItems()
+        
+        if not selected_items:
+            return  # No item selected, do nothing
+        
+        # Remove each selected item from both the QListWidget and selected_directories list
+        for item in selected_items:
+            # Remove from the selected_directories list
+            directory = item.text()
+            if directory in self.selected_directories:
+                self.selected_directories.remove(directory)
+            
+            # Remove from the QListWidget
+            self.directory_list.takeItem(self.directory_list.row(item))
 
 
     def on_check_spex_clicked(self):
