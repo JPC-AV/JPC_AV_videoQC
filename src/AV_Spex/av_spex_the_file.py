@@ -374,7 +374,6 @@ def main():
 
     # If no arguments provided, switch to GUI
     if source_directories is None:
-        print("DEBUGGING conditional met")
         app = QApplication(sys.argv)
         window = MainWindow(command_config, command_config.command_dict, config_path)
         window.show()

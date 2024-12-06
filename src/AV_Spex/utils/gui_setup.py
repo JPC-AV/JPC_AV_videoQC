@@ -6,6 +6,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 
+import os
+
 from ..utils.find_config import config_path, command_config, yaml
 from ..utils.log_setup import logger
 from ..utils import yaml_profiles
@@ -113,8 +115,14 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.central_widget)
         self.main_layout = QVBoxLayout(self.central_widget)
 
+        # Get the absolute path of the script file
+        script_path = os.path.dirname(os.path.abspath(__file__))
+        # Determine the  path to the image file
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
+        logo_dir = os.path.join(root_dir, 'logo_image_files')
+
         # Add images at the top of the GUI
-        self.add_images_to_top()
+        self.add_images_to_top(logo_dir)
 
         # Create a QTabWidget for tabs
         self.tabs = QTabWidget()
@@ -270,13 +278,13 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(qct_toggle_button)
 
 
-    def add_images_to_top(self):
+    def add_images_to_top(self, logo_dir):
         """Add three images to the top of the main layout."""
         image_layout = QHBoxLayout()
         image_files = [
-            "jpc_logo_purple.png",
-            "av_spex_the_logo.png",
-            "nmaahc_vert_purple.png"
+            (os.path.join(logo_dir, "jpc_logo_purple.png")),
+            (os.path.join(logo_dir, "av_spex_the_logo.png")),
+            (os.path.join(logo_dir, "nmaahc_vert_purple.png"))
         ]
 
         for image_file in image_files:
