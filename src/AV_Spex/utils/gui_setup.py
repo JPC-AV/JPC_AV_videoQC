@@ -4,9 +4,10 @@ from PyQt6.QtWidgets import (
     QTextEdit, QListView, QTreeView, QAbstractItemView
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QAction
 
 import os
+import sys
 
 from ..utils.find_config import config_path, command_config, yaml
 from ..utils.log_setup import logger
@@ -101,6 +102,7 @@ class ConfigWindow(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self, command_config, command_config_dict, config_path):
         super().__init__()
+        self.check_spex_clicked = False
         self.setWindowTitle("AV Spex")
         
         # Set up menu bar
@@ -109,6 +111,9 @@ class MainWindow(QMainWindow):
         self.file_menu = self.menu_bar.addMenu("File")
         self.import_action = self.file_menu.addAction("Import Directory")
         self.import_action.triggered.connect(self.import_directories)
+        # Quit action
+        self.quit_action = self.file_menu.addAction("Quit")
+        self.quit_action.triggered.connect(self.on_quit_clicked)
 
         # Main layout
         self.central_widget = QWidget()
@@ -192,6 +197,11 @@ class MainWindow(QMainWindow):
         check_spex_button = QPushButton("Check Spex!")
         check_spex_button.clicked.connect(self.on_check_spex_clicked)
         bottom_row.addWidget(check_spex_button)
+
+        quit_button = QPushButton("Quit")
+        quit_button.clicked.connect(self.on_quit_clicked)
+        bottom_row.addWidget(quit_button)
+
         checks_layout.addLayout(bottom_row)
 
         # Second tab: "spex"
@@ -329,9 +339,8 @@ class MainWindow(QMainWindow):
 
 
     def get_source_directories(self):
-        """Return the current list of selected directories."""
-        self.update_selected_directories()
-        return self.source_directories
+        """Return the selected directories if Check Spex was clicked."""
+        return self.selected_directories if self.check_spex_clicked else None
     
     def delete_selected_directory(self):
         """Delete the selected directory from the list widget and the selected_directories list."""
@@ -355,6 +364,7 @@ class MainWindow(QMainWindow):
     def on_check_spex_clicked(self):
         """Handle the Start button click."""
         self.update_selected_directories()
+        self.check_spex_clicked = True  # Mark that the button was clicked
         self.close()  # Close the GUI if needed, signaling readiness
 
 
@@ -463,3 +473,9 @@ class MainWindow(QMainWindow):
                 content_lines.append(f"{indent}{key}: {value}")
 
         return "\n".join(content_lines)
+    
+    def on_quit_clicked(self):
+        """Handle the 'Quit' button click."""
+        self.selected_directories = None  # Clear any selections
+        self.check_spex_clicked = False  # Ensure the flag is reset
+        self.close()  # Close the GUI
