@@ -141,29 +141,6 @@ def run_mediatrace_command(command, input_path):
     return output
 
 
-# Mediaconch needs its own function, because the command's flags and multiple inputs don't conform to the simple 3 part structure of the other commands
-def run_mediaconch_command(command, input_path, output_type, output_path):
-    '''
-    This function runs a shell command that takes 4 variables: 
-    command name, path to the input file, the output type (currently hardcoded to -oc for csv), and path to the output file
-    Finds policy path specified in config/config.yaml
-    Currently defaults to config/JPC_AV_NTSC_MKV_2023-11-21.xml
-    '''
-
-    policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
-    policy_path = os.path.join(config_path.config_dir, policy_file)
-
-    if not os.path.exists(policy_path):
-        logger.critical(f'Policy file not found: {policy_file}\n')
-    else:
-        logger.debug(f'Using MediaConch policy {policy_file}\n')
-
-    full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
-
-    logger.debug(f'Running command: {full_command}\n')
-    subprocess.run(full_command, shell=True)
-
-
 def move_vrec_files(directory, video_id):
     vrecord_files_found = False
 
@@ -668,6 +645,164 @@ def process_video_metadata(video_path, destination_directory, video_id, command_
     return metadata_differences
 
 
+def find_mediaconch_policy(command_config, config_path):
+    """
+    Find and validate the MediaConch policy file.
+    
+    Args:
+        command_config (object): Configuration object with tool settings
+        config_path (object): Configuration path object
+        
+    Returns:
+        str or None: Full path to the policy file, or None if not found
+    """
+    try:
+        # Get policy filename from configuration
+        policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
+        policy_path = os.path.join(config_path.config_dir, policy_file)
+
+        if not os.path.exists(policy_path):
+            logger.critical(f'Policy file not found: {policy_file}')
+            return None
+
+        logger.debug(f'Using MediaConch policy {policy_file}')
+        return policy_path
+
+    except KeyError as e:
+        logger.critical(f'Configuration error: {e}')
+        return None
+    except Exception as e:
+        logger.critical(f'Unexpected error finding MediaConch policy: {e}')
+        return None
+
+
+def run_mediaconch_command(command, input_path, output_type, output_path, policy_path):
+    """
+    Run MediaConch command with specified policy and input file.
+    
+    Args:
+        command (str): Base MediaConch command
+        input_path (str): Path to the input video file
+        output_type (str): Output type flag (e.g., -oc for CSV)
+        output_path (str): Path to save the output file
+        policy_path (str): Path to the MediaConch policy file
+        
+    Returns:
+        bool: True if command executed successfully, False otherwise
+    """
+    try:
+        # Construct full command
+        full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
+        
+        logger.debug(f'Running command: {full_command}\n')
+        
+        # Run the command
+        result = subprocess.run(full_command, shell=True, capture_output=True, text=True)
+        
+        # Check for command execution errors
+        if result.returncode != 0:
+            logger.error(f"MediaConch command failed: {result.stderr}")
+            return False
+        
+        return True
+
+    except Exception as e:
+        logger.critical(f'Error running MediaConch command: {e}')
+        return False
+
+
+def parse_mediaconch_output(output_path):
+    """
+    Parse MediaConch CSV output and log policy validation results.
+    
+    Args:
+        output_path (str): Path to the MediaConch CSV output file
+        
+    Returns:
+        dict: Validation results with pass/fail status for each policy check
+    """
+    try:
+        with open(output_path, 'r', newline='') as mc_file:
+            reader = csv.reader(mc_file)
+            mc_header = next(reader)  # Get the header row
+            mc_values = next(reader)  # Get the values row
+
+            # Create a dictionary to track validation results
+            validation_results = {}
+            found_failures = False
+
+            # Zip headers and values to create key-value pairs
+            for mc_field, mc_value in zip(mc_header, mc_values):
+                validation_results[mc_field] = mc_value
+
+                # Check for failures
+                if mc_value == "fail":
+                    if not found_failures:
+                        logger.critical("MediaConch policy failed:")
+                        found_failures = True
+                    logger.critical(f"{mc_field}: {mc_value}")
+
+            # Log overall validation status
+            if not found_failures:
+                logger.info("MediaConch policy passed")
+            else:
+                logger.debug("")  # Add empty line after mediaconch results
+
+            return validation_results
+
+    except FileNotFoundError:
+        logger.critical(f"MediaConch output file not found: {output_path}")
+        return {}
+    except csv.Error as e:
+        logger.critical(f"Error parsing MediaConch CSV: {e}")
+        return {}
+    except Exception as e:
+        logger.critical(f"Unexpected error processing MediaConch output: {e}")
+        return {}
+
+def validate_video_with_mediaconch(video_path, destination_directory, video_id, command_config, config_path):
+    """
+    Coordinate the entire MediaConch validation process.
+    
+    Args:
+        video_path (str): Path to the input video file
+        destination_directory (str): Directory to store output files
+        video_id (str): Unique identifier for the video
+        command_config (object): Configuration object with tool settings
+        config_path (object): Configuration path object
+        
+    Returns:
+        dict: Validation results from MediaConch policy check
+    """
+    # Check if MediaConch should be run
+    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] != 'yes':
+        logger.info("MediaConch validation skipped")
+        return {}
+
+    # Find the policy file
+    policy_path = find_mediaconch_policy(command_config, config_path)
+    if not policy_path:
+        return {}
+
+    # Prepare output path
+    mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
+
+    # Run MediaConch command
+    if not run_mediaconch_command(
+        'mediaconch -p', 
+        video_path, 
+        '-oc', 
+        mediaconch_output_path, 
+        policy_path
+    ):
+        return {}
+
+    # Parse and validate MediaConch output
+    validation_results = parse_mediaconch_output(mediaconch_output_path)
+
+    return validation_results
+
+
 def process_single_directory(source_directory):
     dir_start_time = time.time()
 
@@ -688,36 +823,20 @@ def process_single_directory(source_directory):
 
     process_fixity(source_directory, video_path, video_id)
 
-    # Run mediaconch on the video file and save the output to a csv file
-    mediaconch_output_path = None
-    # need to initialize path for report
-    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] == 'yes':
-        mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
-        run_mediaconch_command('mediaconch -p', video_path, '-oc', mediaconch_output_path)
+    mediaconch_results = validate_video_with_mediaconch(
+     video_path, 
+     destination_directory, 
+     video_id, 
+     command_config, 
+     config_path
+     )
 
-        # open the mediaconch csv output and check for the word 'fail'
-        with open(mediaconch_output_path, 'r', newline='') as mc_file:
-            reader = csv.reader(mc_file)
-            mc_header = next(reader)  # Get the header row
-            mc_values = next(reader)  # Get the values row
-
-            # Initialize a flag to track if any failures are found
-            found_failures = False
-
-            for mc_field, mc_value in zip(mc_header, mc_values):
-                if mc_value == "fail":
-                    # If this is the first failure, print the initial message
-                    if not found_failures:
-                        logger.critical("MediaConch policy failed:")
-                        found_failures = True
-                    # Print the field and value for the failed entry
-                    logger.critical(f"{mc_field}: {mc_value}")
-            if not found_failures:
-                logger.info(f"MediaConch policy passed\n")
-            else:
-                logger.debug("")  # adding empty line after mediaconch results, if there are failures
-
-    metadata_differences = process_video_metadata(video_path, destination_directory, video_id, command_config)
+    metadata_differences = process_video_metadata(
+        video_path, 
+        destination_directory, 
+        video_id, 
+        command_config
+        )
 
     if command_config.command_dict['outputs']['report'] == 'yes':
         # Create 'report directory' for csv files in html report
