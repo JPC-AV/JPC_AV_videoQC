@@ -744,14 +744,14 @@ def parse_mediaconch_output(output_path):
 
             # Log overall validation status
             if not found_failures:
-                logger.info("MediaConch policy passed")
+                logger.info("MediaConch policy passed\n")
             else:
                 logger.debug("")  # Add empty line after mediaconch results
 
             return validation_results
 
     except FileNotFoundError:
-        logger.critical(f"MediaConch output file not found: {output_path}")
+        logger.critical(f"MediaConch output file not found: {output_path}\n")
         return {}
     except csv.Error as e:
         logger.critical(f"Error parsing MediaConch CSV: {e}")
@@ -803,6 +803,221 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id, 
     return validation_results
 
 
+def create_metadata_difference_report(metadata_differences, report_directory, video_id):
+    """
+    Create a CSV report of metadata differences.
+    
+    Args:
+        metadata_differences (dict): Dictionary of metadata differences from various tools
+        report_directory (str): Directory to save the report
+        video_id (str): Unique identifier for the video
+        
+    Returns:
+        str or None: Path to the created CSV report, or None if no differences
+    """
+    # If no metadata differences, log and return
+    if not metadata_differences:
+        logger.info("All specified metadata fields and values found, no CSV report written\n")
+        return None
+
+    # Prepare CSV file path
+    csv_name = f'{video_id}_metadata_difference.csv'
+    diff_csv_path = os.path.join(report_directory, csv_name)
+
+    try:
+        # Define CSV header and open file
+        fieldnames = ['Metadata Tool', 'Metadata Field', 'Expected Value', 'Actual Value']
+        
+        with open(diff_csv_path, 'w', newline='') as diffs_csv:
+            writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
+            writer.writeheader()
+
+            # Write differences for each tool
+            tools_to_check = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
+            for tool in tools_to_check:
+                if tool in metadata_differences and metadata_differences[tool]:
+                    write_to_csv(metadata_differences[tool], tool, writer)
+
+        logger.info(f"Metadata difference report created: {diff_csv_path}\n")
+        return diff_csv_path
+
+    except IOError as e:
+        logger.critical(f"Error creating metadata difference CSV: {e}")
+        return None
+
+
+def process_qctools_output(video_path, source_directory, destination_directory, video_id, command_config, report_directory=None):
+    """
+    Process QCTools output, including running QCTools and optional parsing.
+    
+    Args:
+        video_path (str): Path to the input video file
+        destination_directory (str): Directory to store output files
+        video_id (str): Unique identifier for the video
+        command_config (object): Configuration object with tool settings
+        report_directory (str, optional): Directory to save reports
+        
+    Returns:
+        dict: Processing results and paths
+    """
+    results = {
+        'qctools_output_path': None,
+        'qctools_check_output': None
+    }
+
+    # Check if QCTools should be run
+    if command_config.command_dict['tools']['qctools']['run_qctools'] != 'yes':
+        return results
+
+    # Prepare QCTools output path
+    qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+    qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
+    
+    try:
+        # Run QCTools command
+        run_command('qcli -i', video_path, '-o', qctools_output_path)
+        logger.debug('')  # Add new line for cleaner terminal output
+        results['qctools_output_path'] = qctools_output_path
+
+        # Check QCTools output if configured
+        if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
+            # Ensure report directory exists
+            if not report_directory:
+                report_directory = make_report_dir(source_directory, video_id)
+
+            # Verify QCTools output file exists
+            if not os.path.isfile(qctools_output_path):
+                logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
+                return results
+
+            # Run QCTools parsing
+            run_qctparse(video_path, qctools_output_path, report_directory)
+
+    except Exception as e:
+        logger.critical(f"Error processing QCTools output: {e}")
+
+    return results
+
+
+def process_access_file(video_path, source_directory, video_id, command_config):
+    """
+    Generate access file if configured and not already existing.
+    
+    Args:
+        video_path (str): Path to the input video file
+        source_directory (str): Source directory for the video
+        video_id (str): Unique identifier for the video
+        command_config (object): Configuration object with tool settings
+        
+    Returns:
+        str or None: Path to the created access file, or None
+    """
+    # Check if access file should be generated
+    if command_config.command_dict['outputs']['access_file'] != 'yes':
+        return None
+
+    access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
+
+    try:
+        # Check if access file already exists
+        if os.path.isfile(access_output_path):
+            logger.critical(f"Access file already exists, not running ffmpeg\n")
+            return None
+
+        # Generate access file
+        make_access_file(video_path, access_output_path)
+        return access_output_path
+
+    except Exception as e:
+        logger.critical(f"Error creating access file: {e}")
+        return None
+
+
+def generate_final_report(video_id, source_directory, report_directory, destination_directory, command_config):
+    """
+    Generate final HTML report if configured.
+    
+    Args:
+        video_id (str): Unique identifier for the video
+        source_directory (str): Source directory for the video
+        report_directory (str): Directory containing report files
+        destination_directory (str): Destination directory for output files
+        command_config (object): Configuration object with tool settings
+        
+    Returns:
+        str or None: Path to the generated HTML report, or None
+    """
+    # Check if report should be generated
+    if command_config.command_dict['outputs']['report'] != 'yes':
+        return None
+
+    try:
+        html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
+        
+        # Generate HTML report
+        write_html_report(video_id, report_directory, destination_directory, html_report_path)
+        
+        logger.info(f"HTML report generated: {html_report_path}\n")
+        return html_report_path
+
+    except Exception as e:
+        logger.critical(f"Error generating HTML report: {e}")
+        return None
+
+
+def process_video_outputs(video_path, source_directory, destination_directory, video_id, command_config, metadata_differences):
+    """
+    Coordinate the entire output processing workflow.
+    
+    Args:
+        video_path (str): Path to the input video file
+        source_directory (str): Source directory for the video
+        destination_directory (str): Destination directory for output files
+        video_id (str): Unique identifier for the video
+        command_config (object): Configuration object with tool settings
+        metadata_differences (dict): Differences found in metadata checks
+        
+    Returns:
+        dict: Processing results and file paths
+    """
+
+    # Collect processing results
+    processing_results = {
+        'metadata_diff_report': None,
+        'qctools_output': None,
+        'access_file': None,
+        'html_report': None
+    }
+
+    # Create report directory if report is enabled
+    report_directory = None
+    if command_config.command_dict['outputs']['report'] == 'yes':
+        report_directory = make_report_dir(source_directory, video_id)
+        # Process metadata differences report
+        processing_results['metadata_diff_report'] = create_metadata_difference_report(
+                metadata_differences, report_directory, video_id
+            )
+    else:
+         processing_results['metadata_diff_report'] =  None
+
+    # Process QCTools output
+    process_qctools_output(
+        video_path, source_directory, destination_directory, video_id, command_config, report_directory
+    )
+
+    # Generate access file
+    processing_results['access_file'] = process_access_file(
+        video_path, source_directory, video_id, command_config
+    )
+
+    # Generate final HTML report
+    processing_results['html_report'] = generate_final_report(
+        video_id, source_directory, report_directory, destination_directory, command_config
+    )
+
+    return processing_results
+
+
 def process_single_directory(source_directory):
     dir_start_time = time.time()
 
@@ -838,60 +1053,14 @@ def process_single_directory(source_directory):
         command_config
         )
 
-    if command_config.command_dict['outputs']['report'] == 'yes':
-        # Create 'report directory' for csv files in html report
-        report_directory = make_report_dir(source_directory, video_id) 
-        diff_csv_path = None
-        # if any of the 'differences' lists are not None, then:
-        if metadata_differences:
-            # Create CSV for storing differences between expected metadata values and actual values
-            csv_name = video_id + '_' + 'metadata_difference'
-            diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
-            # Open CSV file in write mode
-            with open(diff_csv_path, 'w', newline='') as diffs_csv:
-                # Define CSV header
-                fieldnames = ['Metadata Tool', 'Metadata Field', 'Expected Value', 'Actual Value']
-                writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
-                # Write header to CSV file
-                writer.writeheader()
-                if metadata_differences['exiftool']:
-                    write_to_csv(metadata_differences['exiftool'], 'exiftool', writer)
-                if metadata_differences['mediainfo']:
-                    write_to_csv(metadata_differences['mediainfo'], 'mediainfo', writer)
-                if metadata_differences['mediatrace']:
-                    write_to_csv(metadata_differences['mediatrace'], 'mediatrace', writer)  
-                if metadata_differences['ffprobe']:
-                    write_to_csv(metadata_differences['ffprobe'], 'ffprobe', writer)
-        else:
-            logger.info(f"All specified metadata fields and values found, no CSV report written\n")
-
-    qctools_ext = command_config.command_dict['outputs']['qctools_ext']
-    qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
-    if command_config.command_dict['tools']['qctools']['run_qctools'] == 'yes':
-        run_command('qcli -i', video_path, '-o', qctools_output_path)
-        logger.debug('')  # adding a new line under qcli output for cleaner terminal output
-
-    if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
-        if not os.path.isfile(qctools_output_path):
-            logger.critical(f"Unable to check qctools report. No file found at this path: {qctools_output_path}.\n")
-            qctools_check_output = None
-        else:
-            if not report_directory:
-                report_directory = make_report_dir(source_directory, video_id)
-            run_qctparse(video_path, qctools_output_path, report_directory)
-    else:
-        qctools_check_output = None
-
-    access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
-    if command_config.command_dict['outputs']['access_file'] == 'yes':
-        if os.path.isfile(access_output_path):
-            logger.critical(f"Access file already exists, not running ffmpeg")
-        else:
-            make_access_file(video_path, access_output_path)
-
-    if command_config.command_dict['outputs']['report'] == 'yes':
-        html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
-        write_html_report(video_id,report_directory,destination_directory,html_report_path)
+    processing_results = process_video_outputs(
+        video_path,
+        source_directory,
+        destination_directory,
+        video_id,
+        command_config,
+        metadata_differences
+     )
 
     logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
 
