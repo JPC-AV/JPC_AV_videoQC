@@ -425,7 +425,6 @@ def _generate_profile_filename(saveprofile):
 
 def process_directories(source_directories):
     for source_directory in source_directories:
-        # Do complex processing
         process_single_directory(source_directory)
 
 
@@ -536,6 +535,139 @@ def process_fixity(source_directory, video_path, video_id):
         check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
 
 
+def run_tool_command(tool_name, video_path, destination_directory, video_id, command_config):
+    """
+    Run a specific metadata extraction tool and generate its output file.
+    
+    Args:
+        tool_name (str): Name of the tool to run (e.g., 'exiftool', 'mediainfo')
+        video_path (str): Path to the input video file
+        destination_directory (str): Directory to store output files
+        video_id (str): Unique identifier for the video
+        command_config (object): Configuration object with tool settings
+        
+    Returns:
+        str or None: Path to the output file, or None if tool is not run
+    """
+    # Define tool-specific command configurations
+    tool_commands = {
+        'exiftool': {
+            'command': 'exiftool',
+            'config_key': 'run_exiftool'
+        },
+        'mediainfo': {
+            'command': 'mediainfo -f',
+            'config_key': 'run_mediainfo'
+        },
+        'mediatrace': {
+            'command': 'mediainfo --Details=1 --Output=XML',
+            'config_key': 'run_mediatrace'
+        },
+        'ffprobe': {
+            'command': 'ffprobe -v error -hide_banner -show_format -show_streams -print_format json',
+            'config_key': 'run_ffprobe'
+        }
+    }
+
+    # Check if the tool is configured to run
+    tool_config = tool_commands.get(tool_name)
+    if not tool_config:
+        logger.error(f"tool command is not configured correctly: {tool_name}")
+        return None
+
+    # Construct output path
+    output_path = os.path.join(destination_directory, f'{video_id}_{tool_name}_output.{_get_file_extension(tool_name)}')
+    
+    # Check if tool should be run based on configuration
+    if command_config.command_dict['tools'][tool_name][tool_config['config_key']] == 'yes':
+        if tool_name == 'mediatrace':
+            logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
+        
+        # Run the tool command
+        run_command(tool_config['command'], video_path, '>', output_path)
+        
+        return output_path if os.path.isfile(output_path) else None
+    
+    return None
+
+def _get_file_extension(tool_name):
+    """
+    Get the appropriate file extension for each tool's output.
+    
+    Args:
+        tool_name (str): Name of the tool
+        
+    Returns:
+        str: File extension for the tool's output
+    """
+    extension_map = {
+        'exiftool': 'txt',
+        'mediainfo': 'txt',
+        'mediatrace': 'xml',
+        'ffprobe': 'txt'
+    }
+    return extension_map.get(tool_name, 'txt')
+
+def check_tool_metadata(tool_name, output_path, command_config):
+    """
+    Check metadata for a specific tool if configured.
+    
+    Args:
+        tool_name (str): Name of the tool
+        output_path (str): Path to the tool's output file
+        command_config (object): Configuration object with tool settings
+        
+    Returns:
+        dict or None: Differences found by parsing the tool's output, or None
+    """
+    # Mapping of tool names to their parsing functions
+    parse_functions = {
+        'exiftool': parse_exiftool,
+        'mediainfo': parse_mediainfo,
+        'mediatrace': parse_mediatrace,
+        'ffprobe': parse_ffprobe
+    }
+
+    # Check if tool metadata checking is enabled
+    if output_path and command_config.command_dict['tools'][tool_name][f'check_{tool_name}'] == 'yes':
+        parse_function = parse_functions.get(tool_name)
+        if parse_function:
+            return parse_function(output_path)
+    
+    return None
+
+def process_video_metadata(video_path, destination_directory, video_id, command_config):
+    """
+    Main function to process video metadata using multiple tools.
+    
+    Args:
+        video_path (str): Path to the input video file
+        destination_directory (str): Directory to store output files
+        video_id (str): Unique identifier for the video
+        command_config (object): Configuration object with tool settings
+        
+    Returns:
+        dict: Dictionary of metadata differences from various tools
+    """
+    # List of tools to process
+    tools = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
+    
+    # Store differences for each tool
+    metadata_differences = {}
+    
+    # Process each tool
+    for tool in tools:
+        # Run tool and get output path
+        output_path = run_tool_command(tool, video_path, destination_directory, video_id, command_config)
+        
+        # Check metadata and store differences
+        differences = check_tool_metadata(tool, output_path, command_config)
+        if differences:
+            metadata_differences[tool] = differences
+    
+    return metadata_differences
+
+
 def process_single_directory(source_directory):
     dir_start_time = time.time()
 
@@ -585,68 +717,14 @@ def process_single_directory(source_directory):
             else:
                 logger.debug("")  # adding empty line after mediaconch results, if there are failures
 
-    # Initiate dictionaries for storing differences between actual values and expected values
-    exiftool_differences = None
-    mediainfo_differences = None
-    mediatrace_differences = None
-    ffprobe_differences = None
-
-    # Run exiftool, mediainfo and ffprobe using the 'run_command' function
-    exiftool_output_path = os.path.join(destination_directory, f'{video_id}_exiftool_output.txt')
-    if command_config.command_dict['tools']['exiftool']['run_exiftool'] == 'yes':
-        run_command('exiftool', video_path, '>', exiftool_output_path)
-
-    if command_config.command_dict['tools']['exiftool']['check_exiftool'] == 'yes':
-        # If check_exfitool is set to 'yes' in command_config.yaml then
-        exiftool_differences = parse_exiftool(exiftool_output_path)
-        # Run parse functions defined in the '_check.py' scripts
-
-    if not os.path.isfile(exiftool_output_path):
-        exiftool_output_path = None
-        # reset variable if no output is created, so that it won't print in the report
-
-    mediainfo_output_path = os.path.join(destination_directory, f'{video_id}_mediainfo_output.txt')
-    if command_config.command_dict['tools']['mediainfo']['run_mediainfo'] == 'yes':
-        run_command('mediainfo -f', video_path, '>', mediainfo_output_path)
-
-    if command_config.command_dict['tools']['mediainfo']['check_mediainfo'] == 'yes':
-        # If check_mediainfo is set to 'yes' in command_config.yaml then
-        mediainfo_differences = parse_mediainfo(mediainfo_output_path)
-        # Run parse functions defined in the '_check.py' scripts
-
-    if not os.path.isfile(mediainfo_output_path):
-        mediainfo_output_path = None
-        # reset variable if no output is created, so that it won't print in the report
-
-    mediatrace_output_path = os.path.join(destination_directory, f'{video_id}_mediatrace_output.xml')
-    if command_config.command_dict['tools']['mediatrace']['run_mediatrace'] == 'yes':
-        logger.debug(f"Creating MediaTrace XML file to check custom MKV Tag metadata fields:")
-        # If check_mediainfo is set to 'yes' in command_config.yaml then
-        run_command("mediainfo --Details=1 --Output=XML", video_path, '>', mediatrace_output_path)
-
-    if command_config.command_dict['tools']['mediatrace']['check_mediatrace'] == 'yes':
-        mediatrace_differences = parse_mediatrace(mediatrace_output_path)
-        # Run parse functions defined in the '_check.py' scripts
-
-    ffprobe_output_path = os.path.join(destination_directory, f'{video_id}_ffprobe_output.txt')
-    if command_config.command_dict['tools']['ffprobe']['run_ffprobe'] == 'yes':
-        run_command('ffprobe -v error -hide_banner -show_format -show_streams -print_format json', video_path, '>', ffprobe_output_path)
-
-    if command_config.command_dict['tools']['ffprobe']['check_ffprobe'] == 'yes':
-        # If check_ffprobe is set to 'yes' in command_config.yaml then
-        ffprobe_differences = parse_ffprobe(ffprobe_output_path)
-        # Run parse functions defined in the '_check.py' scripts
-
-    if not os.path.isfile(ffprobe_output_path):
-        ffprobe_output_path = None
-        # reset variable if no output is created, so that it won't print in the report
+    metadata_differences = process_video_metadata(video_path, destination_directory, video_id, command_config)
 
     if command_config.command_dict['outputs']['report'] == 'yes':
         # Create 'report directory' for csv files in html report
         report_directory = make_report_dir(source_directory, video_id) 
         diff_csv_path = None
         # if any of the 'differences' lists are not None, then:
-        if None not in (exiftool_differences, mediainfo_differences, ffprobe_differences, mediatrace_differences):
+        if metadata_differences:
             # Create CSV for storing differences between expected metadata values and actual values
             csv_name = video_id + '_' + 'metadata_difference'
             diff_csv_path = os.path.join(report_directory, f'{csv_name}.csv')
@@ -657,14 +735,14 @@ def process_single_directory(source_directory):
                 writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
                 # Write header to CSV file
                 writer.writeheader()
-                if exiftool_differences:
-                    write_to_csv(exiftool_differences, 'exiftool', writer)
-                if mediainfo_differences:
-                    write_to_csv(mediainfo_differences, 'mediainfo', writer)
-                if mediatrace_differences:
-                    write_to_csv(mediatrace_differences, 'mediatrace', writer)  
-                if ffprobe_differences:
-                    write_to_csv(ffprobe_differences, 'ffprobe', writer)
+                if metadata_differences['exiftool']:
+                    write_to_csv(metadata_differences['exiftool'], 'exiftool', writer)
+                if metadata_differences['mediainfo']:
+                    write_to_csv(metadata_differences['mediainfo'], 'mediainfo', writer)
+                if metadata_differences['mediatrace']:
+                    write_to_csv(metadata_differences['mediatrace'], 'mediatrace', writer)  
+                if metadata_differences['ffprobe']:
+                    write_to_csv(metadata_differences['ffprobe'], 'ffprobe', writer)
         else:
             logger.info(f"All specified metadata fields and values found, no CSV report written\n")
 
