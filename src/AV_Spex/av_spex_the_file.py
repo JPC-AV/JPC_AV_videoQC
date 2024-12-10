@@ -70,12 +70,23 @@ FILENAME_MAPPING = {
 
 
 def check_directory(source_directory, video_id):
+    """
+    Checks whether the base name of a directory matches the given video_id.
+    
+    Args:
+        source_directory (str): The path to the directory.
+        video_id (str): The expected video ID to match.
+
+    Returns:
+        bool: True if the directory name matches the video_id, otherwise False.
+    """
     directory_name = os.path.basename(source_directory)
-    # Check if the directory name starts with the base_video_id string
     if directory_name.startswith(video_id):
         logger.info(f'Directory name "{directory_name}" correctly matches video file name "{video_id}".\n')
+        return True
     else:
-        logger.critical(f'Directory name "{directory_name}" does not correctly match the expected "{video_id}".\n')    
+        logger.critical(f'Directory name "{directory_name}" does not correctly match the expected "{video_id}".\n')
+        return False
 
 
 def make_qc_output_dir(source_directory, video_id):
@@ -487,6 +498,12 @@ def process_embedded_fixity(video_path):
 def process_fixity(source_directory, video_path, video_id):
     """
     Orchestrates the entire fixity process, including embedded and file-level operations.
+
+    Args:
+        source_directory (str): Directory containing source files
+        video_path (str): Path to the video file
+        video_id (str): Unique identifier for the video
+        command_config (object): Configuration object with fixity settings
     """
     # Embed stream fixity if required
     if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
@@ -887,6 +904,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
 
             # Run QCTools parsing
             run_qctparse(video_path, qctools_output_path, report_directory)
+            # currently not using results['qctools_check_output']
 
     except Exception as e:
         logger.critical(f"Error processing QCTools output: {e}")
@@ -1020,10 +1038,6 @@ def create_processing_timer():
     Returns:
         ProcessingTimer: A context manager for timing operations
     """
-    import time
-    import logging
-    
-    logger = logging.getLogger(__name__)
     
     class ProcessingTimer:
         def __init__(self):
@@ -1093,13 +1107,12 @@ def display_processing_banner(video_id=None):
 
 def process_directories(source_directories):
     for source_directory in source_directories:
+        # sanitize user input directory path
+        source_directory = os.path.normpath(source_directory)
         process_single_directory(source_directory)
 
 
 def process_single_directory(source_directory):
-
-    source_directory = os.path.normpath(source_directory)
-    # sanitize user input directory path
 
     # Display initial processing banner
     display_processing_banner()
@@ -1156,6 +1169,25 @@ def process_single_directory(source_directory):
     # Log processing time
     timer.log_time_details(video_id)
 
+
+def print_av_spex_logo():
+    avspex_icon = text2art("A-V Spex", font='5lineoblique')
+    print(f'{avspex_icon}\n')
+
+
+def print_nmaahc_logo():
+    nmaahc_icon = text2art("nmaahc",font='tarty1')
+    print(f'{nmaahc_icon}\n')
+
+
+def log_overall_time(overall_start_time, overall_end_time):
+    logger.warning(f'All files processed!\n')
+    overall_total_time = overall_end_time - overall_start_time
+    formatted_overall_time = time.strftime("%H:%M:%S", time.gmtime(overall_total_time))
+    logger.info(f"Overall processing time for all directories: {formatted_overall_time}\n")
+
+    return formatted_overall_time
+
 def main():
     '''
     av-spex takes 1 input file or directory as an argument, like this:
@@ -1163,8 +1195,7 @@ def main():
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
 
-    avspex_icon = text2art("A-V Spex", font='5lineoblique')
-    print(f'{avspex_icon}\n')
+    print_av_spex_logo()
 
     args = parse_arguments()
 
@@ -1195,15 +1226,11 @@ def main():
 
     process_directories(args.source_directories)
 
-    nmaahc_icon = text2art("nmaahc",font='tarty1')
-    print(f'{nmaahc_icon}\n')
+    print_nmaahc_logo()
 
-    logger.warning(f'All files processed!\n')
     overall_end_time = time.time()
-    overall_total_time = overall_end_time - overall_start_time
-    formatted_overall_time = time.strftime("%H:%M:%S", time.gmtime(overall_total_time))
-    logger.info(f"Overall processing time for all directories: {formatted_overall_time}\n")
 
+    formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
 if __name__ == "__main__":
     main()
