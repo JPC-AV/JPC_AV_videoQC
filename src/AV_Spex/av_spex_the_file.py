@@ -400,11 +400,6 @@ def _generate_profile_filename(saveprofile):
                         f"{profile_type}_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
 
 
-def process_directories(source_directories):
-    for source_directory in source_directories:
-        process_single_directory(source_directory)
-
-
 def initialize_directory(source_directory):
     """
     Prepare the directory for processing by finding the video file 
@@ -1018,67 +1013,148 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
     return processing_results
 
 
-def process_single_directory(source_directory):
-    dir_start_time = time.time()
+def create_processing_timer():
+    """
+    Create a context manager for tracking processing time.
+    
+    Returns:
+        ProcessingTimer: A context manager for timing operations
+    """
+    import time
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    class ProcessingTimer:
+        def __init__(self):
+            self.start_time = None
+            self.end_time = None
+            self.total_time = 0  # Initialize to 0 to avoid NoneType issues
 
+        def __enter__(self):
+            self.start_time = time.time()
+            return self
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            self.end_time = time.time()
+            self.total_time = self.end_time - self.start_time
+
+        def get_formatted_time(self):
+            """
+            Get formatted time string for total processing duration.
+            
+            Returns:
+                str: Formatted time (HH:MM:SS)
+            """
+            # Ensure total_time is valid
+            if self.total_time is None:
+                return "00:00:00"
+            
+            hours, remainder = divmod(int(self.total_time), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            return f"{hours:02}:{minutes:02}:{seconds:02}"
+
+        def log_time_details(self, video_id):
+            """
+            Log detailed time information.
+            
+            Args:
+                video_id (str): Identifier for the processed video
+            """
+            if self.start_time is None or self.end_time is None:
+                logger.error("Timer was not properly started or stopped.")
+                return
+            
+            logger.info(
+                f'Process time for {video_id}: '
+                f'time start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.start_time))}; '
+                f'time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.end_time))}; '
+                f'total time: {self.get_formatted_time()}'
+            )
+
+    return ProcessingTimer()
+
+
+def display_processing_banner(video_id=None):
+    """
+    Display ASCII art banners before and after processing.
+    
+    Args:
+        video_id (str, optional): Video identifier for additional banner
+    """
     tape_icon = art('cassette1')
+    banner = f'\n{tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}\n'
+    print(banner)
 
-    print(f'\n{tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}\n')
+    if video_id:
+        ascii_video_id = text2art(video_id, font='tarty2')
+        logger.warning(f'Processing complete:{ascii_video_id}\n')
+
+
+def process_directories(source_directories):
+    for source_directory in source_directories:
+        process_single_directory(source_directory)
+
+
+def process_single_directory(source_directory):
 
     source_directory = os.path.normpath(source_directory)
     # sanitize user input directory path
 
-    # Call the new prep_directory function
-    init_dir_result = initialize_directory(source_directory)
-    if init_dir_result is None:
-        return  # Skip to the next source_directory if preparation failed
+    # Display initial processing banner
+    display_processing_banner()
 
-    # Unpack the returned values
-    video_path, video_id, destination_directory, access_file_found = init_dir_result
+    # Use processing timer for tracking
+    with create_processing_timer() as timer:
+        try:
+            # Call the new prep_directory function
+            init_dir_result = initialize_directory(source_directory)
+            if init_dir_result is None:
+                return  # Skip to the next source_directory if preparation failed
 
-    process_fixity(source_directory, video_path, video_id)
+            # Unpack the returned values
+            video_path, video_id, destination_directory, access_file_found = init_dir_result
 
-    mediaconch_results = validate_video_with_mediaconch(
-     video_path, 
-     destination_directory, 
-     video_id, 
-     command_config, 
-     config_path
-     )
+            process_fixity(source_directory, video_path, video_id)
 
-    metadata_differences = process_video_metadata(
-        video_path, 
-        destination_directory, 
-        video_id, 
-        command_config
-        )
+            mediaconch_results = validate_video_with_mediaconch(
+            video_path, 
+            destination_directory, 
+            video_id, 
+            command_config, 
+            config_path
+            )
 
-    processing_results = process_video_outputs(
-        video_path,
-        source_directory,
-        destination_directory,
-        video_id,
-        command_config,
-        metadata_differences
-     )
+            metadata_differences = process_video_metadata(
+                video_path, 
+                destination_directory, 
+                video_id, 
+                command_config
+                )
 
-    logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
+            processing_results = process_video_outputs(
+                video_path,
+                source_directory,
+                destination_directory,
+                video_id,
+                command_config,
+                metadata_differences
+            )
 
-    ascii_video_id = text2art(video_id, font='tarty2')
+            logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
 
-    logger.warning(f'Processing complete:{ascii_video_id}\n')
-    logger.info(f'Output files saved in the directory: {destination_directory}\n')
+            # Display final processing banner
+            display_processing_banner(video_id)
 
-    dir_end_time = time.time()
-    dir_total_time = dir_end_time - dir_start_time
-    formatted_total_time = time.strftime("%H:%M:%S", time.gmtime(dir_total_time))
+        except Exception as e:
+            logger.critical(f"Error processing directory {source_directory}: {e}")
+            return None
+        finally:
+            # Optional brief pause between directory processing
+            time.sleep(1)
 
-    logger.info(f'Process time for {video_id}: time start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_start_time))}; time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(dir_end_time))}; total time: {formatted_total_time}')
-
-    print(f'\n{tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}\n')
-
-    time.sleep(1)
-
+    # Log processing time
+    timer.log_time_details(video_id)
 
 def main():
     '''
