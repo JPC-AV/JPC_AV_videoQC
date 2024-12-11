@@ -31,6 +31,9 @@ Repository = "https://github.com/JPC-AV/JPC_AV_videoQC"
 [project.scripts]
 av-spex = "AV_Spex.av_spex_the_file:main"
 
+[project.gui-scripts]
+av-spex-gui = "AV_Spex:av_spex_the_file:main --gui"
+
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)
 include = ["AV_Spex*"]  # package names should match these glob patterns (["*"] by default)

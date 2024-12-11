@@ -360,6 +360,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         help="Flag to indicate input is a directory")
     parser.add_argument("-f","--file", action="store_true", 
                         help="Flag to indicate input is a video file")
+    parser.add_argument('--gui', action='store_true', 
+                        help='Force launch in GUI mode')
     
 
     # Parse arguments
@@ -1190,23 +1192,8 @@ def log_overall_time(overall_start_time, overall_end_time):
     return formatted_overall_time
 
 
-def main():
-    '''
-    av-spex takes 1 input file or directory as an argument, like this:
-    av-spex <input_directory> (or -f <input_file.mkv>)
-    it confirms the file is valid, generates metadata on the file, then checks it against expected values.
-    '''
-
+def run_cli_mode(args):
     print_av_spex_logo()
-
-    args = parse_arguments()
-
-    check_py_version()
-
-    for command in required_commands:
-        if not check_external_dependency(command):
-            print(f"Error: {command} not found. Please install it.")
-            sys.exit(1)
 
     # Update YAML configs
     update_yaml_configs(args.selected_profile, args.tool_names, args.tools_on_names, args.tools_off_names,
@@ -1219,6 +1206,21 @@ def main():
     if args.dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
         sys.exit(1)
+
+
+def run_avspex(source_directories):
+    '''
+    av-spex takes 1 input file or directory as an argument, like this:
+    av-spex <input_directory> (or -f <input_file.mkv>)
+    it confirms the file is valid, generates metadata on the file, then checks it against expected values.
+    '''
+
+    check_py_version()
+
+    for command in required_commands:
+        if not check_external_dependency(command):
+            print(f"Error: {command} not found. Please install it.")
+            sys.exit(1)
 
     # Reload the dictionaries if the profile has been applied
     config_path.reload()
@@ -1233,6 +1235,26 @@ def main():
     overall_end_time = time.time()
 
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
+
+def main():
+    args = parse_arguments()
+
+    if args.gui or (args.source_directories is None and not sys.argv[1:]):
+        # GUI Mode
+        app = QApplication(sys.argv)
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec_())
+        # After GUI closes, get the selected directories
+        source_directories = window.get_source_directories()
+    else:
+        # CLI Mode
+        run_cli_mode(args)
+        source_directories = args.source_directories
+
+    if source_directories:
+        run_avspex(source_directories)
+
 
 if __name__ == "__main__":
     main()
