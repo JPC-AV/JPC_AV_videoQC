@@ -1257,14 +1257,11 @@ def main_gui():
 def main_cli():
     args = parse_arguments()
 
-    #if args.gui:
-     #   main_gui()
-    #elif args.source_directories:
-    if args.source_directories:
+    if args.gui:
+       main_gui()
+    elif args.source_directories:
         run_cli_mode(args)
         run_avspex(args.source_directories)
-    else:
-        print("No source directories provided. Use --help for more information.")
 
 
 def main():
