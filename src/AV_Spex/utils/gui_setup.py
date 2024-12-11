@@ -170,6 +170,11 @@ class MainWindow(QMainWindow):
         self.command_profile_dropdown = QComboBox()
         self.command_profile_dropdown.addItem("step1")
         self.command_profile_dropdown.addItem("step2")
+        # Set dropdown based on condition
+        if command_config_dict["tools"]["exiftool"]["run_exiftool"] == "yes":
+            self.command_profile_dropdown.setCurrentText("step1")
+        elif command_config_dict["tools"]["exiftool"]["run_exiftool"] == "no":
+            self.command_profile_dropdown.setCurrentText("step2")
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
         vertical_layout.addWidget(command_profile_label)
         vertical_layout.addWidget(self.command_profile_dropdown)

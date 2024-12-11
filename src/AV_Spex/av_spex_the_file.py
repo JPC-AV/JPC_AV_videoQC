@@ -374,7 +374,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
     args = parser.parse_args()
 
     # Validate and process arguments
-    if not args.dryrun and not args.paths:
+    if not args.dryrun and not args.paths and not args.gui:
         parser.error("the following arguments are required: paths")
 
     input_paths = [] if args.dryrun else args.paths
@@ -1249,10 +1249,9 @@ def main():
     if args.gui or (args.source_directories is None and not sys.argv[1:]):
         # GUI Mode
         app = QApplication(sys.argv)
-        window = MainWindow()
+        window = MainWindow(command_config, command_config.command_dict, config_path)
         window.show()
-        sys.exit(app.exec_())
-        # After GUI closes, get the selected directories
+        (app.exec())
         source_directories = window.get_source_directories()
     else:
         # CLI Mode
