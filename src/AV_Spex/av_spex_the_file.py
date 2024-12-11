@@ -50,6 +50,7 @@ class ParsedArguments:
     user_profile_config: Optional[str]
     tools_on_names: List[str]
     tools_off_names: List[str]
+    gui: Optional[Any]
 
 
 AVAILABLE_TOOLS = ["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"]
@@ -404,7 +405,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
         save_config_type=save_config_type,
         user_profile_config=_generate_profile_filename(args.saveprofile),
         tools_on_names=args.on or [],
-        tools_off_names=args.off or []
+        tools_off_names=args.off or [],
+        gui=args.gui
     )
 
 
@@ -1233,7 +1235,7 @@ def run_avspex(source_directories):
 
     overall_start_time = time.time()
 
-    process_directories(args.source_directories)
+    process_directories(source_directories)
 
     print_nmaahc_logo()
 
