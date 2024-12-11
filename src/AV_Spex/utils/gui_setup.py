@@ -203,10 +203,6 @@ class MainWindow(QMainWindow):
         check_spex_button.clicked.connect(self.on_check_spex_clicked)
         bottom_row.addWidget(check_spex_button)
 
-        quit_button = QPushButton("Quit")
-        quit_button.clicked.connect(self.on_quit_clicked)
-        bottom_row.addWidget(quit_button)
-
         checks_layout.addLayout(bottom_row)
 
         # Second tab: "spex"
