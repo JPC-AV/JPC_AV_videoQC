@@ -126,6 +126,49 @@ def save_profile_to_file(config, new_file_path):
         logger.critical('Unable to save command profile!\n')
 
 
+def apply_selected_profile(profile_name, command_config):
+    if profile_name == "step1":
+        profile = profile_step1
+    elif profile_name == "step2":
+        profile = profile_step2
+    else:
+        raise ValueError(f"Unknown profile: {profile_name}")
+
+    apply_profile(command_config, profile)
+    logger.info(f'command_config.yaml updated to match selected tool profile: {profile_name}')
+
+def checkbox_on(command_config, command_name, state):
+    """
+    Recursively updates the value of `command_name` in a nested dictionary
+    and saves the updated dictionary back to the YAML file.
+
+    Parameters:
+        command_config (CommandConfig): An instance of the CommandConfig class.
+        command_name (str): The key to find and update its value.
+        state (str): Either "on" or "off". Determines the value to set.
+    """
+    if state not in ["on", "off"]:
+        raise ValueError("Invalid state. Use 'on' or 'off'.")
+    
+    new_value = 'yes' if state == 'on' else 'no'
+
+    def update_dict(d):
+        """Helper function to recursively update the dictionary."""
+        for key, value in d.items():
+            if isinstance(value, dict):  # If the value is a dictionary, recurse into it.
+                update_dict(value)
+            elif key == command_name:  # If the key matches, update the value.
+                d[key] = new_value
+                logger.info(f"{command_name} set to '{state}'")  # Use logging if needed.
+
+    # Update the command_dict
+    update_dict(command_config.command_dict)
+
+    # Save the updated dictionary back to the YAML file
+    with open(command_config.command_yml, 'w') as f:
+        yaml.dump(command_config.command_dict, f)
+
+
 profile_step1 = {
     "tools": {
         "qctools": {

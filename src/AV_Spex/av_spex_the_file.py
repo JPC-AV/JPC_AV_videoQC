@@ -16,11 +16,16 @@ from datetime import datetime
 from dataclasses import dataclass
 from typing import List, Optional, Any
 
+from PyQt6.QtWidgets import (
+    QApplication
+)
+
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
 from .utils import yaml_profiles
 from .utils.generate_report import write_html_report
+from .utils.gui_setup import ConfigWindow, MainWindow
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import is_valid_filename
 from .checks.mediainfo_check import parse_mediainfo
@@ -45,6 +50,7 @@ class ParsedArguments:
     user_profile_config: Optional[str]
     tools_on_names: List[str]
     tools_off_names: List[str]
+    gui: Optional[Any]
 
 
 AVAILABLE_TOOLS = ["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"]
@@ -360,13 +366,15 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         help="Flag to indicate input is a directory")
     parser.add_argument("-f","--file", action="store_true", 
                         help="Flag to indicate input is a video file")
+    parser.add_argument('--gui', action='store_true', 
+                        help='Force launch in GUI mode')
     
 
     # Parse arguments
     args = parser.parse_args()
 
     # Validate and process arguments
-    if not args.dryrun and not args.paths:
+    if not args.dryrun and not args.paths and not args.gui:
         parser.error("the following arguments are required: paths")
 
     input_paths = [] if args.dryrun else args.paths
@@ -397,7 +405,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
         save_config_type=save_config_type,
         user_profile_config=_generate_profile_filename(args.saveprofile),
         tools_on_names=args.on or [],
-        tools_off_names=args.off or []
+        tools_off_names=args.off or [],
+        gui=args.gui
     )
 
 
@@ -1190,23 +1199,8 @@ def log_overall_time(overall_start_time, overall_end_time):
     return formatted_overall_time
 
 
-def main():
-    '''
-    av-spex takes 1 input file or directory as an argument, like this:
-    av-spex <input_directory> (or -f <input_file.mkv>)
-    it confirms the file is valid, generates metadata on the file, then checks it against expected values.
-    '''
-
+def run_cli_mode(args):
     print_av_spex_logo()
-
-    args = parse_arguments()
-
-    check_py_version()
-
-    for command in required_commands:
-        if not check_external_dependency(command):
-            print(f"Error: {command} not found. Please install it.")
-            sys.exit(1)
 
     # Update YAML configs
     update_yaml_configs(args.selected_profile, args.tool_names, args.tools_on_names, args.tools_off_names,
@@ -1220,13 +1214,28 @@ def main():
         logger.critical("Dry run selected. Exiting now.")
         sys.exit(1)
 
+
+def run_avspex(source_directories):
+    '''
+    av-spex takes 1 input file or directory as an argument, like this:
+    av-spex <input_directory> (or -f <input_file.mkv>)
+    it confirms the file is valid, generates metadata on the file, then checks it against expected values.
+    '''
+
+    check_py_version()
+
+    for command in required_commands:
+        if not check_external_dependency(command):
+            print(f"Error: {command} not found. Please install it.")
+            sys.exit(1)
+
     # Reload the dictionaries if the profile has been applied
     config_path.reload()
     command_config.reload()
 
     overall_start_time = time.time()
 
-    process_directories(args.source_directories)
+    process_directories(source_directories)
 
     print_nmaahc_logo()
 
@@ -1234,5 +1243,37 @@ def main():
 
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
+def main_gui():
+    app = QApplication(sys.argv)
+    window = MainWindow(command_config, command_config.command_dict, config_path)
+    window.show()
+    app.exec()
+    source_directories = window.get_source_directories()
+
+    if source_directories:
+        run_avspex(source_directories)
+
+
+def main_cli():
+    args = parse_arguments()
+
+    if args.gui:
+       main_gui()
+    elif args.source_directories:
+        run_cli_mode(args)
+        run_avspex(args.source_directories)
+
+
+def main():
+    # Default behavior based on command-line arguments
+    args = parse_arguments()
+
+    if args.gui or (args.source_directories is None and not sys.argv[1:]):
+        main_gui()
+    else:
+        main_cli()
+
+
 if __name__ == "__main__":
     main()
+
