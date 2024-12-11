@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "AV_Spex"
-version = "0.4.9.4"
+version = "0.5.0.0"
 description = "A Python project written for NMAAHC media conservation lab"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -36,3 +36,9 @@ where = ["src"]  # list of folders that contain the packages (["."] by default)
 include = ["AV_Spex*"]  # package names should match these glob patterns (["*"] by default)
 exclude = ["config", "logs", "tests"]  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
