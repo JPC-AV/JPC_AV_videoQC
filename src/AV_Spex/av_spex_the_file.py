@@ -1243,24 +1243,40 @@ def run_avspex(source_directories):
 
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
-def main():
-    args = parse_arguments()
-
-    if args.gui or (args.source_directories is None and not sys.argv[1:]):
-        # GUI Mode
-        app = QApplication(sys.argv)
-        window = MainWindow(command_config, command_config.command_dict, config_path)
-        window.show()
-        (app.exec())
-        source_directories = window.get_source_directories()
-    else:
-        # CLI Mode
-        run_cli_mode(args)
-        source_directories = args.source_directories
+def main_gui():
+    app = QApplication(sys.argv)
+    window = MainWindow(command_config, command_config.command_dict, config_path)
+    window.show()
+    app.exec()
+    source_directories = window.get_source_directories()
 
     if source_directories:
         run_avspex(source_directories)
 
 
+def main_cli():
+    args = parse_arguments()
+
+    #if args.gui:
+     #   main_gui()
+    #elif args.source_directories:
+    if args.source_directories:
+        run_cli_mode(args)
+        run_avspex(args.source_directories)
+    else:
+        print("No source directories provided. Use --help for more information.")
+
+
+def main():
+    # Default behavior based on command-line arguments
+    args = parse_arguments()
+
+    if args.gui or (args.source_directories is None and not sys.argv[1:]):
+        main_gui()
+    else:
+        main_cli()
+
+
 if __name__ == "__main__":
     main()
+

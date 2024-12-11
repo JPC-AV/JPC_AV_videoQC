@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "AV_Spex"
-version = "0.5.0.0"
+version = "0.5.0.1"
 description = "A Python project written for NMAAHC media conservation lab"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -30,10 +30,10 @@ dependencies = [
 Repository = "https://github.com/JPC-AV/JPC_AV_videoQC"
 
 [project.scripts]
-av-spex = "AV_Spex.av_spex_the_file:main"
+av-spex = "AV_Spex.av_spex_the_file:main_cli"
 
 [project.gui-scripts]
-av-spex-gui = "AV_Spex:av_spex_the_file:main --gui"
+av-spex-gui = "AV_Spex.av_spex_the_file:main_gui"
 
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)
