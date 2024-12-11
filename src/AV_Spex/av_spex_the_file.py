@@ -16,11 +16,16 @@ from datetime import datetime
 from dataclasses import dataclass
 from typing import List, Optional, Any
 
+from PyQt6.QtWidgets import (
+    QApplication
+)
+
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
 from .utils import yaml_profiles
 from .utils.generate_report import write_html_report
+from .utils.gui_setup import ConfigWindow, MainWindow
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import is_valid_filename
 from .checks.mediainfo_check import parse_mediainfo
