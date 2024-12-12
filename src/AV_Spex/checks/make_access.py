@@ -59,6 +59,40 @@ def make_access_file(video_path, output_path):
         logger.error(f"Error during ffmpeg process: {str(e)}")
 
 
+def process_access_file(video_path, source_directory, video_id, command_config):
+    """
+    Generate access file if configured and not already existing.
+    
+    Args:
+        video_path (str): Path to the input video file
+        source_directory (str): Source directory for the video
+        video_id (str): Unique identifier for the video
+        command_config (object): Configuration object with tool settings
+        
+    Returns:
+        str or None: Path to the created access file, or None
+    """
+    # Check if access file should be generated
+    if command_config.command_dict['outputs']['access_file'] != 'yes':
+        return None
+
+    access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
+
+    try:
+        # Check if access file already exists
+        if os.path.isfile(access_output_path):
+            logger.critical(f"Access file already exists, not running ffmpeg\n")
+            return None
+
+        # Generate access file
+        make_access_file(video_path, access_output_path)
+        return access_output_path
+
+    except Exception as e:
+        logger.critical(f"Error creating access file: {e}")
+        return None
+
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
             print("Usage: python make_access.py <mkv_file>")
