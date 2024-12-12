@@ -86,23 +86,26 @@ av-spex-gui
 The GUI is divided into 2 tabs  - "Checks" and "Spex".   
 
 ### Checks
+The "Checks" window displays the tools and commands that will be run on the imported directories.
 
-#### Import Directories...
-   - To import directories simply click the "Import Directory..." button in the GUI window or choose it from the "File" menu.    
-#### Command Options window:
-   - You can edit the tool selections directly using the check boxes in the *command options* window.
-#### Command Profiles dropdown:
-   - you can apply a pre-determined "profile" that applies a set of command options via this dropdown menu.
-#### Check Spex button:
-   - If you are ready to run the checks, click the "Check Spex!" button and follow the progress int he terminal window you initally launched the app from.
+- <b>Import Directories...</b>    
+To import directories simply click the "Import Directory..." button in the GUI window or choose it from the "File" menu.    
+- <b>Command Profiles</b>    
+Apply a pre-determined "profile" that applies a set of command options via this dropdown menu.    
+- <b>Command Options</b>    
+Edit the tool selections directly using the check boxes in the *command options* window.    
+- <b>Check Spex button</b>    
+If you are ready to run the checks, click the "Check Spex!" button and follow the progress int he terminal window you initially launched the app from.    
 
 ### Spex
+The "Spex" section displays the expected values that AV Spex will be checking imported directories against. 
 
-The "Spex" section displays the expected values that AV Spex will be checking imported directories against. This includes fields from popular metadata tools like exiftool, MeidaInfo, and FFprobe, as well as NMAAHC specific needs like file naming profiles and embedded signal flow documentation. 
-
-To view any of these specifications, click the "Open Section" button.    
+- <b>Expected Values Sections</b>    
+Th expected values from are drawn popular metadata tools like exiftool, MeidaInfo, and FFprobe, as well as NMAAHC specific needs like file naming profiles and embedded signal flow documentation.      
+- <b>Open Section</b>     
+To view any of these specifications, click the "Open Section" button.       
 The expected specifications cannot be edited from the "Open Section" text box window, those are for review only.     
-
+- <b>Spex Dropdown Menus</b>
 To change the expected values of the file naming convention or the embedded signal flow documentation (checked by the MediaTrace tool), use the provided dropdown menus.
 
 Once you have completed your Spex selections, navigate back to the Checks window to run the app using the "Check Spex!" button.
