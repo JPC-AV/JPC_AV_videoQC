@@ -24,8 +24,10 @@ from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
 from .utils import yaml_profiles
+from .utils import dir_setup
 from .utils.generate_report import write_html_report
 from .utils.gui_setup import ConfigWindow, MainWindow
+from .checks import mediaconch_check
 from .checks.fixity_check import check_fixity, output_fixity
 from .checks.filename_check import is_valid_filename
 from .checks.mediainfo_check import parse_mediainfo
@@ -75,57 +77,6 @@ FILENAME_MAPPING = {
 }
 
 
-def check_directory(source_directory, video_id):
-    """
-    Checks whether the base name of a directory matches the given video_id.
-    
-    Args:
-        source_directory (str): The path to the directory.
-        video_id (str): The expected video ID to match.
-
-    Returns:
-        bool: True if the directory name matches the video_id, otherwise False.
-    """
-    directory_name = os.path.basename(source_directory)
-    if directory_name.startswith(video_id):
-        logger.info(f'Directory name "{directory_name}" correctly matches video file name "{video_id}".\n')
-        return True
-    else:
-        logger.critical(f'Directory name "{directory_name}" does not correctly match the expected "{video_id}".\n')
-        return False
-
-
-def make_qc_output_dir(source_directory, video_id):
-    '''
-    Creates output directory for metadata files
-    '''
-
-    destination_directory = os.path.join(source_directory, f'{video_id}_qc_metadata')
-
-    if not os.path.exists(destination_directory):
-        os.makedirs(destination_directory)
-
-    logger.debug(f'Metadata files will be written to {destination_directory}\n')
-
-    return destination_directory
-
-
-def make_report_dir(source_directory, video_id):
-    '''
-    Creates output directory for metadata files
-    '''
-
-    report_directory = os.path.join(source_directory, f'{video_id}_report_csvs')
-
-    if os.path.exists(report_directory):
-        shutil.rmtree(report_directory)
-    os.makedirs(report_directory)
-
-    logger.debug(f'Report files will be written to {report_directory}\n')
-
-    return report_directory
-
-
 def run_command(command, input_path, output_type, output_path):
     '''
     Run a shell command with 4 variables: command name, path to the input file, output type (often '>'), path to the output file
@@ -143,7 +94,7 @@ def run_command(command, input_path, output_type, output_path):
 
 def run_mediatrace_command(command, input_path):
     '''
-    Run a shell command with 4 variables: command name, path to the input file, output type (often '>'), path to the output file
+    Run a shell command with 2 variables: command, path to input file
     '''
 
     # Get the current PATH environment variable
@@ -156,74 +107,6 @@ def run_mediatrace_command(command, input_path):
     output = subprocess.run(full_command, shell=True, capture_output=True)
 
     return output
-
-
-def move_vrec_files(directory, video_id):
-    vrecord_files_found = False
-
-    # Create the target directory path
-    vrecord_directory = os.path.join(directory, f'{video_id}_vrecord_metadata')
-
-    # Check if the vrecord directory already exists and contains the expected files
-    if os.path.exists(vrecord_directory):
-        expected_files = [
-            '_QC_output_graphs.jpeg',
-            '_vrecord_input.log',
-            '_capture_options.log',
-            '.mkv.qctools.mkv',
-            '.framemd5'
-        ]
-
-        # Check if at least one expected file is in the vrecord directory
-        if any(filename.endswith(ext) for ext in expected_files for filename in os.listdir(vrecord_directory)):
-            logger.debug(f"Existing vrecord files found in {os.path.basename(directory)}/{os.path.basename(vrecord_directory)}\n")
-            return
-
-    # Iterate through files in the directory
-    for filename in os.listdir(directory):
-        file_path = os.path.join(directory, filename)
-
-        # Check if the file matches the naming convention
-        if (
-            os.path.isfile(file_path)
-            and filename.endswith(('_QC_output_graphs.jpeg', '_vrecord_input.log', '_capture_options.log', '.mkv.qctools.mkv', '.framemd5'))
-        ):
-            # Create the target directory if it doesn't exist
-            vrecord_directory = os.path.join(directory, f'{video_id}_vrecord_metadata')
-            os.makedirs(vrecord_directory, exist_ok=True)
-            # Move the file to the target directory
-            new_path = os.path.join(vrecord_directory, filename)
-            shutil.move(file_path, new_path)
-            # logger.debug(f'Moved vrecord file: {filename} to directory: {os.path.basename(vrecord_directory)}')
-            vrecord_files_found = True
-
-    # Check if any matching files were found to create the directory
-    if vrecord_files_found:
-        logger.debug(f"Files generated by vrecord found. '{video_id}_vrecord_metadata' directory created and files moved.\n")
-    else:
-        logger.debug("No vrecord files found.\n")
-
-
-def find_mkv(source_directory):
-    # Create empty list to store any found mkv files
-    found_mkvs = []
-    for filename in os.listdir(source_directory):
-        if filename.lower().endswith('.mkv'):
-            if 'qctools' not in filename.lower():
-                found_mkvs.append(filename)
-    # check if found_mkvs is more than one
-    if found_mkvs:
-        if len(found_mkvs) == 1:
-            video_path = os.path.join(source_directory, found_mkvs[0])
-            logger.info(f'Input video file found in {source_directory}: {video_path}\n')
-        else:
-            logger.critical(f'More than 1 mkv found in {source_directory}: {found_mkvs}\n')
-            return None
-    else:
-        logger.critical(f"Error: No mkv video file found in the directory: {source_directory}\n")
-        return None
-
-    return video_path
 
 
 def write_to_csv(diff_dict, tool_name, writer):
@@ -300,24 +183,6 @@ def print_config(print_config_profile):
         for key, value in command_config.command_dict.items():
             logging.warning(f"{key}:")
             logging.info(f"{format_config_value(value, indent=2)}")
-
-
-def validate_input_paths(input_paths, is_file_mode):
-    source_directories = []
-    for input_path in input_paths:
-        try:
-            if is_file_mode and not os.path.isfile(input_path):
-                raise ValueError(f"Error: {input_path} is not a valid file.")
-            elif not is_file_mode and not os.path.isdir(input_path):
-                raise ValueError(f"Error: {input_path} is not a valid directory.")
-            
-            directory = os.path.dirname(input_path) if is_file_mode else input_path
-            source_directories.append(directory)
-            logger.info(f'Input directory found: {directory}\n')
-        except ValueError as e:
-            logger.critical(str(e))
-            sys.exit(1)
-    return source_directories
 
 
 def resolve_config(args, config_mapping):
@@ -432,7 +297,7 @@ def initialize_directory(source_directory):
         tuple: (video_path, video_id, destination_directory) if successful
         None if preparation fails
     """
-    video_path = find_mkv(source_directory)
+    video_path = dir_setup.find_mkv(source_directory)
 
     if video_path is None:
         logger.warning(f"Skipping {source_directory} due to error.\n")
@@ -450,13 +315,13 @@ def initialize_directory(source_directory):
     video_id = os.path.splitext(os.path.basename(video_path))[0]
 
     # Check to confirm directory is the same name as the video file name
-    check_directory(source_directory, video_id)
+    dir_setup.check_directory(source_directory, video_id)
 
     # Create 'destination directory' for qc outputs
-    destination_directory = make_qc_output_dir(source_directory, video_id)
+    destination_directory = dir_setup.make_qc_output_dir(source_directory, video_id)
 
     # Moves vrecord files to subdirectory  
-    move_vrec_files(source_directory, video_id)
+    dir_setup.move_vrec_files(source_directory, video_id)
 
     # Iterate through files in the directory to identify access file
     access_file_found = None
@@ -666,165 +531,6 @@ def process_video_metadata(video_path, destination_directory, video_id, command_
     return metadata_differences
 
 
-def find_mediaconch_policy(command_config, config_path):
-    """
-    Find and validate the MediaConch policy file.
-    
-    Args:
-        command_config (object): Configuration object with tool settings
-        config_path (object): Configuration path object
-        
-    Returns:
-        str or None: Full path to the policy file, or None if not found
-    """
-    try:
-        # Get policy filename from configuration
-        policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
-        policy_path = os.path.join(config_path.config_dir, policy_file)
-
-        if not os.path.exists(policy_path):
-            logger.critical(f'Policy file not found: {policy_file}')
-            return None
-
-        logger.debug(f'Using MediaConch policy {policy_file}')
-        return policy_path
-
-    except KeyError as e:
-        logger.critical(f'Configuration error: {e}')
-        return None
-    except Exception as e:
-        logger.critical(f'Unexpected error finding MediaConch policy: {e}')
-        return None
-
-
-def run_mediaconch_command(command, input_path, output_type, output_path, policy_path):
-    """
-    Run MediaConch command with specified policy and input file.
-    
-    Args:
-        command (str): Base MediaConch command
-        input_path (str): Path to the input video file
-        output_type (str): Output type flag (e.g., -oc for CSV)
-        output_path (str): Path to save the output file
-        policy_path (str): Path to the MediaConch policy file
-        
-    Returns:
-        bool: True if command executed successfully, False otherwise
-    """
-    try:
-        # Construct full command
-        full_command = f"{command} {policy_path} \"{input_path}\" {output_type} {output_path}"
-        
-        logger.debug(f'Running command: {full_command}\n')
-        
-        # Run the command
-        result = subprocess.run(full_command, shell=True, capture_output=True, text=True)
-        
-        # Check for command execution errors
-        if result.returncode != 0:
-            logger.error(f"MediaConch command failed: {result.stderr}")
-            return False
-        
-        return True
-
-    except Exception as e:
-        logger.critical(f'Error running MediaConch command: {e}')
-        return False
-
-
-def parse_mediaconch_output(output_path):
-    """
-    Parse MediaConch CSV output and log policy validation results.
-    
-    Args:
-        output_path (str): Path to the MediaConch CSV output file
-        
-    Returns:
-        dict: Validation results with pass/fail status for each policy check
-    """
-    try:
-        with open(output_path, 'r', newline='') as mc_file:
-            reader = csv.reader(mc_file)
-            mc_header = next(reader)  # Get the header row
-            mc_values = next(reader)  # Get the values row
-
-            # Create a dictionary to track validation results
-            validation_results = {}
-            found_failures = False
-
-            # Zip headers and values to create key-value pairs
-            for mc_field, mc_value in zip(mc_header, mc_values):
-                validation_results[mc_field] = mc_value
-
-                # Check for failures
-                if mc_value == "fail":
-                    if not found_failures:
-                        logger.critical("MediaConch policy failed:")
-                        found_failures = True
-                    logger.critical(f"{mc_field}: {mc_value}")
-
-            # Log overall validation status
-            if not found_failures:
-                logger.info("MediaConch policy passed\n")
-            else:
-                logger.debug("")  # Add empty line after mediaconch results
-
-            return validation_results
-
-    except FileNotFoundError:
-        logger.critical(f"MediaConch output file not found: {output_path}\n")
-        return {}
-    except csv.Error as e:
-        logger.critical(f"Error parsing MediaConch CSV: {e}")
-        return {}
-    except Exception as e:
-        logger.critical(f"Unexpected error processing MediaConch output: {e}")
-        return {}
-
-
-def validate_video_with_mediaconch(video_path, destination_directory, video_id, command_config, config_path):
-    """
-    Coordinate the entire MediaConch validation process.
-    
-    Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
-        config_path (object): Configuration path object
-        
-    Returns:
-        dict: Validation results from MediaConch policy check
-    """
-    # Check if MediaConch should be run
-    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] != 'yes':
-        logger.info("MediaConch validation skipped")
-        return {}
-
-    # Find the policy file
-    policy_path = find_mediaconch_policy(command_config, config_path)
-    if not policy_path:
-        return {}
-
-    # Prepare output path
-    mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
-
-    # Run MediaConch command
-    if not run_mediaconch_command(
-        'mediaconch -p', 
-        video_path, 
-        '-oc', 
-        mediaconch_output_path, 
-        policy_path
-    ):
-        return {}
-
-    # Parse and validate MediaConch output
-    validation_results = parse_mediaconch_output(mediaconch_output_path)
-
-    return validation_results
-
-
 def create_metadata_difference_report(metadata_differences, report_directory, video_id):
     """
     Create a CSV report of metadata differences.
@@ -905,7 +611,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
             # Ensure report directory exists
             if not report_directory:
-                report_directory = make_report_dir(source_directory, video_id)
+                report_directory = dir_setup.make_report_dir(source_directory, video_id)
 
             # Verify QCTools output file exists
             if not os.path.isfile(qctools_output_path):
@@ -1015,7 +721,7 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
     # Create report directory if report is enabled
     report_directory = None
     if command_config.command_dict['outputs']['report'] == 'yes':
-        report_directory = make_report_dir(source_directory, video_id)
+        report_directory = dir_setup.make_report_dir(source_directory, video_id)
         # Process metadata differences report
         processing_results['metadata_diff_report'] = create_metadata_difference_report(
                 metadata_differences, report_directory, video_id
@@ -1140,7 +846,7 @@ def process_single_directory(source_directory):
 
             process_fixity(source_directory, video_path, video_id)
 
-            mediaconch_results = validate_video_with_mediaconch(
+            mediaconch_results = mediaconch_check.validate_video_with_mediaconch(
             video_path, 
             destination_directory, 
             video_id, 
