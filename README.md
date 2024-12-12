@@ -58,7 +58,7 @@ The following command line tools are necessary and must be installed separately:
 
 2. **Install the AV Spex Scripts in Editable Mode:**
    ```bash
-   python -m pip install -e .
+   pip install -e .
    ```
 
 Verify the installation by running:
@@ -66,14 +66,46 @@ Verify the installation by running:
 av-spex --help
 ```
 
-There is a unsolved bug in the installation process. After installing, if you are getting a PyQt6 error message, reactivate your virtual environment.
+There is a unresolved bug in the installation process. After installing, if you are getting a PyQt6 error message, reactivate your virtual environment.
 For conda this would be:
 ```bash
 conda activate JPC_AV
 ```
 This should resolve the PyQt6 error message until I find a better solution. 
 
-## Usage
+## GUI Usage
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+
+Open the AV Spex gui with the command:
+```bash
+av-spex-gui
+```
+
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot.png" alt="AV Spex GUI Screenshot"/>
+
+The GUI is divided into 2 tabs  - "Checks" and "Spex".   
+
+### Checks
+
+The "Checks" section displays the list of selected directories, the current tool selection and the "Check Spex!" button.    
+To import directories simply click the "Import Directory..." button in the GUI window or choose it form the "File" menu.    
+You can edit the tool selections directly using the check boxes in the *command options* window.    
+Or, using the *command profiles* dropdown menu, you can apply a pre-determined "profile" that applies a set of command option.
+If you are ready to run the checks, click the"Check Spex!" button and follow the progress int he terminal window you initally launched the app from.
+
+### Spex
+
+The "Spex" section displays the expected values that AV Spex will be checking imported directories against. This includes fields from popular metadata tools like exiftool, MeidaInfo, and FFprobe, as well as NMAAHC specific needs like file naming profiles and embedded signal flow documentation. 
+
+To view any of these specifications, click the "Open Section" button.    
+The expected specifications cannot be edited from the "Open Section" text box window, those are for review only.     
+
+To change the expected values of the file naming convention or the embedded signal flow documentation (checked by the MediaTrace tool), use the provided dropdown menus.
+
+Once you have completed your Spex selections, navigate back to the Checks window to run the app using the "Check Spex!" button.
+
+
+## CLI Usage
 <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main//logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 
 Execute the scripts with:
@@ -92,47 +124,42 @@ av-spex [path/to/directory]
 usage: av-spex [-h] [--version] [-dr] [--profile {step1,step2,off}]
                [-t {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}]
                [--on {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}]
-               [--off {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}]
-               [-sn {JPC_AV_SVHS,BVH3100}] [-fn {jpc,bowser}]
-               [-sp {config,command}] [-d] [-f]
+               [--off {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}] [-sn {JPC_AV_SVHS,BVH3100}]
+               [-fn {jpc,bowser}] [-sp {config,command}] [-pp] [-d] [-f] [--gui]
                [paths ...]
 
-av-spex 0.4.5
+av-spex 0.5.0.1
 
 AV Spex is a python application designed to help process digital audio and video media created from analog sources.
 The scripts will confirm that the digital files conform to predetermined specifications.
 
 positional arguments:
-  paths                 Path to the input -f: video file(s) or -d:
-                        directory(ies)
+  paths                 Path to the input -f: video file(s) or -d: directory(ies)
 
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  -dr, --dryrun         Flag to run av-spex w/out outputs or checks. Use to
-                        change config profiles w/out processing video.
+  -dr, --dryrun         Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out
+                        processing video.
   --profile {step1,step2,off}
-                        Select processing profile ('step1' or 'step2'), or
-                        turn all checks off with 'off'
+                        Select processing profile or turn checks off
   -t {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}, --tool {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}
-                        Select individual tools to enable - turns all other
-                        tools off
+                        Select individual tools to enable
   --on {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}
                         Select specific tools to turn on
   --off {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}
                         Select specific tools to turn off
   -sn {JPC_AV_SVHS,BVH3100}, --signalflow {JPC_AV_SVHS,BVH3100}
-                        Select signal flow config type (JPC_AV_SVHS or
-                        BVH3100)
+                        Select signal flow config type (JPC_AV_SVHS or BVH3100
   -fn {jpc,bowser}, --filename {jpc,bowser}
                         Select file name config type (jpc or bowser)
   -sp {config,command}, --saveprofile {config,command}
-                        Flag to write current config.yaml or
-                        command_config.yaml settings to new a yaml file, for
-                        re-use or reference. Select config or command:
-                        --saveprofile command
+                        Flag to write current config.yaml or command_config.yaml settings to new a yaml file,
+                        for re-use or reference.
+  -pp, --printprofile   Show current config profile.
   -d, --directory       Flag to indicate input is a directory
   -f, --file            Flag to indicate input is a video file
+  --gui                 Force launch in GUI mode
   ```
 
 <a name="options"></a> Options explained in detail [below](#options). 
