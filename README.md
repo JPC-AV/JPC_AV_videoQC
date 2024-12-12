@@ -2,7 +2,7 @@
 AV processing scripts for the Johnson Publishing Company archive
 
 ## Introduction:
-![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/av_spex_the_logo.png?raw=true)
+![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/av_spex_the_logo.png?raw=true)
 This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications. 
 
 ----
@@ -66,8 +66,15 @@ Verify the installation by running:
 av-spex --help
 ```
 
+There is a unsolved bug in the installation process. After installing, if you are getting a PyQt6 error message, reactivate your virtual environment.
+For conda this would be:
+```bash
+conda activate JPC_AV
+```
+This should resolve the PyQt6 error message until I find a better solution. 
+
 ## Usage
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main//logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 
 Execute the scripts with:
 ```bash
@@ -221,7 +228,7 @@ Edit the config files using command line options in order to maintain consistent
 
 <br/><br/>
 
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 ---
 
 ## Contributing
