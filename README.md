@@ -87,11 +87,14 @@ The GUI is divided into 2 tabs  - "Checks" and "Spex".
 
 ### Checks
 
-The "Checks" section displays the list of selected directories, the current tool selection and the "Check Spex!" button.    
-To import directories simply click the "Import Directory..." button in the GUI window or choose it form the "File" menu.    
-You can edit the tool selections directly using the check boxes in the *command options* window.    
-Or, using the *command profiles* dropdown menu, you can apply a pre-determined "profile" that applies a set of command option.
-If you are ready to run the checks, click the"Check Spex!" button and follow the progress int he terminal window you initally launched the app from.
+#### Import Directories...
+   - To import directories simply click the "Import Directory..." button in the GUI window or choose it from the "File" menu.    
+#### Command Options window:
+   - You can edit the tool selections directly using the check boxes in the *command options* window.
+#### Command Profiles dropdown:
+   - you can apply a pre-determined "profile" that applies a set of command options via this dropdown menu.
+#### Check Spex button:
+   - If you are ready to run the checks, click the "Check Spex!" button and follow the progress int he terminal window you initally launched the app from.
 
 ### Spex
 
