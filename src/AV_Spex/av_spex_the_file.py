@@ -1259,7 +1259,7 @@ def main_cli():
 
     if args.gui:
        main_gui()
-    elif args.source_directories:
+    else:
         run_cli_mode(args)
         run_avspex(args.source_directories)
 
