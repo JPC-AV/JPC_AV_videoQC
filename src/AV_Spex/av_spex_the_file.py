@@ -20,23 +20,16 @@ from PyQt6.QtWidgets import (
     QApplication
 )
 
+from . import processing_mgmt
 from .utils import yaml_profiles
 from .utils import dir_setup
-from .utils import tools_processing
+from .utils import run_tools
+from .utils import edit_config
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import config_path, command_config, yaml
-from .utils.generate_report import generate_final_report
 from .utils.gui_setup import ConfigWindow, MainWindow
-from .checks import mediaconch_check
-from .checks.fixity_check import check_fixity, output_fixity
-from .checks.mediainfo_check import parse_mediainfo
-from .checks.mediatrace_check import parse_mediatrace
-from .checks.exiftool_check import parse_exiftool
-from .checks.ffprobe_check import parse_ffprobe
-from .checks.embed_fixity import validate_embedded_md5, process_embedded_fixity
-from .checks.make_access import make_access_file, process_access_file
-from .checks.qct_parse import run_qctparse
+
 
 
 @dataclass
@@ -75,136 +68,6 @@ FILENAME_MAPPING = {
     "jpc": yaml_profiles.JPCAV_filename,
     "bowser": yaml_profiles.bowser_filename
 }
-
-
-def check_tool_metadata(tool_name, output_path, command_config):
-    """
-    Check metadata for a specific tool if configured.
-    
-    Args:
-        tool_name (str): Name of the tool
-        output_path (str): Path to the tool's output file
-        command_config (object): Configuration object with tool settings
-        
-    Returns:
-        dict or None: Differences found by parsing the tool's output, or None
-    """
-    # Mapping of tool names to their parsing functions
-    parse_functions = {
-        'exiftool': parse_exiftool,
-        'mediainfo': parse_mediainfo,
-        'mediatrace': parse_mediatrace,
-        'ffprobe': parse_ffprobe
-    }
-
-    # Check if tool metadata checking is enabled
-    if output_path and command_config.command_dict['tools'][tool_name][f'check_{tool_name}'] == 'yes':
-        parse_function = parse_functions.get(tool_name)
-        if parse_function:
-            return parse_function(output_path)
-    
-    return None
-
-
-def process_video_metadata(video_path, destination_directory, video_id, command_config):
-    """
-    Main function to process video metadata using multiple tools.
-    
-    Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
-        
-    Returns:
-        dict: Dictionary of metadata differences from various tools
-    """
-    # List of tools to process
-    tools = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
-    
-    # Store differences for each tool
-    metadata_differences = {}
-    
-    # Process each tool
-    for tool in tools:
-        # Run tool and get output path
-        output_path = tools_processing.run_tool_command(tool, video_path, destination_directory, video_id, command_config)
-        
-        # Check metadata and store differences
-        differences = check_tool_metadata(tool, output_path, command_config)
-        if differences:
-            metadata_differences[tool] = differences
-    
-    return metadata_differences
-
-
-def format_config_value(value, indent=0, is_nested=False):
-    """
-    Recursively formats dictionaries and lists for better presentation.
-    """
-    spacer = " " * indent
-    formatted_str = ""
-
-    if isinstance(value, dict):
-        # Only add a newline before nested dictionaries, not for top-level keys
-        if is_nested:
-            formatted_str += "\n"
-        for nested_key, nested_value in value.items():
-            formatted_str += f"{spacer}{nested_key}: {format_config_value(nested_value, indent + 2, is_nested=True)}\n"
-        return formatted_str
-    elif isinstance(value, list):
-        # Join list elements with commas, no brackets
-        formatted_str = f"{', '.join(str(item) for item in value)}"
-        return formatted_str
-    elif value == 'yes':
-        return "✅"  # Inline formatting for 'yes'
-    elif value == 'no':
-        return "❌"  # Inline formatting for 'no'
-    else:
-        # Handle non-dictionary, non-list values directly
-        return f"{value}"
-    
-    
-def update_yaml_configs(selected_profile, tool_names, tools_on_names, tools_off_names, 
-                        sn_config_changes, fn_config_changes, save_config_type, 
-                        user_profile_config):
-    """Updates YAML configuration files based on provided parameters."""
-    if selected_profile:
-        yaml_profiles.apply_profile(command_config, selected_profile)
-        logger.info(f'command_config.yaml updated to match selected tool profile\n')
-
-    if tool_names:
-        yaml_profiles.apply_by_name(command_config, tool_names)
-
-    if tools_on_names:
-        yaml_profiles.toggle_on(command_config, tools_on_names)
-
-    if tools_off_names:
-        yaml_profiles.toggle_off(command_config, tools_off_names)
-
-    if sn_config_changes:
-        yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
-        yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
-
-    if fn_config_changes:
-        yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)
-
-    if save_config_type:
-        yaml_profiles.save_profile_to_file(save_config_type, user_profile_config)
-
-
-def print_config(print_config_profile):
-    """Prints the current configuration if requested."""
-    if print_config_profile:
-        logger.debug("The current config profile settings are:\n")
-        command_config.reload()
-        for key, value in command_config.command_dict.items():
-            logging.warning(f"{key}:")
-            logging.info(f"{format_config_value(value, indent=2)}")
-
-
-def resolve_config(args, config_mapping):
-    return config_mapping.get(args, None)
 
 
 def parse_arguments():
@@ -272,9 +135,9 @@ The scripts will confirm that the digital files conform to predetermined specifi
         save_config_type = None
 
     # Resolve configurations using mapping functions
-    selected_profile = resolve_config(args.profile, PROFILE_MAPPING)
-    sn_config_changes = resolve_config(args.signalflow, SIGNALFLOW_MAPPING)
-    fn_config_changes = resolve_config(args.filename, FILENAME_MAPPING)
+    selected_profile = edit_config.resolve_config(args.profile, PROFILE_MAPPING)
+    sn_config_changes = edit_config.resolve_config(args.signalflow, SIGNALFLOW_MAPPING)
+    fn_config_changes = edit_config.resolve_config(args.filename, FILENAME_MAPPING)
 
     # Return parsed arguments
     return ParsedArguments(
@@ -301,142 +164,6 @@ def _generate_profile_filename(saveprofile):
     profile_type = 'config' if saveprofile == 'config' else 'command'
     return os.path.join(config_dir, 
                         f"{profile_type}_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
-
-
-def process_fixity(source_directory, video_path, video_id):
-    """
-    Orchestrates the entire fixity process, including embedded and file-level operations.
-
-    Args:
-        source_directory (str): Directory containing source files
-        video_path (str): Path to the video file
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with fixity settings
-    """
-    # Embed stream fixity if required
-    if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
-        process_embedded_fixity(video_path)
-
-    # Validate stream hashes if required
-    if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
-        validate_embedded_md5(video_path)
-
-    # Initialize md5_checksum variable, so it is 'None' if not assigned in output_fixity
-    md5_checksum = None
-    # Create checksum for video file and output results
-    if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
-        md5_checksum = output_fixity(source_directory, video_path)
-
-    # Verify stored checksum and write results
-    if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
-        check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
-
-
-def process_qctools_output(video_path, source_directory, destination_directory, video_id, command_config, report_directory=None):
-    """
-    Process QCTools output, including running QCTools and optional parsing.
-    
-    Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
-        report_directory (str, optional): Directory to save reports
-        
-    Returns:
-        dict: Processing results and paths
-    """
-    results = {
-        'qctools_output_path': None,
-        'qctools_check_output': None
-    }
-
-    # Check if QCTools should be run
-    if command_config.command_dict['tools']['qctools']['run_qctools'] != 'yes':
-        return results
-
-    # Prepare QCTools output path
-    qctools_ext = command_config.command_dict['outputs']['qctools_ext']
-    qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
-    
-    try:
-        # Run QCTools command
-        tools_processing.run_command('qcli -i', video_path, '-o', qctools_output_path)
-        logger.debug('')  # Add new line for cleaner terminal output
-        results['qctools_output_path'] = qctools_output_path
-
-        # Check QCTools output if configured
-        if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
-            # Ensure report directory exists
-            if not report_directory:
-                report_directory = dir_setup.make_report_dir(source_directory, video_id)
-
-            # Verify QCTools output file exists
-            if not os.path.isfile(qctools_output_path):
-                logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
-                return results
-
-            # Run QCTools parsing
-            run_qctparse(video_path, qctools_output_path, report_directory)
-            # currently not using results['qctools_check_output']
-
-    except Exception as e:
-        logger.critical(f"Error processing QCTools output: {e}")
-
-    return results
-
-
-def process_video_outputs(video_path, source_directory, destination_directory, video_id, command_config, metadata_differences):
-    """
-    Coordinate the entire output processing workflow.
-    
-    Args:
-        video_path (str): Path to the input video file
-        source_directory (str): Source directory for the video
-        destination_directory (str): Destination directory for output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
-        metadata_differences (dict): Differences found in metadata checks
-        
-    Returns:
-        dict: Processing results and file paths
-    """
-
-    # Collect processing results
-    processing_results = {
-        'metadata_diff_report': None,
-        'qctools_output': None,
-        'access_file': None,
-        'html_report': None
-    }
-
-    # Create report directory if report is enabled
-    report_directory = None
-    if command_config.command_dict['outputs']['report'] == 'yes':
-        report_directory = dir_setup.make_report_dir(source_directory, video_id)
-        # Process metadata differences report
-        processing_results['metadata_diff_report'] = tools_processing.create_metadata_difference_report(
-                metadata_differences, report_directory, video_id
-            )
-    else:
-         processing_results['metadata_diff_report'] =  None
-
-    # Process QCTools output
-    process_qctools_output(
-        video_path, source_directory, destination_directory, video_id, command_config, report_directory
-    )
-
-    # Generate access file
-    processing_results['access_file'] = process_access_file(
-        video_path, source_directory, video_id, command_config
-    )
-
-    # Generate final HTML report
-    processing_results['html_report'] = generate_final_report(
-        video_id, source_directory, report_directory, destination_directory, command_config
-    )
-
-    return processing_results
 
 
 def create_processing_timer():
@@ -527,7 +254,7 @@ def process_single_directory(source_directory):
 
     # Use processing timer for tracking
     with create_processing_timer() as timer:
-        try:
+        #try:
             # Call the new prep_directory function
             init_dir_result = dir_setup.initialize_directory(source_directory)
             if init_dir_result is None:
@@ -536,9 +263,9 @@ def process_single_directory(source_directory):
             # Unpack the returned values
             video_path, video_id, destination_directory, access_file_found = init_dir_result
 
-            process_fixity(source_directory, video_path, video_id)
+            processing_mgmt.process_fixity(source_directory, video_path, video_id)
 
-            mediaconch_results = mediaconch_check.validate_video_with_mediaconch(
+            mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
             video_path, 
             destination_directory, 
             video_id, 
@@ -546,14 +273,14 @@ def process_single_directory(source_directory):
             config_path
             )
 
-            metadata_differences = process_video_metadata(
+            metadata_differences = processing_mgmt.process_video_metadata(
                 video_path, 
                 destination_directory, 
                 video_id, 
                 command_config
                 )
 
-            processing_results = process_video_outputs(
+            processing_results = processing_mgmt.process_video_outputs(
                 video_path,
                 source_directory,
                 destination_directory,
@@ -567,10 +294,10 @@ def process_single_directory(source_directory):
             # Display final processing banner
             display_processing_banner(video_id)
 
-        except Exception as e:
-            logger.critical(f"Error processing directory {source_directory}: {e}")
-            return None
-        finally:
+        #except Exception as e:
+         #   logger.critical(f"Error processing directory {source_directory}: {e}")
+          #  return None
+        #finally:
             # Optional brief pause between directory processing
             time.sleep(1)
 
@@ -601,12 +328,12 @@ def run_cli_mode(args):
     print_av_spex_logo()
 
     # Update YAML configs
-    update_yaml_configs(args.selected_profile, args.tool_names, args.tools_on_names, args.tools_off_names,
+    edit_config.update_yaml_configs(args.selected_profile, args.tool_names, args.tools_on_names, args.tools_off_names,
                         args.sn_config_changes, args.fn_config_changes, args.save_config_type,
                         args.user_profile_config)
 
     # Print config
-    print_config(args.print_config_profile)
+    edit_config.print_config(args.print_config_profile)
 
     if args.dry_run_only:
         logger.critical("Dry run selected. Exiting now.")

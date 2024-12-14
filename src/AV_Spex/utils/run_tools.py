@@ -20,17 +20,6 @@ def run_command(command, input_path, output_type, output_path):
     subprocess.run(full_command, shell=True, env=env)
 
 
-def write_to_csv(diff_dict, tool_name, writer):
-    for key, values in diff_dict.items():
-        actual_value, expected_value = values
-        writer.writerow({
-            'Metadata Tool': tool_name,
-            'Metadata Field': key,
-            'Expected Value': expected_value,
-            'Actual Value': actual_value
-        })
-
-
 def run_tool_command(tool_name, video_path, destination_directory, video_id, command_config):
     """
     Run a specific metadata extraction tool and generate its output file.
@@ -86,6 +75,7 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id, com
     
     return None
 
+
 def _get_file_extension(tool_name):
     """
     Get the appropriate file extension for each tool's output.
@@ -104,45 +94,3 @@ def _get_file_extension(tool_name):
     }
     return extension_map.get(tool_name, 'txt')
 
-
-def create_metadata_difference_report(metadata_differences, report_directory, video_id):
-    """
-    Create a CSV report of metadata differences.
-    
-    Args:
-        metadata_differences (dict): Dictionary of metadata differences from various tools
-        report_directory (str): Directory to save the report
-        video_id (str): Unique identifier for the video
-        
-    Returns:
-        str or None: Path to the created CSV report, or None if no differences
-    """
-    # If no metadata differences, log and return
-    if not metadata_differences:
-        logger.info("All specified metadata fields and values found, no CSV report written\n")
-        return None
-
-    # Prepare CSV file path
-    csv_name = f'{video_id}_metadata_difference.csv'
-    diff_csv_path = os.path.join(report_directory, csv_name)
-
-    try:
-        # Define CSV header and open file
-        fieldnames = ['Metadata Tool', 'Metadata Field', 'Expected Value', 'Actual Value']
-        
-        with open(diff_csv_path, 'w', newline='') as diffs_csv:
-            writer = csv.DictWriter(diffs_csv, fieldnames=fieldnames)
-            writer.writeheader()
-
-            # Write differences for each tool
-            tools_to_check = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
-            for tool in tools_to_check:
-                if tool in metadata_differences and metadata_differences[tool]:
-                    write_to_csv(metadata_differences[tool], tool, writer)
-
-        logger.info(f"Metadata difference report created: {diff_csv_path}\n")
-        return diff_csv_path
-
-    except IOError as e:
-        logger.critical(f"Error creating metadata difference CSV: {e}")
-        return None

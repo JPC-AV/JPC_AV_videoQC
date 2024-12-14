@@ -3,6 +3,8 @@
 
 import os
 import sys
+import csv
+import subprocess
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path
 
@@ -120,46 +122,3 @@ def parse_mediaconch_output(output_path):
     except Exception as e:
         logger.critical(f"Unexpected error processing MediaConch output: {e}")
         return {}
-
-
-def validate_video_with_mediaconch(video_path, destination_directory, video_id, command_config, config_path):
-    """
-    Coordinate the entire MediaConch validation process.
-    
-    Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
-        config_path (object): Configuration path object
-        
-    Returns:
-        dict: Validation results from MediaConch policy check
-    """
-    # Check if MediaConch should be run
-    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] != 'yes':
-        logger.info("MediaConch validation skipped")
-        return {}
-
-    # Find the policy file
-    policy_path = find_mediaconch_policy(command_config, config_path)
-    if not policy_path:
-        return {}
-
-    # Prepare output path
-    mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
-
-    # Run MediaConch command
-    if not run_mediaconch_command(
-        'mediaconch -p', 
-        video_path, 
-        '-oc', 
-        mediaconch_output_path, 
-        policy_path
-    ):
-        return {}
-
-    # Parse and validate MediaConch output
-    validation_results = parse_mediaconch_output(mediaconch_output_path)
-
-    return validation_results
