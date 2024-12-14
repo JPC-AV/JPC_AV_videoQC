@@ -254,7 +254,7 @@ def process_single_directory(source_directory):
 
     # Use processing timer for tracking
     with create_processing_timer() as timer:
-        #try:
+        try:
             # Call the new prep_directory function
             init_dir_result = dir_setup.initialize_directory(source_directory)
             if init_dir_result is None:
@@ -294,10 +294,10 @@ def process_single_directory(source_directory):
             # Display final processing banner
             display_processing_banner(video_id)
 
-        #except Exception as e:
-         #   logger.critical(f"Error processing directory {source_directory}: {e}")
-          #  return None
-        #finally:
+        except Exception as e:
+            logger.critical(f"Error processing directory {source_directory}: {e}")
+            return None
+        finally:
             # Optional brief pause between directory processing
             time.sleep(1)
 
