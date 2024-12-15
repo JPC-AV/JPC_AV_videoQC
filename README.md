@@ -81,12 +81,12 @@ Open the AV Spex gui with the command:
 av-spex-gui
 ```
 
+The GUI is divided into 2 tabs  - "Checks" and "Spex".   
+
 <div style="display: flex; justify-content: space-between;">
   <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot_01.png" alt="AV Spex GUI Screenshot 1" width="400"/>
   <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot_02.png" alt="AV Spex GUI Screenshot 2" width="400"/>
 </div>
-
-The GUI is divided into 2 tabs  - "Checks" and "Spex".   
 
 ### Checks
 The "Checks" window displays the tools and commands that will be run on the imported directories.
