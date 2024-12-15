@@ -1,19 +1,19 @@
 import os
 
-from .utils import dir_setup
-from .utils import run_tools
-from .utils.log_setup import logger
-from .utils.find_config import command_config
-from .utils.generate_report import generate_final_report
-from .checks.fixity_check import check_fixity, output_fixity
-from .checks.mediainfo_check import parse_mediainfo
-from .checks.mediatrace_check import parse_mediatrace, create_metadata_difference_report
-from .checks.exiftool_check import parse_exiftool
-from .checks.ffprobe_check import parse_ffprobe
-from .checks.embed_fixity import validate_embedded_md5, process_embedded_fixity
-from .checks.make_access import process_access_file
-from .checks.qct_parse import run_qctparse
-from .checks.mediaconch_check import find_mediaconch_policy, run_mediaconch_command, parse_mediaconch_output
+from ..processing import run_tools
+from ..utils import dir_setup
+from ..utils.log_setup import logger
+from ..utils.find_config import command_config
+from ..utils.generate_report import generate_final_report
+from ..checks.fixity_check import check_fixity, output_fixity
+from ..checks.mediainfo_check import parse_mediainfo
+from ..checks.mediatrace_check import parse_mediatrace, create_metadata_difference_report
+from ..checks.exiftool_check import parse_exiftool
+from ..checks.ffprobe_check import parse_ffprobe
+from ..checks.embed_fixity import validate_embedded_md5, process_embedded_fixity
+from ..checks.make_access import process_access_file
+from ..checks.qct_parse import run_qctparse
+from ..checks.mediaconch_check import find_mediaconch_policy, run_mediaconch_command, parse_mediaconch_output
 
 
 def process_fixity(source_directory, video_path, video_id):

@@ -20,10 +20,10 @@ from PyQt6.QtWidgets import (
     QApplication
 )
 
-from . import processing_mgmt
+from .processing import processing_mgmt
+from .processing import run_tools
 from .utils import yaml_profiles
 from .utils import dir_setup
-from .utils import run_tools
 from .utils import edit_config
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
