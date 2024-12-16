@@ -13,7 +13,7 @@ import time
 import toml
 from art import art, text2art
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict, replace
 from typing import List, Optional, Any
 
 from PyQt6.QtWidgets import (
@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
 
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from .utils.find_config import config_path, command_config, yaml
+from .utils.find_config import spex_config, checks_config
 from .utils import yaml_profiles
 from .utils.generate_report import write_html_report
 from .utils.gui_setup import ConfigWindow, MainWindow
@@ -269,24 +269,24 @@ def update_yaml_configs(selected_profile, tool_names, tools_on_names, tools_off_
                         user_profile_config):
     """Updates YAML configuration files based on provided parameters."""
     if selected_profile:
-        yaml_profiles.apply_profile(command_config, selected_profile)
-        logger.info(f'command_config.yaml updated to match selected tool profile\n')
+        yaml_profiles.apply_profile(checks_config, selected_profile)
+        logger.info(f'Checks updated to match selected tool profile\n')
 
     if tool_names:
-        yaml_profiles.apply_by_name(command_config, tool_names)
+        yaml_profiles.apply_by_name(checks_config, tool_names)
 
     if tools_on_names:
-        yaml_profiles.toggle_on(command_config, tools_on_names)
+        yaml_profiles.toggle_on(checks_config, tools_on_names)
 
     if tools_off_names:
-        yaml_profiles.toggle_off(command_config, tools_off_names)
+        yaml_profiles.toggle_off(checks_config, tools_off_names)
 
     if sn_config_changes:
-        yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
-        yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
+        yaml_profiles.update_config(spex_config, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+        yaml_profiles.update_config(spex_config, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
 
     if fn_config_changes:
-        yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)
+        yaml_profiles.update_config(spex_config, 'filename_values', fn_config_changes)
 
     if save_config_type:
         yaml_profiles.save_profile_to_file(save_config_type, user_profile_config)
@@ -296,8 +296,8 @@ def print_config(print_config_profile):
     """Prints the current configuration if requested."""
     if print_config_profile:
         logger.debug("The current config profile settings are:\n")
-        command_config.reload()
-        for key, value in command_config.command_dict.items():
+        
+        for key, value in asdict(checks_config).items():
             logging.warning(f"{key}:")
             logging.info(f"{format_config_value(value, indent=2)}")
 
@@ -485,12 +485,12 @@ def process_embedded_fixity(video_path):
         embed_fixity(video_path)
     else:
         logger.critical("Existing stream hashes found!")
-        if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+        if asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
             logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
             embed_fixity(video_path)
-        elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
+        elif asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
             logger.error('Not writing stream hashes to MKV\n')
-        elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
+        elif asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
             # User input for handling existing stream hashes
             while True:
                 user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
@@ -515,25 +515,25 @@ def process_fixity(source_directory, video_path, video_id):
         command_config (object): Configuration object with fixity settings
     """
     # Embed stream fixity if required
-    if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+    if asdict(checks_config)['outputs']['fixity']['embed_stream_fixity'] == 'yes':
         process_embedded_fixity(video_path)
 
     # Validate stream hashes if required
-    if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
+    if asdict(checks_config)['outputs']['fixity']['check_stream_fixity'] == 'yes':
         validate_embedded_md5(video_path)
 
     # Initialize md5_checksum variable, so it is 'None' if not assigned in output_fixity
     md5_checksum = None
     # Create checksum for video file and output results
-    if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
+    if asdict(checks_config)['outputs']['fixity']['output_fixity'] == 'yes':
         md5_checksum = output_fixity(source_directory, video_path)
 
     # Verify stored checksum and write results
-    if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
+    if asdict(checks_config)['outputs']['fixity']['check_fixity'] == 'yes':
         check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
 
 
-def run_tool_command(tool_name, video_path, destination_directory, video_id, command_config):
+def run_tool_command(tool_name, video_path, destination_directory, video_id, checks_config):
     """
     Run a specific metadata extraction tool and generate its output file.
     
@@ -577,7 +577,7 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id, com
     output_path = os.path.join(destination_directory, f'{video_id}_{tool_name}_output.{_get_file_extension(tool_name)}')
     
     # Check if tool should be run based on configuration
-    if command_config.command_dict['tools'][tool_name][tool_config['config_key']] == 'yes':
+    if asdict(checks_config)['tools'][tool_name][tool_config['config_key']] == 'yes':
         if tool_name == 'mediatrace':
             logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
         
@@ -606,7 +606,7 @@ def _get_file_extension(tool_name):
     }
     return extension_map.get(tool_name, 'txt')
 
-def check_tool_metadata(tool_name, output_path, command_config):
+def check_tool_metadata(tool_name, output_path, checks_config):
     """
     Check metadata for a specific tool if configured.
     
@@ -627,14 +627,14 @@ def check_tool_metadata(tool_name, output_path, command_config):
     }
 
     # Check if tool metadata checking is enabled
-    if output_path and command_config.command_dict['tools'][tool_name][f'check_{tool_name}'] == 'yes':
+    if output_path and asdict(checks_config)['tools'][tool_name][f'check_{tool_name}'] == 'yes':
         parse_function = parse_functions.get(tool_name)
         if parse_function:
             return parse_function(output_path)
     
     return None
 
-def process_video_metadata(video_path, destination_directory, video_id, command_config):
+def process_video_metadata(video_path, destination_directory, video_id, checks_config):
     """
     Main function to process video metadata using multiple tools.
     
@@ -656,17 +656,17 @@ def process_video_metadata(video_path, destination_directory, video_id, command_
     # Process each tool
     for tool in tools:
         # Run tool and get output path
-        output_path = run_tool_command(tool, video_path, destination_directory, video_id, command_config)
+        output_path = run_tool_command(tool, video_path, destination_directory, video_id, checks_config)
         
         # Check metadata and store differences
-        differences = check_tool_metadata(tool, output_path, command_config)
+        differences = check_tool_metadata(tool, output_path, checks_config)
         if differences:
             metadata_differences[tool] = differences
     
     return metadata_differences
 
 
-def find_mediaconch_policy(command_config, config_path):
+def find_mediaconch_policy(checks_config, config_path):
     """
     Find and validate the MediaConch policy file.
     
@@ -679,7 +679,7 @@ def find_mediaconch_policy(command_config, config_path):
     """
     try:
         # Get policy filename from configuration
-        policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
+        policy_file = asdict(checks_config)['tools']['mediaconch']['mediaconch_policy']
         policy_path = os.path.join(config_path.config_dir, policy_file)
 
         if not os.path.exists(policy_path):
@@ -782,7 +782,7 @@ def parse_mediaconch_output(output_path):
         return {}
 
 
-def validate_video_with_mediaconch(video_path, destination_directory, video_id, command_config, config_path):
+def validate_video_with_mediaconch(video_path, destination_directory, video_id, checks_config, config_path):
     """
     Coordinate the entire MediaConch validation process.
     
@@ -797,12 +797,12 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id, 
         dict: Validation results from MediaConch policy check
     """
     # Check if MediaConch should be run
-    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] != 'yes':
+    if asdict(checks_config)['tools']['mediaconch']['run_mediaconch'] != 'yes':
         logger.info("MediaConch validation skipped")
         return {}
 
     # Find the policy file
-    policy_path = find_mediaconch_policy(command_config, config_path)
+    policy_path = find_mediaconch_policy(checks_config, config_path)
     if not policy_path:
         return {}
 
@@ -888,11 +888,11 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     }
 
     # Check if QCTools should be run
-    if command_config.command_dict['tools']['qctools']['run_qctools'] != 'yes':
+    if asdict(checks_config)['tools']['qctools']['run_qctools'] != 'yes':
         return results
 
     # Prepare QCTools output path
-    qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+    qctools_ext = asdict(checks_config)['outputs']['qctools_ext']
     qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
     
     try:
@@ -902,7 +902,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         results['qctools_output_path'] = qctools_output_path
 
         # Check QCTools output if configured
-        if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
+        if asdict(checks_config)['tools']['qctools']['check_qctools'] == 'yes':
             # Ensure report directory exists
             if not report_directory:
                 report_directory = make_report_dir(source_directory, video_id)
@@ -936,7 +936,7 @@ def process_access_file(video_path, source_directory, video_id, command_config):
         str or None: Path to the created access file, or None
     """
     # Check if access file should be generated
-    if command_config.command_dict['outputs']['access_file'] != 'yes':
+    if asdict(checks_config)['outputs']['access_file'] != 'yes':
         return None
 
     access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
@@ -971,7 +971,7 @@ def generate_final_report(video_id, source_directory, report_directory, destinat
         str or None: Path to the generated HTML report, or None
     """
     # Check if report should be generated
-    if command_config.command_dict['outputs']['report'] != 'yes':
+    if asdict(checks_config)['outputs']['report'] != 'yes':
         return None
 
     try:
@@ -988,7 +988,7 @@ def generate_final_report(video_id, source_directory, report_directory, destinat
         return None
 
 
-def process_video_outputs(video_path, source_directory, destination_directory, video_id, command_config, metadata_differences):
+def process_video_outputs(video_path, source_directory, destination_directory, video_id, checks_config, metadata_differences):
     """
     Coordinate the entire output processing workflow.
     
@@ -1014,7 +1014,7 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
 
     # Create report directory if report is enabled
     report_directory = None
-    if command_config.command_dict['outputs']['report'] == 'yes':
+    if asdict(checks_config)['outputs']['report'] == 'yes':
         report_directory = make_report_dir(source_directory, video_id)
         # Process metadata differences report
         processing_results['metadata_diff_report'] = create_metadata_difference_report(
@@ -1025,17 +1025,17 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
 
     # Process QCTools output
     process_qctools_output(
-        video_path, source_directory, destination_directory, video_id, command_config, report_directory
+        video_path, source_directory, destination_directory, video_id, checks_config, report_directory
     )
 
     # Generate access file
     processing_results['access_file'] = process_access_file(
-        video_path, source_directory, video_id, command_config
+        video_path, source_directory, video_id, checks_config
     )
 
     # Generate final HTML report
     processing_results['html_report'] = generate_final_report(
-        video_id, source_directory, report_directory, destination_directory, command_config
+        video_id, source_directory, report_directory, destination_directory, checks_config
     )
 
     return processing_results
@@ -1144,7 +1144,7 @@ def process_single_directory(source_directory):
             video_path, 
             destination_directory, 
             video_id, 
-            command_config, 
+            checks_config, 
             config_path
             )
 
@@ -1152,7 +1152,7 @@ def process_single_directory(source_directory):
                 video_path, 
                 destination_directory, 
                 video_id, 
-                command_config
+                checks_config
                 )
 
             processing_results = process_video_outputs(
@@ -1160,7 +1160,7 @@ def process_single_directory(source_directory):
                 source_directory,
                 destination_directory,
                 video_id,
-                command_config,
+                checks_config,
                 metadata_differences
             )
 
@@ -1230,8 +1230,8 @@ def run_avspex(source_directories):
             sys.exit(1)
 
     # Reload the dictionaries if the profile has been applied
-    config_path.reload()
-    command_config.reload()
+    # config_path.reload()
+    # command_config.reload()
 
     overall_start_time = time.time()
 
@@ -1245,7 +1245,8 @@ def run_avspex(source_directories):
 
 def main_gui():
     app = QApplication(sys.argv)
-    window = MainWindow(command_config, command_config.command_dict, config_path)
+    checks_config_dict = asdict(checks_config)
+    window = MainWindow(checks_config, checks_config_dict, spex_config)
     window.show()
     app.exec()
     source_directories = window.get_source_directories()

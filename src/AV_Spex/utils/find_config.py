@@ -203,3 +203,7 @@ class ChecksConfig:
         'qctools': ToolCheckConfig(check_tool='no', run_tool='no'),
         'qct-parse': QctParseConfig()
     })
+
+# Create a config with all defaults
+checks_config = ChecksConfig()
+spex_config = SpexConfig()
