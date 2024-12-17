@@ -23,19 +23,6 @@ class DirectoryListWidget(QListWidget):
         self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
 
         self.main_window = parent
-        
-        # Add visual cues
-        self.setStyleSheet("""
-            QListWidget {
-                border: 2px dashed lightgray;
-                border-radius: 5px;
-            }
-            QListWidget::item {
-                padding: 5px;
-                margin: 2px;
-                background-color: #f0f0f0;
-            }
-        """)
 
     def dragEnterEvent(self, event):
         #print("Drag Enter Event Triggered")
