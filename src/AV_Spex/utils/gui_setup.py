@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
     QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QUrl, QMimeData
 from PyQt6.QtGui import QPixmap, QAction
 
 import os
@@ -12,6 +12,65 @@ import sys
 from ..utils.find_config import config_path, command_config, yaml
 from ..utils.log_setup import logger
 from ..utils import yaml_profiles
+
+
+class DirectoryListWidget(QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Critical settings for drag and drop
+        self.setAcceptDrops(True)
+        self.setDragEnabled(True)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+
+        self.main_window = parent
+        
+        # Add visual cues
+        self.setStyleSheet("""
+            QListWidget {
+                border: 2px dashed lightgray;
+                border-radius: 5px;
+            }
+            QListWidget::item {
+                padding: 5px;
+                margin: 2px;
+                background-color: #f0f0f0;
+            }
+        """)
+
+    def dragEnterEvent(self, event):
+        #print("Drag Enter Event Triggered")
+        if event.mimeData().hasUrls():
+         #   print("URLs Detected in Drag Event")
+            event.acceptProposedAction()
+        else:
+          #  print("No URLs in Drag Event")
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        #print("Drag Move Event Triggered")
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            
+            for url in urls:
+                path = url.toLocalFile()
+                
+                if os.path.isdir(path):
+                    # Check for duplicates before adding
+                    if path not in [self.item(i).text() for i in range(self.count())]:
+                        self.addItem(path)
+                        
+                        # Update selected_directories if main_window is available
+                        if hasattr(self.main_window, 'selected_directories'):
+                            if path not in self.main_window.selected_directories:
+                                self.main_window.selected_directories.append(path)
+            
+            event.acceptProposedAction()
 
 
 class ConfigWindow(QWidget):
@@ -153,7 +212,7 @@ class MainWindow(QMainWindow):
 
         # Selected directories section
         directory_label = QLabel("Selected Directories:")
-        self.directory_list = QListWidget()
+        self.directory_list = DirectoryListWidget(self)
         vertical_layout.addWidget(directory_label)
         vertical_layout.addWidget(self.directory_list)
 
