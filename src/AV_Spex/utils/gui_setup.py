@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
-    QTextEdit, QListView, QTreeView, QAbstractItemView
+    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap, QAction
@@ -311,20 +311,16 @@ class MainWindow(QMainWindow):
 
 
     def import_directories(self):
-        # Open a file dialog to select directories
+        # Use native file dialog
         file_dialog = QFileDialog(self, "Select Directories")
         file_dialog.setFileMode(QFileDialog.FileMode.Directory)  # Set directory mode
         file_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)  # Show only directories
-        file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)  # Enable multiple selection
-
-        file_view = file_dialog.findChild(QListView, 'listView')
-
-        # to make it possible to select multiple directories:
-        if file_view:
-            file_view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        f_tree_view = file_dialog.findChild(QTreeView)
-        if f_tree_view:
-            f_tree_view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        
+        # IMPORTANT: Remove the DontUseNativeDialog option
+        # file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)  # Remove this line
+        
+        # Try to enable multiple directory selection with the native dialog
+        file_dialog.setOption(QFileDialog.Option.ReadOnly, False)
 
         if file_dialog.exec():
             directories = file_dialog.selectedFiles()  # Get selected directories
@@ -332,6 +328,31 @@ class MainWindow(QMainWindow):
                 if directory not in self.selected_directories:
                     self.selected_directories.append(directory)
                     self.directory_list.addItem(directory)
+
+    def add_network_drive(self, file_dialog):
+        """
+        Open a dialog to add a network drive manually
+        """
+        network_dialog = QInputDialog(self)
+        network_dialog.setWindowTitle("Add Network Drive")
+        network_dialog.setLabelText("Enter network path (e.g., //servername/share):")
+        network_dialog.setTextValue("//")
+        
+        if network_dialog.exec():
+            network_path = network_dialog.textValue()
+            
+            # Basic validation of network path
+            if network_path.startswith("//"):
+                # Check if the network path exists and is accessible
+                if os.path.exists(network_path):
+                    file_dialog.setDirectory(network_path)
+                else:
+                    QMessageBox.warning(self, "Network Drive", 
+                                        "Cannot access the specified network path. "
+                                        "Please check the path and your network connection.")
+            else:
+                QMessageBox.warning(self, "Invalid Path", 
+                                    "Please enter a valid network path starting with //")
 
 
     def update_selected_directories(self):
