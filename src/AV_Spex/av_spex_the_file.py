@@ -486,7 +486,7 @@ def process_embedded_fixity(video_path):
     else:
         logger.critical("Existing stream hashes found!")
         if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
-            logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
+            logger.critical(f'New stream hashes will be generated and old hashes will be overwritten!\n')
             embed_fixity(video_path)
         elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
             logger.error('Not writing stream hashes to MKV\n')
@@ -519,8 +519,11 @@ def process_fixity(source_directory, video_path, video_id):
         process_embedded_fixity(video_path)
 
     # Validate stream hashes if required
-    if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
-        validate_embedded_md5(video_path)
+    if command_config.command_dict['outputs']['fixity']['validate_stream_fixity'] == 'yes':
+        if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+            logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
+        else:
+            validate_embedded_md5(video_path)
 
     # Initialize md5_checksum variable, so it is 'None' if not assigned in output_fixity
     md5_checksum = None
@@ -798,7 +801,7 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id, 
     """
     # Check if MediaConch should be run
     if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] != 'yes':
-        logger.info("MediaConch validation skipped")
+        logger.info("MediaConch validation skipped\n")
         return {}
 
     # Find the policy file
@@ -1256,7 +1259,6 @@ def main_gui():
         else:
             # If no source directories were selected, exit the loop (quit the app)
             break
-
 
 
 def main_cli():
