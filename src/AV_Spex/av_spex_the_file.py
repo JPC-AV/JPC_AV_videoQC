@@ -1244,14 +1244,19 @@ def run_avspex(source_directories):
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
 def main_gui():
-    app = QApplication(sys.argv)
-    window = MainWindow(command_config, command_config.command_dict, config_path)
-    window.show()
-    app.exec()
-    source_directories = window.get_source_directories()
+    app = QApplication(sys.argv)  # Create the QApplication instance once
+    while True:
+        window = MainWindow(command_config, command_config.command_dict, config_path)
+        window.show()
+        app.exec()  # Blocks until the GUI window is closed
+        source_directories = window.get_source_directories()
 
-    if source_directories:
-        run_avspex(source_directories)
+        if source_directories:
+            run_avspex(source_directories)
+        else:
+            # If no source directories were selected, exit the loop (quit the app)
+            break
+
 
 
 def main_cli():
