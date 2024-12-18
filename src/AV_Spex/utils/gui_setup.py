@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
     QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar
 )
-from PyQt6.QtCore import Qt, QUrl, QMimeData
+from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir
 from PyQt6.QtGui import QPixmap, QAction
 
 import os
@@ -148,6 +148,11 @@ class ConfigWindow(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self, command_config, command_config_dict, config_path):
         super().__init__()
+        
+         # Initialize settings
+        self.settings = QSettings('NMAAHC', 'AVSpex')
+        self.selected_directories = []
+        
         self.check_spex_clicked = False
         self.setWindowTitle("AV Spex")
         
@@ -357,19 +362,32 @@ class MainWindow(QMainWindow):
 
 
     def import_directories(self):
+        # Get the last directory from settings
+        last_directory = self.settings.value('last_directory', '')
+        
         # Use native file dialog
         file_dialog = QFileDialog(self, "Select Directories")
-        file_dialog.setFileMode(QFileDialog.FileMode.Directory)  # Set directory mode
-        file_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)  # Show only directories
+        file_dialog.setFileMode(QFileDialog.FileMode.Directory)
+        file_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
         
-        # IMPORTANT: Remove the DontUseNativeDialog option
-        # file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)  # Remove this line
+        # Set the starting directory to the parent of the last used directory
+        if last_directory:
+            dir_info = QDir(last_directory)
+            if dir_info.cdUp():  # Move up to parent directory
+                parent_dir = dir_info.absolutePath()
+                file_dialog.setDirectory(parent_dir)
         
         # Try to enable multiple directory selection with the native dialog
         file_dialog.setOption(QFileDialog.Option.ReadOnly, False)
 
         if file_dialog.exec():
             directories = file_dialog.selectedFiles()  # Get selected directories
+            
+            # Save the last used directory
+            if directories:
+                self.settings.setValue('last_directory', directories[0])
+                self.settings.sync()  # Ensure settings are saved
+            
             for directory in directories:
                 if directory not in self.selected_directories:
                     self.selected_directories.append(directory)
