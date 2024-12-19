@@ -24,7 +24,9 @@ Below are the instructions for setting up a compatible Python environment using 
    - Installation paths may vary based on your system's architecture (x86 or ARM).
    - For Homebrew installations:
      - ARM architecture: `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
+        - for Apple silicon 
      - x86 architecture: `export PATH="/usr/local/anaconda3/bin:$PATH"`
+        - for Intel Mac 
      - If you are unsure which of these paths to use, you can check by running `brew --prefix`
 
 3. **Initialize Conda:**
