@@ -5,6 +5,7 @@ import os
 import sys
 import logging
 from ..utils.log_setup import logger
+from ..utils.find_config import command_config
 
 
 def get_total_frames(video_path):
@@ -228,7 +229,42 @@ def validate_embedded_md5(video_path):
         logger.debug('Validating stream fixity\n')
         compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
     else:
-        logger.critical("mkvextract unable to extract MKV tags! Cannot validate stream hashes.\n")    
+        logger.critical("mkvextract unable to extract MKV tags! Cannot validate stream hashes.\n")   
+
+
+def process_embedded_fixity(video_path):
+    """
+    Handles embedding stream fixity tags in the video file.
+    """
+    existing_tags = extract_tags(video_path)
+    if existing_tags:
+        existing_video_hash, existing_audio_hash = extract_hashes(existing_tags)
+    else:
+        existing_video_hash = None
+        existing_audio_hash = None
+
+    # Check if VIDEO_STREAM_HASH and AUDIO_STREAM_HASH MKV tags exist
+    if existing_video_hash is None or existing_audio_hash is None:
+        embed_fixity(video_path)
+    else:
+        logger.critical("Existing stream hashes found!")
+        if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+            logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
+            embed_fixity(video_path)
+        elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
+            logger.error('Not writing stream hashes to MKV\n')
+        elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
+            # User input for handling existing stream hashes
+            while True:
+                user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
+                if user_input.lower() in ["yes", "y"]:
+                    embed_fixity(video_path)
+                    break
+                elif user_input.lower() in ["no", "n"]:
+                    logger.debug('Not writing stream hashes to MKV')
+                    break
+                else:
+                    print("Invalid input. Please enter yes/no.") 
 
 
 if __name__ == "__main__":
