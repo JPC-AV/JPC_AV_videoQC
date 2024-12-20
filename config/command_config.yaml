@@ -4,7 +4,7 @@ outputs:
   report: 'no'
   fixity:
     check_fixity: 'no'
-    check_stream_fixity: 'no'
+    validate_stream_fixity: 'no'
     embed_stream_fixity: 'yes'
     output_fixity: 'yes'
     overwrite_stream_fixity: 'no'

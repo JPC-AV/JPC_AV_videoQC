@@ -463,6 +463,37 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
     return content_summary_html
 
+def generate_final_report(video_id, source_directory, report_directory, destination_directory, command_config):
+    """
+    Generate final HTML report if configured.
+    
+    Args:
+        video_id (str): Unique identifier for the video
+        source_directory (str): Source directory for the video
+        report_directory (str): Directory containing report files
+        destination_directory (str): Destination directory for output files
+        command_config (object): Configuration object with tool settings
+        
+    Returns:
+        str or None: Path to the generated HTML report, or None
+    """
+    # Check if report should be generated
+    if command_config.command_dict['outputs']['report'] != 'yes':
+        return None
+
+    try:
+        html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
+        
+        # Generate HTML report
+        write_html_report(video_id, report_directory, destination_directory, html_report_path)
+        
+        logger.info(f"HTML report generated: {html_report_path}\n")
+        return html_report_path
+
+    except Exception as e:
+        logger.critical(f"Error generating HTML report: {e}")
+        return None
+
 
 def write_html_report(video_id, report_directory, destination_directory, html_report_path):
 
