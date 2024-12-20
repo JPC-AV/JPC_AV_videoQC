@@ -24,7 +24,9 @@ Below are the instructions for setting up a compatible Python environment using 
    - Installation paths may vary based on your system's architecture (x86 or ARM).
    - For Homebrew installations:
      - ARM architecture: `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
+        - for Apple silicon 
      - x86 architecture: `export PATH="/usr/local/anaconda3/bin:$PATH"`
+        - for Intel Mac 
      - If you are unsure which of these paths to use, you can check by running `brew --prefix`
 
 3. **Initialize Conda:**
@@ -81,9 +83,12 @@ Open the AV Spex gui with the command:
 av-spex-gui
 ```
 
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot.png" alt="AV Spex GUI Screenshot"/>
-
 The GUI is divided into 2 tabs  - "Checks" and "Spex".   
+
+<div style="display: flex; justify-content: space-between;">
+  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot_01.png" alt="AV Spex GUI Screenshot 1" width="400"/>
+  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot_02.png" alt="AV Spex GUI Screenshot 2" width="400"/>
+</div>
 
 ### Checks
 The "Checks" window displays the tools and commands that will be run on the imported directories.

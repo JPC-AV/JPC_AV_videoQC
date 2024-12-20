@@ -153,16 +153,12 @@ def extract_hashes(xml_tags):
     if v_stream_element is not None:
         # Assign MD5 in VIDEO_STREAM_HASH to video_hash
         video_hash = v_stream_element.text
-    else:
-        logger.warning(f'No video stream hash found')
 
     # Find 'video_stream_hash' element
     a_stream_element = root.find('.//Simple[Name="AUDIO_STREAM_HASH"]/String')
     if a_stream_element is not None:
         # Assign MD5 in AUDIO_STREAM_HASH to audio_hash
         audio_hash = a_stream_element.text
-    else:
-        logger.warning(f'No audio stream hash found\n')
 
     return video_hash, audio_hash
 
@@ -171,12 +167,12 @@ def compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_h
     if existing_video_hash == video_hash:
         logger.info("Video hashes match.")
     else:
-        logger.critical(f"Video hashes do not match. MD5 stored in MKV file: {video_hash} Generated MD5: {existing_video_hash}\n")
+        logger.critical(f"Video hashes do not match. MD5 stored in MKV file: {existing_video_hash} Generated MD5: {video_hash}\n")
 
     if existing_audio_hash == audio_hash:
         logger.info("Audio hashes match.\n")
     else:
-        logger.critical(f"Audio hashes do not match. MD5 stored in MKV file: {audio_hash} Generated MD5: {existing_audio_hash}\n")
+        logger.critical(f"Audio hashes do not match. MD5 stored in MKV file: {existing_audio_hash} Generated MD5:{audio_hash}\n")
 
 
 def embed_fixity(video_path):
@@ -218,12 +214,15 @@ def validate_embedded_md5(video_path):
         if existing_video_hash is not None:
             logger.info(f'Video stream md5 found: {existing_video_hash}')
         else:
-            logger.warning('No video stream hash found')
-
+            logger.warning('No video stream hash found\n')
+            embed_fixity(video_path)
+            return
         if existing_audio_hash is not None:
             logger.info(f'Audio stream md5 found: {existing_audio_hash}\n')
         else:
             logger.warning('No audio stream hash found\n')
+            embed_fixity(video_path)
+            return
         logger.debug('Generating video and audio stream hashes. This may take a moment...')
         video_hash, audio_hash = make_stream_hash(video_path)
         logger.debug(f"\n")

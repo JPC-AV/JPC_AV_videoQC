@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
-    QTextEdit, QListView, QTreeView, QAbstractItemView
+    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir
 from PyQt6.QtGui import QPixmap, QAction
 
 import os
@@ -12,6 +12,52 @@ import sys
 from ..utils.find_config import config_path, command_config, yaml
 from ..utils.log_setup import logger
 from ..utils import yaml_profiles
+
+
+class DirectoryListWidget(QListWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Critical settings for drag and drop
+        self.setAcceptDrops(True)
+        self.setDragEnabled(True)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+
+        self.main_window = parent
+
+    def dragEnterEvent(self, event):
+        #print("Drag Enter Event Triggered")
+        if event.mimeData().hasUrls():
+         #   print("URLs Detected in Drag Event")
+            event.acceptProposedAction()
+        else:
+          #  print("No URLs in Drag Event")
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        #print("Drag Move Event Triggered")
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            
+            for url in urls:
+                path = url.toLocalFile()
+                
+                if os.path.isdir(path):
+                    # Check for duplicates before adding
+                    if path not in [self.item(i).text() for i in range(self.count())]:
+                        self.addItem(path)
+                        
+                        # Update selected_directories if main_window is available
+                        if hasattr(self.main_window, 'selected_directories'):
+                            if path not in self.main_window.selected_directories:
+                                self.main_window.selected_directories.append(path)
+            
+            event.acceptProposedAction()
 
 
 class ConfigWindow(QWidget):
@@ -47,7 +93,10 @@ class ConfigWindow(QWidget):
                 layout.addWidget(sub_section)
             elif isinstance(value, str):
                 if value in ("yes", "no"):  # Checkbox for yes/no values
-                    checkbox = QCheckBox(key)
+                    if key == "output_fixity":
+                        checkbox = QCheckBox(f"{key} (to .txt and .md5 files)")
+                    else:
+                        checkbox = QCheckBox(key)
                     checkbox.setChecked(value == "yes")
                     checkbox.stateChanged.connect(
                         lambda state, name=key: self.on_checkbox_changed(state, name)
@@ -102,6 +151,11 @@ class ConfigWindow(QWidget):
 class MainWindow(QMainWindow):
     def __init__(self, command_config, command_config_dict, config_path):
         super().__init__()
+        
+         # Initialize settings
+        self.settings = QSettings('NMAAHC', 'AVSpex')
+        self.selected_directories = []
+        
         self.check_spex_clicked = False
         self.setWindowTitle("AV Spex")
         
@@ -153,7 +207,7 @@ class MainWindow(QMainWindow):
 
         # Selected directories section
         directory_label = QLabel("Selected Directories:")
-        self.directory_list = QListWidget()
+        self.directory_list = DirectoryListWidget(self)
         vertical_layout.addWidget(directory_label)
         vertical_layout.addWidget(self.directory_list)
 
@@ -311,27 +365,61 @@ class MainWindow(QMainWindow):
 
 
     def import_directories(self):
-        # Open a file dialog to select directories
+        # Get the last directory from settings
+        last_directory = self.settings.value('last_directory', '')
+        
+        # Use native file dialog
         file_dialog = QFileDialog(self, "Select Directories")
-        file_dialog.setFileMode(QFileDialog.FileMode.Directory)  # Set directory mode
-        file_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)  # Show only directories
-        file_dialog.setOption(QFileDialog.Option.DontUseNativeDialog, True)  # Enable multiple selection
-
-        file_view = file_dialog.findChild(QListView, 'listView')
-
-        # to make it possible to select multiple directories:
-        if file_view:
-            file_view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        f_tree_view = file_dialog.findChild(QTreeView)
-        if f_tree_view:
-            f_tree_view.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        file_dialog.setFileMode(QFileDialog.FileMode.Directory)
+        file_dialog.setOption(QFileDialog.Option.ShowDirsOnly, True)
+        
+        # Set the starting directory to the parent of the last used directory
+        if last_directory:
+            dir_info = QDir(last_directory)
+            if dir_info.cdUp():  # Move up to parent directory
+                parent_dir = dir_info.absolutePath()
+                file_dialog.setDirectory(parent_dir)
+        
+        # Try to enable multiple directory selection with the native dialog
+        file_dialog.setOption(QFileDialog.Option.ReadOnly, False)
 
         if file_dialog.exec():
             directories = file_dialog.selectedFiles()  # Get selected directories
+            
+            # Save the last used directory
+            if directories:
+                self.settings.setValue('last_directory', directories[0])
+                self.settings.sync()  # Ensure settings are saved
+            
             for directory in directories:
                 if directory not in self.selected_directories:
                     self.selected_directories.append(directory)
                     self.directory_list.addItem(directory)
+
+    def add_network_drive(self, file_dialog):
+        """
+        Open a dialog to add a network drive manually
+        """
+        network_dialog = QInputDialog(self)
+        network_dialog.setWindowTitle("Add Network Drive")
+        network_dialog.setLabelText("Enter network path (e.g., //servername/share):")
+        network_dialog.setTextValue("//")
+        
+        if network_dialog.exec():
+            network_path = network_dialog.textValue()
+            
+            # Basic validation of network path
+            if network_path.startswith("//"):
+                # Check if the network path exists and is accessible
+                if os.path.exists(network_path):
+                    file_dialog.setDirectory(network_path)
+                else:
+                    QMessageBox.warning(self, "Network Drive", 
+                                        "Cannot access the specified network path. "
+                                        "Please check the path and your network connection.")
+            else:
+                QMessageBox.warning(self, "Invalid Path", 
+                                    "Please enter a valid network path starting with //")
 
 
     def update_selected_directories(self):

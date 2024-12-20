@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import csv
 import xml.etree.ElementTree as ET
 
 from ..utils.log_setup import logger
