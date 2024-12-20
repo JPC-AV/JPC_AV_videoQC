@@ -31,7 +31,7 @@ def process_fixity(source_directory, video_path, video_id):
         process_embedded_fixity(video_path)
 
     # Validate stream hashes if required
-    if command_config.command_dict['outputs']['fixity']['check_stream_fixity'] == 'yes':
+    if command_config.command_dict['outputs']['fixity']['validate_stream_fixity'] == 'yes':
         if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
             logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
         else:

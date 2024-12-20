@@ -249,7 +249,7 @@ def process_embedded_fixity(video_path):
     else:
         logger.critical("Existing stream hashes found!")
         if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
-            logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
+            logger.critical('New stream hashes will be generated and old hashes will be overwritten!\n')
             embed_fixity(video_path)
         elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
             logger.error('Not writing stream hashes to MKV\n')
@@ -261,7 +261,7 @@ def process_embedded_fixity(video_path):
                     embed_fixity(video_path)
                     break
                 elif user_input.lower() in ["no", "n"]:
-                    logger.debug('Not writing stream hashes to MKV')
+                    logger.debug('Not writing stream hashes to MKV\n')
                     break
                 else:
                     print("Invalid input. Please enter yes/no.") 
