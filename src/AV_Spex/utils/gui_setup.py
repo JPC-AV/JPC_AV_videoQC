@@ -93,7 +93,10 @@ class ConfigWindow(QWidget):
                 layout.addWidget(sub_section)
             elif isinstance(value, str):
                 if value in ("yes", "no"):  # Checkbox for yes/no values
-                    checkbox = QCheckBox(key)
+                    if key == "output_fixity":
+                        checkbox = QCheckBox(f"{key} (to .txt and .md5 files)")
+                    else:
+                        checkbox = QCheckBox(key)
                     checkbox.setChecked(value == "yes")
                     checkbox.stateChanged.connect(
                         lambda state, name=key: self.on_checkbox_changed(state, name)

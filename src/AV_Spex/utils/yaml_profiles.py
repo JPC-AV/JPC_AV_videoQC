@@ -202,7 +202,7 @@ profile_step1 = {
             "output_fixity": 'yes',
             "check_fixity": 'no',
             "embed_stream_fixity": 'yes',
-            "check_stream_fixity": 'no'
+            "validate_stream_fixity": 'no'
         }
     }
 }
@@ -247,7 +247,7 @@ profile_step2 = {
             "output_fixity": 'no',
             "check_fixity": 'yes',
             "embed_stream_fixity": 'no',
-            "check_stream_fixity": 'yes'
+            "validate_stream_fixity": 'yes'
         }
     }
 }
@@ -292,7 +292,7 @@ profile_allOff = {
             "output_fixity": 'no',
             "check_fixity": 'no',
             "embed_stream_fixity": 'no',
-            "check_stream_fixity": 'no'
+            "validate_stream_fixity": 'no'
         }
     }
 }
