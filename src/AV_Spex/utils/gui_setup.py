@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
-    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar
+    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar, QProgressDialog
 )
-from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir
+from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir, QThread, pyqtSignal
 from PyQt6.QtGui import QPixmap, QAction
 
 import os
@@ -12,6 +12,21 @@ import sys
 from ..utils.find_config import config_path, command_config, yaml
 from ..utils.log_setup import logger
 from ..utils import yaml_profiles
+
+
+class WorkerThread(QThread):
+    process_complete = pyqtSignal()
+
+    def __init__(self, source_directories, avspex_runner):
+        super().__init__()
+        self.source_directories = source_directories
+        self.avspex_runner = avspex_runner
+
+    def run(self):
+        # Run the process
+        self.avspex_runner(self.source_directories)
+        # Emit signal when done
+        self.process_complete.emit()
 
 
 class DirectoryListWidget(QListWidget):
@@ -149,10 +164,12 @@ class ConfigWindow(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, command_config, command_config_dict, config_path):
+    def __init__(self, command_config, command_config_dict, config_path, avspex_runner):
         super().__init__()
         
-         # Initialize settings
+        self.avspex_runner = avspex_runner  # Store the reference to the function
+        
+        # Initialize settings
         self.settings = QSettings('NMAAHC', 'AVSpex')
         self.selected_directories = []
         
@@ -563,8 +580,27 @@ class MainWindow(QMainWindow):
 
         return "\n".join(content_lines)
     
+
     def on_quit_clicked(self):
         """Handle the 'Quit' button click."""
         self.selected_directories = None  # Clear any selections
         self.check_spex_clicked = False  # Ensure the flag is reset
         self.close()  # Close the GUI
+
+
+    def start_processing(self, source_directories):
+        """Start the AVSpex process in a separate thread."""
+        self.progress_dialog = QProgressDialog("Processing files...", "Cancel", 0, 0, self)
+        self.progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.progress_dialog.setCancelButton(None)
+        self.progress_dialog.show()
+
+        self.worker_thread = WorkerThread(source_directories, self.avspex_runner)
+        self.worker_thread.process_complete.connect(self.on_processing_complete)
+        self.worker_thread.start()
+
+    def on_processing_complete(self):
+        """Handle completion of the background process."""
+        self.progress_dialog.close()
+        self.worker_thread = None
+        QMessageBox.information(self, "AVSpex", "Processing complete!")
