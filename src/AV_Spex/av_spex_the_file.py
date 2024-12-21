@@ -240,14 +240,17 @@ def display_processing_banner(video_id=None):
         logger.warning(f'Processing complete:{ascii_video_id}\n')
 
 
-def process_directories(source_directories):
+def process_directories(source_directories, cancel_event=None):
+    
     for source_directory in source_directories:
+        if cancel_event and cancel_event.is_set():
+            return
         # sanitize user input directory path
         source_directory = os.path.normpath(source_directory)
         process_single_directory(source_directory)
 
 
-def process_single_directory(source_directory):
+def process_single_directory(source_directory, cancel_event=None):
 
     # Display initial processing banner
     display_processing_banner()
@@ -265,6 +268,9 @@ def process_single_directory(source_directory):
 
             processing_mgmt.process_fixity(source_directory, video_path, video_id)
 
+            if cancel_event and cancel_event.is_set():
+                return
+
             mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
             video_path, 
             destination_directory, 
@@ -273,12 +279,18 @@ def process_single_directory(source_directory):
             config_path
             )
 
+            if cancel_event and cancel_event.is_set():
+                return
+
             metadata_differences = processing_mgmt.process_video_metadata(
                 video_path, 
                 destination_directory, 
                 video_id, 
                 command_config
                 )
+            
+            if cancel_event and cancel_event.is_set():
+                return
 
             processing_results = processing_mgmt.process_video_outputs(
                 video_path,
@@ -340,33 +352,45 @@ def run_cli_mode(args):
         sys.exit(1)
 
 
-def run_avspex(source_directories):
+def run_avspex(source_directories, cancel_event=None):
     '''
     av-spex takes 1 input file or directory as an argument, like this:
     av-spex <input_directory> (or -f <input_file.mkv>)
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
+    try:
+        check_py_version()
 
-    check_py_version()
+        for command in required_commands:
+            if cancel_event and cancel_event.is_set():
+                return
+            if not check_external_dependency(command):
+                print(f"Error: {command} not found. Please install it.")
+                sys.exit(1)
 
-    for command in required_commands:
-        if not check_external_dependency(command):
-            print(f"Error: {command} not found. Please install it.")
-            sys.exit(1)
+        # Reload the dictionaries if the profile has been applied
+        config_path.reload()
+        command_config.reload()
 
-    # Reload the dictionaries if the profile has been applied
-    config_path.reload()
-    command_config.reload()
+        overall_start_time = time.time()
 
-    overall_start_time = time.time()
+        # Modify process_directories to accept cancel_event
+        if cancel_event and cancel_event.is_set():
+            return
+        process_directories(source_directories, cancel_event)
 
-    process_directories(source_directories)
+        if cancel_event and cancel_event.is_set():
+            return
 
-    print_nmaahc_logo()
+        print_nmaahc_logo()
 
-    overall_end_time = time.time()
+        overall_end_time = time.time()
+        formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
-    formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
+    except Exception as e:
+        print(f"Error in run_avspex: {e}")
+        raise
+    
 
 def main_gui():
     app = QApplication(sys.argv)
