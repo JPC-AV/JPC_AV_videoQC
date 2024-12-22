@@ -22,23 +22,21 @@ class WorkerThread(QThread):
         super().__init__()
         self.source_directories = source_directories
         self.avspex_runner = avspex_runner
-        self.is_cancelled = False
-        self._cancel_event = threading.Event()
+        self.cancel_event = threading.Event()
 
     def run(self):
         try:
-            # Run the process with cancel_event
-            self.avspex_runner(self.source_directories, self._cancel_event)
-            if not self._cancel_event.is_set():
+            self.avspex_runner(self.source_directories, self.cancel_event)
+            if not self.cancel_event.is_set():
                 self.process_complete.emit()
             else:
                 self.process_cancelled.emit()
         except Exception as e:
-            print(f"Error in worker thread: {e}")
+            print(f"Error in WorkerThread: {e}")
             self.process_cancelled.emit()
 
     def cancel(self):
-        self._cancel_event.set()
+        self.cancel_event.set()
 
 
 class DirectoryListWidget(QListWidget):
@@ -605,7 +603,7 @@ class MainWindow(QMainWindow):
         """Start the AVSpex process in a separate thread."""
         self.progress_dialog = QProgressDialog("Processing files...", "Cancel", 0, 0, self)
         self.progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
-        
+
         # Connect cancel button
         self.progress_dialog.canceled.connect(self.cancel_processing)
         self.progress_dialog.show()
@@ -619,6 +617,7 @@ class MainWindow(QMainWindow):
         """Cancel the ongoing processing."""
         if self.worker_thread and self.worker_thread.isRunning():
             self.worker_thread.cancel()
+            self.worker_thread.wait()  # Ensure the thread stops before continuing
 
     def on_processing_cancelled(self):
         """Handle cancellation of the background process."""

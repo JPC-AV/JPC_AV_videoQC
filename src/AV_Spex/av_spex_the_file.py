@@ -247,7 +247,7 @@ def process_directories(source_directories, cancel_event=None):
             return
         # sanitize user input directory path
         source_directory = os.path.normpath(source_directory)
-        process_single_directory(source_directory)
+        process_single_directory(source_directory, cancel_event)
 
 
 def process_single_directory(source_directory, cancel_event=None):
@@ -266,7 +266,7 @@ def process_single_directory(source_directory, cancel_event=None):
             # Unpack the returned values
             video_path, video_id, destination_directory, access_file_found = init_dir_result
 
-            processing_mgmt.process_fixity(source_directory, video_path, video_id)
+            processing_mgmt.process_fixity(source_directory, video_path, video_id, cancel_event)
 
             if cancel_event and cancel_event.is_set():
                 return
@@ -360,33 +360,22 @@ def run_avspex(source_directories, cancel_event=None):
     '''
     try:
         check_py_version()
-
         for command in required_commands:
             if cancel_event and cancel_event.is_set():
+                print("Processing cancelled.")
                 return
             if not check_external_dependency(command):
                 print(f"Error: {command} not found. Please install it.")
-                sys.exit(1)
+                return
 
-        # Reload the dictionaries if the profile has been applied
         config_path.reload()
         command_config.reload()
-
-        overall_start_time = time.time()
-
-        # Modify process_directories to accept cancel_event
         if cancel_event and cancel_event.is_set():
             return
         process_directories(source_directories, cancel_event)
-
         if cancel_event and cancel_event.is_set():
             return
-
         print_nmaahc_logo()
-
-        overall_end_time = time.time()
-        formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
-
     except Exception as e:
         print(f"Error in run_avspex: {e}")
         raise

@@ -16,7 +16,7 @@ from ..checks.qct_parse import run_qctparse
 from ..checks.mediaconch_check import find_mediaconch_policy, run_mediaconch_command, parse_mediaconch_output
 
 
-def process_fixity(source_directory, video_path, video_id):
+def process_fixity(source_directory, video_path, video_id, cancel_event=None):
     """
     Orchestrates the entire fixity process, including embedded and file-level operations.
 
@@ -28,24 +28,32 @@ def process_fixity(source_directory, video_path, video_id):
     """
     # Embed stream fixity if required
     if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
-        process_embedded_fixity(video_path)
+        process_embedded_fixity(video_path, cancel_event)
+        if cancel_event and cancel_event.is_set():
+            return
 
     # Validate stream hashes if required
     if command_config.command_dict['outputs']['fixity']['validate_stream_fixity'] == 'yes':
         if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
             logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
         else:
-            validate_embedded_md5(video_path)
+            validate_embedded_md5(video_path, cancel_event)
+            if cancel_event and cancel_event.is_set():
+                return
 
     # Initialize md5_checksum variable, so it is 'None' if not assigned in output_fixity
     md5_checksum = None
     # Create checksum for video file and output results
     if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
-        md5_checksum = output_fixity(source_directory, video_path)
+        md5_checksum = output_fixity(source_directory, video_path, cancel_event)
+        if cancel_event and cancel_event.is_set():
+            return
 
     # Verify stored checksum and write results
     if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
-        check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
+        check_fixity(source_directory, video_id, cancel_event, actual_checksum=md5_checksum)
+        if cancel_event and cancel_event.is_set():
+            return
 
 
 def process_qctools_output(video_path, source_directory, destination_directory, video_id, command_config, report_directory=None):
