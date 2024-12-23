@@ -37,24 +37,24 @@ def update_yaml_configs(selected_profile, tool_names, tools_on_names, tools_off_
                         user_profile_config):
     """Updates YAML configuration files based on provided parameters."""
     if selected_profile:
-        yaml_profiles.apply_profile(command_config, selected_profile)
-        logger.info(f'command_config.yaml updated to match selected tool profile\n')
+        yaml_profiles.apply_profile(checks_config, selected_profile)
+        logger.info(f'Checks updated to match selected tool profile\n')
 
     if tool_names:
-        yaml_profiles.apply_by_name(command_config, tool_names)
+        yaml_profiles.apply_by_name(checks_config, tool_names)
 
     if tools_on_names:
-        yaml_profiles.toggle_on(command_config, tools_on_names)
+        yaml_profiles.toggle_on(checks_config, tools_on_names)
 
     if tools_off_names:
-        yaml_profiles.toggle_off(command_config, tools_off_names)
+        yaml_profiles.toggle_off(checks_config, tools_off_names)
 
     if sn_config_changes:
-        yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
-        yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
+        yaml_profiles.update_config(spex_config, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+        yaml_profiles.update_config(spex_config, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
 
     if fn_config_changes:
-        yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)
+        yaml_profiles.update_config(spex_config, 'filename_values', fn_config_changes)
 
     if save_config_type:
         yaml_profiles.save_profile_to_file(save_config_type, user_profile_config)
@@ -64,7 +64,6 @@ def print_config(print_config_profile):
     """Prints the current configuration if requested."""
     if print_config_profile:
         logger.debug("The current config profile settings are:\n")
-        command_config.reload()
         for key, value in command_config.command_dict.items():
             logger.warning(f"{key}:")
             logger.info(f"{format_config_value(value, indent=2)}")

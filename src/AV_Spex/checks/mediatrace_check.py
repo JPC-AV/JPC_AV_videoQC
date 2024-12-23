@@ -3,10 +3,12 @@
 
 import re
 import csv
+import os
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass, asdict, replace
 
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.find_config import config_path, checks_config
 
 
 def parse_mediatrace(xml_file):

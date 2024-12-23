@@ -4,8 +4,9 @@ import tempfile
 import os
 import sys
 import logging
+from dataclasses import dataclass, asdict, replace
 from ..utils.log_setup import logger
-from ..utils.find_config import command_config
+from ..utils.find_config import spex_config, checks_config
 
 
 def get_total_frames(video_path):
@@ -248,12 +249,12 @@ def process_embedded_fixity(video_path):
         embed_fixity(video_path)
     else:
         logger.critical("Existing stream hashes found!")
-        if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
-            logger.critical('New stream hashes will be generated and old hashes will be overwritten!\n')
+        if asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+            logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
             embed_fixity(video_path)
-        elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
+        elif asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
             logger.error('Not writing stream hashes to MKV\n')
-        elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
+        elif asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
             # User input for handling existing stream hashes
             while True:
                 user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
@@ -261,10 +262,10 @@ def process_embedded_fixity(video_path):
                     embed_fixity(video_path)
                     break
                 elif user_input.lower() in ["no", "n"]:
-                    logger.debug('Not writing stream hashes to MKV\n')
+                    logger.debug('Not writing stream hashes to MKV')
                     break
                 else:
-                    print("Invalid input. Please enter yes/no.") 
+                    print("Invalid input. Please enter yes/no.")
 
 
 if __name__ == "__main__":

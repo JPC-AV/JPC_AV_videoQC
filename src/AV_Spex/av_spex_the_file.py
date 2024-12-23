@@ -13,7 +13,7 @@ import time
 import toml
 from art import art, text2art
 from datetime import datetime
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict, replace
 from typing import List, Optional, Any
 
 from PyQt6.QtWidgets import (
@@ -27,7 +27,9 @@ from .utils import dir_setup
 from .utils import edit_config
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from .utils.find_config import config_path, command_config, yaml
+from .utils.find_config import spex_config, checks_config
+from .utils import yaml_profiles
+from .utils.generate_report import write_html_report
 from .utils.gui_setup import ConfigWindow, MainWindow
 
 
@@ -269,7 +271,7 @@ def process_single_directory(source_directory):
             video_path, 
             destination_directory, 
             video_id, 
-            command_config, 
+            checks_config, 
             config_path
             )
 
@@ -277,7 +279,7 @@ def process_single_directory(source_directory):
                 video_path, 
                 destination_directory, 
                 video_id, 
-                command_config
+                checks_config
                 )
 
             processing_results = processing_mgmt.process_video_outputs(
@@ -285,7 +287,7 @@ def process_single_directory(source_directory):
                 source_directory,
                 destination_directory,
                 video_id,
-                command_config,
+                checks_config,
                 metadata_differences
             )
 
@@ -355,8 +357,8 @@ def run_avspex(source_directories):
             sys.exit(1)
 
     # Reload the dictionaries if the profile has been applied
-    config_path.reload()
-    command_config.reload()
+    # config_path.reload()
+    # command_config.reload()
 
     overall_start_time = time.time()
 
@@ -369,13 +371,14 @@ def run_avspex(source_directories):
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
 def main_gui():
-    app = QApplication(sys.argv)  # Create the QApplication instance once
+    app = QApplication(sys.argv)
+    checks_config_dict = asdict(checks_config)
     while True:
-        window = MainWindow(command_config, command_config.command_dict, config_path)
+        window = MainWindow(checks_config, checks_config_dict, spex_config)
         window.show()
-        app.exec()  # Blocks until the GUI window is closed
+        app.exec()
         source_directories = window.get_source_directories()
-
+        
         if source_directories:
             run_avspex(source_directories)
         else:

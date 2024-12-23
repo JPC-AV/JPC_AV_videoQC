@@ -8,8 +8,9 @@ from PyQt6.QtGui import QPixmap, QAction
 
 import os
 import sys
+from dataclasses import asdict
 
-from ..utils.find_config import config_path, command_config, yaml
+from ..utils.find_config import checks_config, spex_config
 from ..utils.log_setup import logger
 from ..utils import yaml_profiles
 
@@ -61,10 +62,10 @@ class DirectoryListWidget(QListWidget):
 
 
 class ConfigWindow(QWidget):
-    def __init__(self, command_config_dict, command_config):
+    def __init__(self, checks_config_dict, checks_config):
         super().__init__()
-        self.command_config_dict = command_config_dict
-        self.command_config = command_config
+        self.checks_config_dict = checks_config_dict
+        self.checks_config = checks_config
 
         # Create the main layout only once
         self.main_layout = QVBoxLayout(self)
@@ -75,7 +76,7 @@ class ConfigWindow(QWidget):
 
     def init_ui(self):
         # Populate the layout with widgets based on the config dictionary
-        for section, items in self.command_config_dict.items():
+        for section, items in self.checks_config_dict.items():
             section_box = self.create_section(section, items)
             self.main_layout.addWidget(section_box)
 
@@ -120,7 +121,7 @@ class ConfigWindow(QWidget):
 
     def refresh_checkboxes(self, updated_config_dict):
         """Clear and repopulate the widgets based on the updated config."""
-        self.command_config_dict = updated_config_dict
+        self.checks_config_dict = updated_config_dict
 
         # Remove all widgets from the main layout
         while self.main_layout.count():
@@ -141,15 +142,15 @@ class ConfigWindow(QWidget):
         if state == Qt.CheckState.Checked:
             logger.debug(f"Checkbox '{command_name}' is Checked.")
             # Call the backend function for 'on' state
-            yaml_profiles.checkbox_on(self.command_config, command_name, 'on')
+            yaml_profiles.checkbox_on(self.checks_config, command_name, 'on')
         elif state == Qt.CheckState.Unchecked:
             logger.debug(f"Checkbox '{command_name}' is Unchecked.")
             # Call the backend function for 'off' state
-            yaml_profiles.checkbox_on(self.command_config, command_name, 'off')
+            yaml_profiles.checkbox_on(self.checks_config, command_name, 'off')
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, command_config, command_config_dict, config_path):
+    def __init__(self, checks_config, checks_config_dict, config_path):
         super().__init__()
         
          # Initialize settings
@@ -225,9 +226,9 @@ class MainWindow(QMainWindow):
         self.command_profile_dropdown.addItem("step1")
         self.command_profile_dropdown.addItem("step2")
         # Set dropdown based on condition
-        if command_config_dict["tools"]["exiftool"]["run_exiftool"] == "yes":
+        if checks_config_dict["tools"]["exiftool"]["run_exiftool"] == "yes":
             self.command_profile_dropdown.setCurrentText("step1")
-        elif command_config_dict["tools"]["exiftool"]["run_exiftool"] == "no":
+        elif checks_config_dict["tools"]["exiftool"]["run_exiftool"] == "no":
             self.command_profile_dropdown.setCurrentText("step2")
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
         vertical_layout.addWidget(command_profile_label)
@@ -236,7 +237,7 @@ class MainWindow(QMainWindow):
         # Checkboxes (ConfigWidget) section
         command_checks_label = QLabel("Command options:")
         config_scroll_area = QScrollArea()
-        self.config_widget = ConfigWindow(command_config_dict, command_config)
+        self.config_widget = ConfigWindow(checks_config_dict, checks_config)
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
 
@@ -462,10 +463,10 @@ class MainWindow(QMainWindow):
         selected_profile = self.command_profile_dropdown.currentText()
         try:
             # Call the backend function to apply the selected profile
-            yaml_profiles.apply_selected_profile(selected_profile, command_config)
+            updated_checks_config = yaml_profiles.apply_selected_profile(selected_profile, checks_config)
             logger.debug(f"Profile '{selected_profile}' applied successfully.")
-            command_config.reload()
-            self.config_widget.refresh_checkboxes(command_config.command_dict)
+            # command_config.reload()
+            self.config_widget.refresh_checkboxes(asdict(updated_checks_config))
         except ValueError as e:
             logger.critical(f"Error: {e}")
 
@@ -484,8 +485,7 @@ class MainWindow(QMainWindow):
         else:
             fn_config_changes = None
         if fn_config_changes:
-            yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)
-            config_path.reload()
+            updated_spex_config = yaml_profiles.update_config(spex_config, 'filename_values', fn_config_changes)
 
 
     def on_signalflow_profile_changed(self, index):
@@ -499,9 +499,8 @@ class MainWindow(QMainWindow):
         else:
             sn_config_changes = None
         if sn_config_changes:    
-            yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
-            yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
-            config_path.reload()
+            updated_spex_config = yaml_profiles.update_config(spex_config, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
+            updated_spex_config = yaml_profiles.update_config(updated_spex_config, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
         else:
             logger.error("Signal flow identifier not recognized, config not updated")
 

@@ -8,7 +8,9 @@ import csv
 import pandas as pd
 import plotly.graph_objs as go
 from base64 import b64encode
+from dataclasses import dataclass, asdict, replace
 from ..utils.log_setup import logger
+from ..utils.find_config import config_path, checks_config
 
 
 # Read CSV files and convert them to HTML tables
@@ -463,7 +465,7 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
     return content_summary_html
 
-def generate_final_report(video_id, source_directory, report_directory, destination_directory, command_config):
+def generate_final_report(video_id, source_directory, report_directory, destination_directory, checks_config):
     """
     Generate final HTML report if configured.
     
@@ -478,7 +480,7 @@ def generate_final_report(video_id, source_directory, report_directory, destinat
         str or None: Path to the generated HTML report, or None
     """
     # Check if report should be generated
-    if command_config.command_dict['outputs']['report'] != 'yes':
+    if asdict(checks_config)['outputs']['report'] != 'yes':
         return None
 
     try:
