@@ -4,7 +4,7 @@
 import os
 import sys
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.find_config import spex_config
 
 
 def parse_exiftool(file_path):
@@ -15,7 +15,7 @@ def parse_exiftool(file_path):
     '''
 
     # creates a dictionary of expected keys and values
-    expected_exif_values = config_path.config_dict['exiftool_values']
+    expected_exif_values = spex_config.exiftool_values
 
     if not os.path.exists(file_path):
         logger.critical(f"Cannot perform exiftool check!No such file: {file_path}")
@@ -44,7 +44,7 @@ def parse_exiftool(file_path):
 
     exiftool_differences = {}
     # Create empty list, "exiftool_differences"
-    for expected_key, expected_value in expected_exif_values.items():
+    for expected_key, expected_value in vars(expected_exif_values).items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
         if expected_key in exif_data:
             # if the key in the dictionary "General"

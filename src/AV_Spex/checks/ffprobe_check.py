@@ -7,17 +7,17 @@ import sys
 import logging
 import json
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.find_config import spex_config
 
 
 ## creates the function 'parse_exiftool' which takes the argument 'file_path' 
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_ffprobe(file_path):
     # creates a dictionary of expected keys and values
-    expected_video_values = config_path.config_dict['ffmpeg_values']['video_stream']
-    expected_audio_values = config_path.config_dict['ffmpeg_values']['audio_stream']
-    expected_format_values = config_path.config_dict['ffmpeg_values']['format']
-    expected_settings_values = config_path.config_dict['ffmpeg_values']['format']['tags']['ENCODER_SETTINGS']
+    expected_video_values = spex_config.ffmpeg_values['video_stream']
+    expected_audio_values = spex_config.ffmpeg_values['audio_stream']
+    expected_format_values = spex_config.ffmpeg_values['format']
+    expected_settings_values = spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS']
 
     if not os.path.exists(file_path):
         logger.critical(f"Cannot perform ffprobe check!No such file: {file_path}")
@@ -35,7 +35,7 @@ def parse_ffprobe(file_path):
 
     ffprobe_differences = {}
     # Create empty list, "ffprobe_differences"
-    for expected_key, expected_value in expected_video_values.items():
+    for expected_key, expected_value in vars(expected_video_values).items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
         if expected_key in ffmpeg_output['ffmpeg_video']:
             # if the key in the dictionary "General"
@@ -46,7 +46,7 @@ def parse_ffprobe(file_path):
                 # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
                 ffprobe_differences[expected_key] = [actual_value, expected_value]
 
-    for expected_key, expected_value in expected_audio_values.items():
+    for expected_key, expected_value in vars(expected_audio_values).items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
         if expected_key in ffmpeg_output['ffmpeg_audio']:
             # if the key in the dictionary "Video"
@@ -57,7 +57,7 @@ def parse_ffprobe(file_path):
                 # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
                 ffprobe_differences[expected_key] = [actual_value, expected_value]
 
-    for expected_key, expected_value in expected_format_values.items():
+    for expected_key, expected_value in vars(expected_format_values).items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"
         if expected_key not in (ffmpeg_output['format']):
             ffprobe_differences[expected_key] = ['metadata field not found', '']

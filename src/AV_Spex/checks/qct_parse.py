@@ -19,7 +19,7 @@ import operator
 import csv
 import datetime as dt
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path, command_config            
+from ..utils.find_config import spex_config, checks_config            
 
 
 # Dictionary to map the string to the corresponding operator function
@@ -29,7 +29,7 @@ operator_mapping = {
 }
 
 # init variable for config list of QCTools tags
-fullTagList = config_path.config_dict['qct-parse']['fullTagList']
+fullTagList = spex_config.qct_parse_values.fullTagList
 
 def parse_frame_data(startObj, pkt):
     '''
@@ -422,11 +422,11 @@ def getCompFromConfig(qct_parse, profile, tag):
         callable: Comparison operator (e.g., operator.lt, operator.gt).
     """
 
-    color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
+    color_bar_keys = vars(spex_config.qct_parse_values.smpte_color_bars).keys()
 
     if qct_parse['profile']:
         template = qct_parse['profile']
-        if set(profile) == set(config_path.config_dict['qct-parse']['profiles'][template]):
+        if set(profile) == set(spex_config.qct_parse_values.profiles[template]):
             return operator.lt if "MIN" in tag or "LOW" in tag else operator.gt
 
     if set(profile) == set(color_bar_keys):
@@ -612,7 +612,7 @@ def printresults(profile, kbeyond, frameCount, overallFrameFail, qctools_check_o
         else:
             return f"{percent:.2f}"
 
-    color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
+    color_bar_keys = vars(spex_config.qct_parse_values.smpte_color_bars).keys()
 
     with open(qctools_check_output, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -918,18 +918,18 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         for filter in qct_parse['contentFilter']:
             logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {filter}\n")
             contentFilter_name = filter
-            contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
+            contentFilter_dict = spex_config.qct_parse_values.content[contentFilter_name]
             qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{contentFilter_name}_summary.csv")
             detectContentFilter(startObj, pkt, contentFilter_name, contentFilter_dict, qctools_content_check_output, framesList, qct_parse, thumbPath, video_path)
 
     ######## Iterate Through the XML for General Analysis ########
     if qct_parse['profile']:
         template = qct_parse['profile'] # get the profile/ section name from the command config
-        if template in config_path.config_dict['qct-parse']['profiles']:
+        if template in spex_config.qct_parse_values.profiles:
         # If the template matches one of the profiles
             for t in tagList:
-                if t in config_path.config_dict['qct-parse']['profiles'][template]:
-                    profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
+                if t in spex_config.qct_parse_values.profiles[template]:
+                    profile[t] = spex_config.qct_parse_values.profiles[template][t]
         logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
         # set thumbExportDelay for profile check
         thumbExportDelay = 9000
@@ -988,7 +988,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
             else:
                 logger.debug(f"Starting qct-parse color bars evaluation on {baseName}\n")
                 # make maxBars vs smpte bars csv
-                smpte_color_bars = config_path.config_dict['qct-parse']['smpte_color_bars']
+                smpte_color_bars = spex_config.qct_parse_values.smpte_color_bars
                 colorbars_values_output = os.path.join(report_directory, "qct-parse_colorbars_values.csv")
                 print_color_bar_values(baseName, smpte_color_bars, maxBarsDict, colorbars_values_output)
                 # set durationStart/End, profile, profile name, and thumbExportDelay for bars evaluation check

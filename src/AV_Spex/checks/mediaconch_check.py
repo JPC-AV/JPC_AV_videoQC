@@ -23,7 +23,8 @@ def find_mediaconch_policy(checks_config, config_path):
     try:
         # Get policy filename from configuration
         policy_file = asdict(checks_config)['tools']['mediaconch']['mediaconch_policy']
-        policy_path = os.path.join(config_path.config_dir, policy_file)
+        #### NEED BETTER WAY YTO DO THIS... ####
+        policy_path = os.path.join("/Users/eddycolloton/git/JPC_AV/JPC_AV_videoQC/config", policy_file)
 
         if not os.path.exists(policy_path):
             logger.critical(f'Policy file not found: {policy_file}')

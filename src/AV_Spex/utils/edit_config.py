@@ -1,8 +1,9 @@
 import os
 import csv
 import subprocess
+from dataclasses import asdict, replace
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path, command_config
+from ..utils.find_config import spex_config, checks_config
 from ..utils import yaml_profiles
 
 def format_config_value(value, indent=0, is_nested=False):
@@ -62,9 +63,10 @@ def update_yaml_configs(selected_profile, tool_names, tools_on_names, tools_off_
 
 def print_config(print_config_profile):
     """Prints the current configuration if requested."""
+    checks_config_dict = asdict(checks_config)
     if print_config_profile:
         logger.debug("The current config profile settings are:\n")
-        for key, value in command_config.command_dict.items():
+        for key, value in checks_config_dict.items():
             logger.warning(f"{key}:")
             logger.info(f"{format_config_value(value, indent=2)}")
 

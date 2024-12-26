@@ -10,7 +10,7 @@ import plotly.graph_objs as go
 from base64 import b64encode
 from dataclasses import dataclass, asdict, replace
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path, checks_config
+from ..utils.find_config import spex_config, checks_config
 
 
 # Read CSV files and convert them to HTML tables

@@ -8,13 +8,13 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, asdict, replace
 
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path, checks_config
+from ..utils.find_config import spex_config, checks_config
 
 
 def parse_mediatrace(xml_file):
-    expected_mediatrace = config_path.config_dict['mediatrace']
+    expected_mediatrace = spex_config.mediatrace_values
 
-    expected_mt_keys = expected_mediatrace.keys()
+    expected_mt_keys = vars(expected_mediatrace).keys()
 
     expected_encoder_settings = []
     expected_encoder_settings = expected_mediatrace['ENCODER_SETTINGS']
@@ -42,7 +42,7 @@ def parse_mediatrace(xml_file):
                     break
 
     mediatrace_differences = {}
-    for expected_key, expected_value in expected_mediatrace.items():
+    for expected_key, expected_value in vars(expected_mediatrace).items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_mediatrace"
         if expected_key not in mediatrace_output: 
             mediatrace_differences[expected_key] = ['metadata field not found', '']

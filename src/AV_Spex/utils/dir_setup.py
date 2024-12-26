@@ -3,7 +3,7 @@ import sys
 import shutil
 import re
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.find_config import spex_config
 
 def validate_input_paths(input_paths, is_file_mode):
     source_directories = []

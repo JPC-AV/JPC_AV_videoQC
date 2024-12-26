@@ -1,6 +1,6 @@
 import os
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import List, Dict, Union, Optional
 
 ### Change yamls to JSON, include in package with default settings
@@ -143,6 +143,201 @@ class FFmpegFormat:
     })
 
 @dataclass
+class EncoderSettings:
+    Source_VTR: List[str] = field(default_factory=lambda: [
+        'Sony BVH3100',
+        'SN 10525',
+        'composite',
+        'analog balanced'
+    ])
+    TBC_Framesync: List[str] = field(default_factory=lambda: [
+        'Sony BVH3100',
+        'SN 10525',
+        'composite',
+        'analog balanced'
+    ])
+    ADC: List[str] = field(default_factory=lambda: [
+        'Leitch DPS575 with flash firmware h2.16',
+        'SN 15230',
+        'SDI',
+        'embedded'
+    ])
+    Capture_Device: List[str] = field(default_factory=lambda: [
+        'Blackmagic Design UltraStudio 4K Extreme',
+        'SN B022159',
+        'Thunderbolt'
+    ])
+    Computer: List[str] = field(default_factory=lambda: [
+        '2023 Mac Mini',
+        'Apple M2 Pro chip',
+        'SN H9HDW53JMV',
+        'OS 14.5',
+        'vrecord v2023-08-07',
+        'ffmpeg'
+    ])
+
+@dataclass
+class MediaTraceValues:
+    COLLECTION: Optional[str] = None
+    TITLE: Optional[str] = None
+    CATALOG_NUMBER: Optional[str] = None
+    DESCRIPTION: Optional[str] = None
+    DATE_DIGITIZED: Optional[str] = None
+    ENCODER_SETTINGS: EncoderSettings = field(default_factory=EncoderSettings)
+    ENCODED_BY: Optional[str] = None
+    ORIGINAL_MEDIA_TYPE: Optional[str] = None
+    DATE_TAGGED: Optional[str] = None
+    TERMS_OF_USE: Optional[str] = None
+    _TECHNICAL_NOTES: Optional[str] = None
+    _ORIGINAL_FPS: Optional[str] = None
+
+@dataclass
+class AllBlackContent:
+    YMAX: tuple[float, str] = field(default_factory=lambda: (300, 'lt'))
+    YHIGH: tuple[float, str] = field(default_factory=lambda: (115, 'lt'))
+    YLOW: tuple[float, str] = field(default_factory=lambda: (97, 'lt'))
+    YMIN: tuple[float, str] = field(default_factory=lambda: (6.5, 'lt'))
+
+@dataclass
+class StaticContent:
+    YMIN: tuple[float, str] = field(default_factory=lambda: (5, 'lt'))
+    YLOW: tuple[float, str] = field(default_factory=lambda: (6, 'lt'))
+    YAVG: tuple[float, str] = field(default_factory=lambda: (240, 'lt'))
+    YMAX: tuple[float, str] = field(default_factory=lambda: (1018, 'gt'))
+    YDIF: tuple[float, str] = field(default_factory=lambda: (260, 'gt'))
+    ULOW: tuple[float, str] = field(default_factory=lambda: (325, 'gt'))
+    UAVG: tuple[float, str] = field(default_factory=lambda: (509, 'gt'))
+    UHIGH: tuple[float, str] = field(default_factory=lambda: (695, 'lt'))
+    UMAX: tuple[float, str] = field(default_factory=lambda: (990, 'gt'))
+    UDIF: tuple[float, str] = field(default_factory=lambda: (138, 'gt'))
+    VMIN: tuple[float, str] = field(default_factory=lambda: (100, 'lt'))
+    VLOW: tuple[float, str] = field(default_factory=lambda: (385, 'gt'))
+    VAVG: tuple[float, str] = field(default_factory=lambda: (500, 'gt'))
+    VHIGH: tuple[float, str] = field(default_factory=lambda: (650, 'lt'))
+    VMAX: tuple[float, str] = field(default_factory=lambda: (940, 'gt'))
+    VDIF: tuple[float, str] = field(default_factory=lambda: (98, 'gt'))
+
+@dataclass
+class Content:
+    allBlack: AllBlackContent = field(default_factory=AllBlackContent)
+    static: StaticContent = field(default_factory=StaticContent)
+
+@dataclass
+class DefaultProfile:
+    YLOW: float = 64
+    YHIGH: float = 940
+    ULOW: float = 64
+    UHIGH: float = 940
+    VLOW: float = 0
+    VHIGH: float = 1023
+    SATMAX: float = 181.02
+    TOUT: float = 0.009
+    VREP: float = 0.03
+
+@dataclass
+class HighToleranceProfile:
+    YLOW: float = 40
+    YMAX: float = 1000
+    UMIN: float = 64
+    UMAX: float = 1000
+    VMIN: float = 0
+    VMAX: float = 1023
+    SATMAX: float = 181.02
+    TOUT: float = 0.009
+    VREP: float = 0.03
+
+@dataclass
+class MidToleranceProfile:
+    YLOW: float = 40
+    YMAX: float = 980
+    UMIN: float = 64
+    UMAX: float = 980
+    VMIN: float = 0
+    VMAX: float = 1023
+    SATMAX: float = 181.02
+    TOUT: float = 0.009
+    VREP: float = 0.03
+
+@dataclass
+class LowToleranceProfile:
+    YLOW: float = 64
+    YMAX: float = 940
+    UMIN: float = 64
+    UMAX: float = 940
+    VMIN: float = 0
+    VMAX: float = 1023
+    SATMAX: float = 181.02
+    TOUT: float = 0.009
+    VREP: float = 0.03
+
+@dataclass
+class Profiles:
+    default: DefaultProfile = field(default_factory=DefaultProfile)
+    highTolerance: HighToleranceProfile = field(default_factory=HighToleranceProfile)
+    midTolerance: MidToleranceProfile = field(default_factory=MidToleranceProfile)
+    lowTolerance: LowToleranceProfile = field(default_factory=LowToleranceProfile)
+
+@dataclass
+class FullTagList:
+    YMIN: Optional[float] = None
+    YLOW: Optional[float] = None
+    YAVG: Optional[float] = None
+    YHIGH: Optional[float] = None
+    YMAX: Optional[float] = None
+    UMIN: Optional[float] = None
+    ULOW: Optional[float] = None
+    UAVG: Optional[float] = None
+    UHIGH: Optional[float] = None
+    UMAX: Optional[float] = None
+    VMIN: Optional[float] = None
+    VLOW: Optional[float] = None
+    VAVG: Optional[float] = None
+    VHIGH: Optional[float] = None
+    VMAX: Optional[float] = None
+    SATMIN: Optional[float] = None
+    SATLOW: Optional[float] = None
+    SATAVG: Optional[float] = None
+    SATHIGH: Optional[float] = None
+    SATMAX: Optional[float] = None
+    HUEMED: Optional[float] = None
+    HUEAVG: Optional[float] = None
+    YDIF: Optional[float] = None
+    UDIF: Optional[float] = None
+    VDIF: Optional[float] = None
+    TOUT: Optional[float] = None
+    VREP: Optional[float] = None
+    BRNG: Optional[float] = None
+    mse_y: Optional[float] = None
+    mse_u: Optional[float] = None
+    mse_v: Optional[float] = None
+    mse_avg: Optional[float] = None
+    psnr_y: Optional[float] = None
+    psnr_u: Optional[float] = None
+    psnr_v: Optional[float] = None
+    psnr_avg: Optional[float] = None
+    Overall_Min_level: Optional[float] = None
+    Overall_Max_level: Optional[float] = None
+
+@dataclass
+class SmpteColorBars:
+    YMAX: float = 940
+    YMIN: float = 28
+    UMIN: float = 148
+    UMAX: float = 876
+    VMIN: float = 124
+    VMAX: float = 867
+    SATMIN: float = 0
+    SATMAX: float = 405
+
+@dataclass
+class QCTParseValues:
+    content: Content = field(default_factory=Content)
+    profiles: Profiles = field(default_factory=Profiles)
+    fullTagList: FullTagList = field(default_factory=FullTagList)
+    smpte_color_bars: SmpteColorBars = field(default_factory=SmpteColorBars)
+
+
+@dataclass
 class SpexConfig:
     filename_values: FilenameValues = field(default_factory=FilenameValues)
     mediainfo_values: Dict[str, Union[MediainfoGeneralValues, MediainfoVideoValues, MediainfoAudioValues]] = field(default_factory=lambda: {
@@ -156,9 +351,8 @@ class SpexConfig:
         'audio_stream': FFmpegAudioStream(),
         'format': FFmpegFormat()
     })
-
-from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Union
+    mediatrace_values: MediaTraceValues = field(default_factory=MediaTraceValues)
+    qct_parse_values: QCTParseValues = field(default_factory=QCTParseValues)
 
 @dataclass
 class FixityConfig:

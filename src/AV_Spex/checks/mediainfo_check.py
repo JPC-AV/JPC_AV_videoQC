@@ -4,15 +4,15 @@
 import os
 import sys
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.find_config import spex_config
 
 
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_mediainfo(file_path):
-    expected_general = config_path.config_dict['mediainfo_values']['expected_general']
-    expected_video = config_path.config_dict['mediainfo_values']['expected_video']
-    expected_audio = config_path.config_dict['mediainfo_values']['expected_audio']
+    expected_general = spex_config.mediainfo_values['expected_general']
+    expected_video = spex_config.mediainfo_values['expected_video']
+    expected_audio = spex_config.mediainfo_values['expected_audio']
 
     section_data = {}
     # creates empty dictionary "section_data"
@@ -79,7 +79,7 @@ def parse_mediainfo(file_path):
 
     mediainfo_differences = {}
     # Create empty list, "mediainfo_differences"
-    for expected_key, expected_value in expected_general.items():
+    for expected_key, expected_value in vars(expected_general).items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_general"
         if expected_key in section_data["General"]:
             # if the key in the dictionary "General"
@@ -90,7 +90,7 @@ def parse_mediainfo(file_path):
                 # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_general, then
                 mediainfo_differences[expected_key] = [actual_value, expected_value]
     
-    for expected_key, expected_value in expected_video.items():
+    for expected_key, expected_value in vars(expected_video).items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_video"
         if expected_key in section_data["Video"]:
             # if the key in the dictionary "Video"
@@ -101,7 +101,7 @@ def parse_mediainfo(file_path):
                 # if variable "actual_value" does not match "expected value" defined in first line as the values from the dictionary expected_video, then
                  mediainfo_differences[expected_key] = [actual_value, expected_value]
 
-    for expected_key, expected_value in expected_audio.items():
+    for expected_key, expected_value in vars(expected_audio).items():
         # defines variables "expected_key" and "expected_value" to the dictionary "expected_audio"
         if expected_key in section_data["Audio"]:
             # if the key in the dictionary "Audio"

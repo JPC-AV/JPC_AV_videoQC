@@ -70,7 +70,7 @@ def process_access_file(video_path, source_directory, video_id, checks_config):
         video_path (str): Path to the input video file
         source_directory (str): Source directory for the video
         video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
+        checks_config (object): Configuration object with tool settings
         
     Returns:
         str or None: Path to the created access file, or None
