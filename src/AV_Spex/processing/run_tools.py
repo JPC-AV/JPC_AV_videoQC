@@ -3,7 +3,8 @@ import csv
 import subprocess
 from dataclasses import dataclass, asdict, replace
 from ..utils.log_setup import logger
-from ..utils.find_config import checks_config, spex_config
+from ..utils.find_config import spex_config
+from ..utils.config_manager import with_checks_config
 
 
 def run_command(command, input_path, output_type, output_path):
@@ -21,7 +22,8 @@ def run_command(command, input_path, output_type, output_path):
     subprocess.run(full_command, shell=True, env=env)
 
 
-def run_tool_command(tool_name, video_path, destination_directory, video_id, checks_config):
+@with_checks_config
+def run_tool_command(tool_name, video_path, destination_directory, video_id, checks_config=None):
     """
     Run a specific metadata extraction tool and generate its output file.
     
@@ -53,7 +55,7 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id, che
     output_path = os.path.join(destination_directory, f'{video_id}_{tool_name}_output.{_get_file_extension(tool_name)}')
     
     # Check if tool should be run based on configuration
-    if asdict(checks_config)['tools'][tool_name]['run_tool'] == 'yes':
+    if checks_config.tools.get(tool_name).run_tool == 'yes':
         if tool_name == 'mediatrace':
             logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
         

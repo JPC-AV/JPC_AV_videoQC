@@ -4,8 +4,8 @@ import sys
 from dataclasses import dataclass, asdict, replace
 
 from ..utils.log_setup import logger
-from ..utils.find_config import checks_config, spex_config
-
+from ..utils.find_config import spex_config
+from ..utils.config_manager import with_checks_config
 
 def get_duration(video_path):
     command = [
@@ -61,8 +61,8 @@ def make_access_file(video_path, output_path):
     except Exception as e:
         logger.error(f"Error during ffmpeg process: {str(e)}")
 
-
-def process_access_file(video_path, source_directory, video_id, checks_config):
+@with_checks_config
+def process_access_file(video_path, source_directory, video_id, checks_config=None):
     """
     Generate access file if configured and not already existing.
     
@@ -76,7 +76,7 @@ def process_access_file(video_path, source_directory, video_id, checks_config):
         str or None: Path to the created access file, or None
     """
     # Check if access file should be generated
-    if asdict(checks_config)['outputs']['access_file'] != 'yes':
+    if checks_config.outputs.get("access_file") != 'yes':
         return None
 
     access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')

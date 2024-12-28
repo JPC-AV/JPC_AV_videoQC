@@ -8,8 +8,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, asdict, replace
 
 from ..utils.log_setup import logger
-from ..utils.find_config import spex_config, checks_config
-
+from ..utils.find_config import spex_config
 
 def parse_mediatrace(xml_file):
     expected_mediatrace = spex_config.mediatrace_values
