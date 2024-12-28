@@ -2,6 +2,7 @@ import os
 import sys
 import shutil
 import re
+from dataclasses import dataclass, asdict
 from ..utils.log_setup import logger
 from ..utils.find_config import spex_config
 
@@ -150,7 +151,7 @@ def is_valid_filename(video_filename):
     valid_filename = False
     
     # Reads filename_values from config.yaml into dictionary approved_values
-    approved_values = config_path.config_dict['filename_values']
+    approved_values = asdict(spex_config.filename_values)
 
     # Get only the base filename (not the full path)
     base_filename = os.path.basename(video_filename)

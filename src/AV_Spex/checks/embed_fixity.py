@@ -249,12 +249,12 @@ def process_embedded_fixity(video_path):
         embed_fixity(video_path)
     else:
         logger.critical("Existing stream hashes found!")
-        if asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+        if asdict(checks_config)['fixity']['overwrite_stream_fixity'] == 'yes':
             logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
             embed_fixity(video_path)
-        elif asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
+        elif asdict(checks_config)['fixity']['overwrite_stream_fixity'] == 'no':
             logger.error('Not writing stream hashes to MKV\n')
-        elif asdict(checks_config)['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
+        elif asdict(checks_config)['fixity']['overwrite_stream_fixity'] == 'ask me':
             # User input for handling existing stream hashes
             while True:
                 user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")

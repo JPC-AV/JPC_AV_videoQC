@@ -9,7 +9,7 @@ from dataclasses import dataclass, asdict, replace
 from ..utils.log_setup import logger
 from ..utils.find_config import checks_config, spex_config
 
-def find_mediaconch_policy(checks_config, config_path):
+def find_mediaconch_policy(checks_config):
     """
     Find and validate the MediaConch policy file.
     

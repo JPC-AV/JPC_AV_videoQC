@@ -28,21 +28,21 @@ def process_fixity(source_directory, video_path, video_id):
         command_config (object): Configuration object with fixity settings
     """
     # Embed stream fixity if required
-    if asdict(checks_config)['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+    if asdict(checks_config)['fixity']['embed_stream_fixity'] == 'yes':
         process_embedded_fixity(video_path)
 
     # Validate stream hashes if required
-    if asdict(checks_config)['outputs']['fixity']['check_stream_fixity'] == 'yes':
+    if asdict(checks_config)['fixity']['check_stream_fixity'] == 'yes':
         validate_embedded_md5(video_path)
 
     # Initialize md5_checksum variable, so it is 'None' if not assigned in output_fixity
     md5_checksum = None
     # Create checksum for video file and output results
-    if asdict(checks_config)['outputs']['fixity']['output_fixity'] == 'yes':
+    if asdict(checks_config)['fixity']['output_fixity'] == 'yes':
         md5_checksum = output_fixity(source_directory, video_path)
 
     # Verify stored checksum and write results
-    if asdict(checks_config)['outputs']['fixity']['check_fixity'] == 'yes':
+    if asdict(checks_config)['fixity']['check_fixity'] == 'yes':
         check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
 
 
@@ -66,7 +66,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     }
 
     # Check if QCTools should be run
-    if asdict(checks_config)['tools']['qctools']['run_qctools'] != 'yes':
+    if asdict(checks_config)['tools']['qctools']['run_tool'] != 'yes':
         return results
 
     # Prepare QCTools output path
@@ -173,7 +173,7 @@ def check_tool_metadata(tool_name, output_path, checks_config):
     }
 
     # Check if tool metadata checking is enabled
-    if output_path and asdict(checks_config)['tools'][tool_name][f'check_{tool_name}'] == 'yes':
+    if output_path and asdict(checks_config)['tools'][tool_name]['check_tool'] == 'yes':
         parse_function = parse_functions.get(tool_name)
         if parse_function:
             return parse_function(output_path)
@@ -213,7 +213,7 @@ def process_video_metadata(video_path, destination_directory, video_id, checks_c
     return metadata_differences
 
 
-def validate_video_with_mediaconch(video_path, destination_directory, video_id, checks_config, config_path):
+def validate_video_with_mediaconch(video_path, destination_directory, video_id, checks_config):
     """
     Coordinate the entire MediaConch validation process.
     
@@ -233,7 +233,7 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id, 
         return {}
 
     # Find the policy file
-    policy_path = find_mediaconch_policy(checks_config, config_path)
+    policy_path = find_mediaconch_policy(checks_config)
     if not policy_path:
         return {}
 

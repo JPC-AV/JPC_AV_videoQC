@@ -35,29 +35,17 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id, che
     Returns:
         str or None: Path to the output file, or None if tool is not run
     """
-    # Define tool-specific command configurations
+    # Define tool-specific commands
     tool_commands = {
-        'exiftool': {
-            'command': 'exiftool',
-            'config_key': 'run_exiftool'
-        },
-        'mediainfo': {
-            'command': 'mediainfo -f',
-            'config_key': 'run_mediainfo'
-        },
-        'mediatrace': {
-            'command': 'mediainfo --Details=1 --Output=XML',
-            'config_key': 'run_mediatrace'
-        },
-        'ffprobe': {
-            'command': 'ffprobe -v error -hide_banner -show_format -show_streams -print_format json',
-            'config_key': 'run_ffprobe'
-        }
+        'exiftool': 'exiftool',
+        'mediainfo': 'mediainfo -f',
+        'mediatrace': 'mediainfo --Details=1 --Output=XML',
+        'ffprobe': 'ffprobe -v error -hide_banner -show_format -show_streams -print_format json'
     }
 
-    # Check if the tool is configured to run
-    tool_config = tool_commands.get(tool_name)
-    if not tool_config:
+    # Check if the tool is configured
+    command = tool_commands.get(tool_name)
+    if not command:
         logger.error(f"tool command is not configured correctly: {tool_name}")
         return None
 
@@ -65,12 +53,12 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id, che
     output_path = os.path.join(destination_directory, f'{video_id}_{tool_name}_output.{_get_file_extension(tool_name)}')
     
     # Check if tool should be run based on configuration
-    if asdict(checks_config)['tools'][tool_name][tool_config['config_key']] == 'yes':
+    if asdict(checks_config)['tools'][tool_name]['run_tool'] == 'yes':
         if tool_name == 'mediatrace':
             logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
         
         # Run the tool command
-        run_command(tool_config['command'], video_path, '>', output_path)
+        run_command(command, video_path, '>', output_path)
         
         return output_path if os.path.isfile(output_path) else None
     

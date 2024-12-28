@@ -17,7 +17,7 @@ def parse_mediatrace(xml_file):
     expected_mt_keys = vars(expected_mediatrace).keys()
 
     expected_encoder_settings = []
-    expected_encoder_settings = expected_mediatrace['ENCODER_SETTINGS']
+    expected_encoder_settings = expected_mediatrace.ENCODER_SETTINGS
 
     # Parse the XML file
     tree = ET.parse(xml_file)
