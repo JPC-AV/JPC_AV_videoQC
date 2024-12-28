@@ -141,12 +141,12 @@ class ConfigWindow(QWidget):
         
         if state == Qt.CheckState.Checked:
             logger.debug(f"Checkbox '{command_name}' is Checked.")
-            # Call the backend function for 'on' state
-            yaml_profiles.checkbox_on(self.checks_config, command_name, 'on')
+            # Use 'yes' instead of 'on' to match your config values
+            self.checks_config = yaml_profiles.checkbox_on(self.checks_config, command_name, 'yes')
         elif state == Qt.CheckState.Unchecked:
             logger.debug(f"Checkbox '{command_name}' is Unchecked.")
-            # Call the backend function for 'off' state
-            yaml_profiles.checkbox_on(self.checks_config, command_name, 'off')
+            # Use 'no' instead of 'off' to match your config values
+            self.checks_config = yaml_profiles.checkbox_on(self.checks_config, command_name, 'no')
 
 
 class MainWindow(QMainWindow):

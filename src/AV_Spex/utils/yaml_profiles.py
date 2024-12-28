@@ -163,33 +163,39 @@ def checkbox_on(checks_config: ChecksConfig, command_name: str, state: str) -> C
     Parameters:
         checks_config (ChecksConfig): An instance of the ChecksConfig class.
         command_name (str): The key to find and update its value.
-        state (str): Either "on" or "off". Determines the value to set.
+        state (str): Either "yes" or "no". Determines the value to set.
 
     Returns:
         ChecksConfig: Updated ChecksConfig instance.
     """
-    if state not in ["on", "off"]:
-        raise ValueError("Invalid state. Use 'on' or 'off'.")
+    if state not in ["yes", "no"]:
+        raise ValueError("Invalid state. Use 'yes' or 'no'.")
 
-    new_value = 'yes' if state == 'on' else 'no'
+    new_value = state  # We're already passing 'yes' or 'no'
 
     def update_dict(d):
         """Helper function to recursively update the dictionary."""
+        updated = False
         for key, value in d.items():
             if isinstance(value, dict):  # If the value is a dictionary, recurse into it.
-                update_dict(value)
+                if update_dict(value):
+                    updated = True
             elif key == command_name:  # If the key matches, update the value.
-                d[key] = new_value
-                logger.info(f"{command_name} set to '{state}'")
+                if d[key] != new_value:  # Only update if value is different
+                    d[key] = new_value
+                    logger.info(f"{command_name} set to '{state}'")
+                    updated = True
+        return updated
 
     # Convert the dataclass to a dictionary for manipulation
     config_dict = asdict(checks_config)
 
     # Update the dictionary
-    update_dict(config_dict)
-
-    # Create a new ChecksConfig instance with updated values
-    return ChecksConfig(**config_dict)
+    if update_dict(config_dict):
+        # Create a new ChecksConfig instance with updated values
+        return ChecksConfig(**config_dict)
+    
+    return checks_config  # Return original if no updates were made
 
 
 profile_step1 = {
