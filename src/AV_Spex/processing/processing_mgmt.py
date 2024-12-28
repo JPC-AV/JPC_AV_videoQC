@@ -4,7 +4,7 @@ from dataclasses import dataclass, asdict, replace
 from ..processing import run_tools
 from ..utils import dir_setup
 from ..utils.log_setup import logger
-from ..utils.find_config import checks_config, spex_config
+from ..utils.config_manager import with_checks_config
 from ..utils.generate_report import generate_final_report
 from ..checks.fixity_check import check_fixity, output_fixity
 from ..checks.mediainfo_check import parse_mediainfo
@@ -17,7 +17,8 @@ from ..checks.qct_parse import run_qctparse
 from ..checks.mediaconch_check import find_mediaconch_policy, run_mediaconch_command, parse_mediaconch_output
 
 
-def process_fixity(source_directory, video_path, video_id):
+@with_checks_config
+def process_fixity(source_directory, video_path, video_id, checks_config=None):
     """
     Orchestrates the entire fixity process, including embedded and file-level operations.
 
@@ -28,37 +29,39 @@ def process_fixity(source_directory, video_path, video_id):
         command_config (object): Configuration object with fixity settings
     """
     # Embed stream fixity if required
-    if asdict(checks_config)['fixity']['embed_stream_fixity'] == 'yes':
+    if checks_config.fixity.embed_stream_fixity == 'yes':
         process_embedded_fixity(video_path)
 
     # Validate stream hashes if required
-    if asdict(checks_config)['fixity']['check_stream_fixity'] == 'yes':
+    if checks_config.fixity.check_stream_fixity == 'yes':
         validate_embedded_md5(video_path)
 
     # Initialize md5_checksum variable, so it is 'None' if not assigned in output_fixity
     md5_checksum = None
     # Create checksum for video file and output results
-    if asdict(checks_config)['fixity']['output_fixity'] == 'yes':
+    if checks_config.fixity.output_fixity == 'yes':
         md5_checksum = output_fixity(source_directory, video_path)
 
     # Verify stored checksum and write results
-    if asdict(checks_config)['fixity']['check_fixity'] == 'yes':
+    if checks_config.fixity.check_fixity == 'yes':
         check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
 
 
-def process_qctools_output(video_path, source_directory, destination_directory, video_id, checks_config, report_directory=None):
+@with_checks_config
+def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None, checks_config=None):
     """
     Process QCTools output, including running QCTools and optional parsing.
     
     Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
-        report_directory (str, optional): Directory to save reports
+        video_path (str): Path to the input video file.
+        source_directory (str): Source directory for the video.
+        destination_directory (str): Directory to store output files.
+        video_id (str): Unique identifier for the video.
+        report_directory (str, optional): Directory to save reports.
+        checks_config: Injected by @with_checks_config for configuration.
         
     Returns:
-        dict: Processing results and paths
+        dict: Processing results and paths.
     """
     results = {
         'qctools_output_path': None,
@@ -66,12 +69,12 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     }
 
     # Check if QCTools should be run
-    if asdict(checks_config)['tools']['qctools']['run_tool'] != 'yes':
+    if checks_config.tools.get("qctools").run_tool != 'yes':
         return results
 
     # Prepare QCTools output path
-    qctools_ext = asdict(checks_config)['outputs']['qctools_ext']
-    qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
+    qctools_ext = checks_config.outputs.get("qctools_ext", "qctools.xml")  # Default to "qctools.xml" if not defined
+    qctools_output_path = os.path.join(destination_directory, f"{video_id}.{qctools_ext}")
     
     try:
         # Run QCTools command
@@ -80,19 +83,19 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         results['qctools_output_path'] = qctools_output_path
 
         # Check QCTools output if configured
-        if asdict(checks_config)['tools']['qctools']['check_qctools'] == 'yes':
+        if checks_config.tools.get("qctools").check_qctools == 'yes':
             # Ensure report directory exists
             if not report_directory:
                 report_directory = dir_setup.make_report_dir(source_directory, video_id)
 
             # Verify QCTools output file exists
             if not os.path.isfile(qctools_output_path):
-                logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
+                logger.critical(f"Unable to check QCTools report. No file found at: {qctools_output_path}\n")
                 return results
 
             # Run QCTools parsing
             run_qctparse(video_path, qctools_output_path, report_directory)
-            # currently not using results['qctools_check_output']
+            # Currently, not using results['qctools_check_output']
 
     except Exception as e:
         logger.critical(f"Error processing QCTools output: {e}")
@@ -100,23 +103,23 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     return results
 
 
-def process_video_outputs(video_path, source_directory, destination_directory, video_id, checks_config, metadata_differences):
+
+@with_checks_config
+def process_video_outputs(video_path, source_directory, destination_directory, video_id, metadata_differences, checks_config=None):
     """
     Coordinate the entire output processing workflow.
     
     Args:
-        video_path (str): Path to the input video file
-        source_directory (str): Source directory for the video
-        destination_directory (str): Destination directory for output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
-        metadata_differences (dict): Differences found in metadata checks
+        video_path (str): Path to the input video file.
+        source_directory (str): Source directory for the video.
+        destination_directory (str): Destination directory for output files.
+        video_id (str): Unique identifier for the video.
+        metadata_differences (dict): Differences found in metadata checks.
+        checks_config: Injected by @with_checks_config for configuration.
         
     Returns:
-        dict: Processing results and file paths
+        dict: Processing results and file paths.
     """
-
-    # Collect processing results
     processing_results = {
         'metadata_diff_report': None,
         'qctools_output': None,
@@ -126,17 +129,14 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
 
     # Create report directory if report is enabled
     report_directory = None
-    if asdict(checks_config)['outputs']['report'] == 'yes':
+    if checks_config.outputs.get("report") == 'yes':
         report_directory = dir_setup.make_report_dir(source_directory, video_id)
-        # Process metadata differences report
         processing_results['metadata_diff_report'] = create_metadata_difference_report(
-                metadata_differences, report_directory, video_id
-            )
-    else:
-         processing_results['metadata_diff_report'] =  None
+            metadata_differences, report_directory, video_id
+        )
 
     # Process QCTools output
-    process_qctools_output(
+    processing_results['qctools_output'] = process_qctools_output(
         video_path, source_directory, destination_directory, video_id, checks_config, report_directory
     )
 
@@ -152,19 +152,20 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
 
     return processing_results
 
-def check_tool_metadata(tool_name, output_path, checks_config):
+
+@with_checks_config
+def check_tool_metadata(tool_name, output_path, checks_config=None):
     """
     Check metadata for a specific tool if configured.
     
     Args:
-        tool_name (str): Name of the tool
-        output_path (str): Path to the tool's output file
-        command_config (object): Configuration object with tool settings
+        tool_name (str): Name of the tool.
+        output_path (str): Path to the tool's output file.
+        checks_config: Injected by @with_checks_config for configuration.
         
     Returns:
-        dict or None: Differences found by parsing the tool's output, or None
+        dict or None: Differences found by parsing the tool's output, or None.
     """
-    # Mapping of tool names to their parsing functions
     parse_functions = {
         'exiftool': parse_exiftool,
         'mediainfo': parse_mediainfo,
@@ -173,47 +174,45 @@ def check_tool_metadata(tool_name, output_path, checks_config):
     }
 
     # Check if tool metadata checking is enabled
-    if output_path and asdict(checks_config)['tools'][tool_name]['check_tool'] == 'yes':
+    if output_path and checks_config.tools.get(tool_name).check_tool == 'yes':
         parse_function = parse_functions.get(tool_name)
         if parse_function:
             return parse_function(output_path)
-    
+
     return None
 
 
-def process_video_metadata(video_path, destination_directory, video_id, checks_config):
+@with_checks_config
+def process_video_metadata(video_path, destination_directory, video_id, checks_config=None):
     """
     Main function to process video metadata using multiple tools.
     
     Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
+        video_path (str): Path to the input video file.
+        destination_directory (str): Directory to store output files.
+        video_id (str): Unique identifier for the video.
+        checks_config: Injected by @with_checks_config for configuration.
         
     Returns:
-        dict: Dictionary of metadata differences from various tools
+        dict: Dictionary of metadata differences from various tools.
     """
-    # List of tools to process
     tools = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
-    
-    # Store differences for each tool
     metadata_differences = {}
-    
-    # Process each tool
+
     for tool in tools:
         # Run tool and get output path
         output_path = run_tools.run_tool_command(tool, video_path, destination_directory, video_id, checks_config)
-        
+
         # Check metadata and store differences
         differences = check_tool_metadata(tool, output_path, checks_config)
         if differences:
             metadata_differences[tool] = differences
-    
+
     return metadata_differences
 
 
-def validate_video_with_mediaconch(video_path, destination_directory, video_id, checks_config):
+@with_checks_config
+def validate_video_with_mediaconch(video_path, destination_directory, video_id, checks_config=None):
     """
     Coordinate the entire MediaConch validation process.
     

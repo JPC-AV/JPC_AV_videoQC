@@ -249,8 +249,15 @@ def process_directories(source_directories):
         process_single_directory(source_directory)
 
 
-def process_single_directory(source_directory):
-
+@with_checks_config
+def process_single_directory(source_directory, checks_config=None):
+    """
+    Process a single source directory for video processing tasks.
+    
+    Args:
+        source_directory (str): Directory to process.
+        checks_config: Injected by @with_checks_config for configuration.
+    """
     # Display initial processing banner
     display_processing_banner()
 
@@ -261,22 +268,26 @@ def process_single_directory(source_directory):
     # Unpack the returned values
     video_path, video_id, destination_directory, access_file_found = init_dir_result
 
+    # Process fixity
     processing_mgmt.process_fixity(source_directory, video_path, video_id)
 
+    # Validate video with mediaconch
     mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
-    video_path, 
-    destination_directory, 
-    video_id, 
-    checks_config, 
+        video_path, 
+        destination_directory, 
+        video_id, 
+        checks_config
     )
 
+    # Process video metadata
     metadata_differences = processing_mgmt.process_video_metadata(
         video_path, 
         destination_directory, 
         video_id, 
         checks_config
-        )
+    )
 
+    # Process video outputs
     processing_results = processing_mgmt.process_video_outputs(
         video_path,
         source_directory,
@@ -286,7 +297,10 @@ def process_single_directory(source_directory):
         metadata_differences
     )
 
-    logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
+    logger.debug(
+        "Any warnings on metadata are for guidance only. "
+        "Ignore them if they are not relevant to your workflow."
+    )
 
     # Display final processing banner
     display_processing_banner(video_id)

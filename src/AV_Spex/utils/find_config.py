@@ -3,29 +3,6 @@ import json
 from dataclasses import dataclass, asdict, field
 from typing import List, Dict, Union, Optional
 
-### Change yamls to JSON, include in package with default settings
-### Have default loading for now - hopefully easy to keep last used settings
-## Could involve writing to the JSON?
-### Rely on cli config changes - potentially 
-
-# import SpexConfig
-# spex_config = SpexConfig()
-# Access the width from ffmpeg video stream
-#    expected_width = spex_config.ffmpeg_values['video_stream'].width
-#    print(f"Expected video width: {expected_width}")
-
-
-# # Create a config with all defaults
-# checks_config = ChecksConfig()
-
-# # Access specific values
-# print(checks_config.outputs['qctools_ext'])  # 'qctools.xml.gz'
-# print(checks_config.tools['exiftool'].run_tool)  # 'yes'
-# print(checks_config.tools['mediaconch']['mediaconch_policy'])  # 'JPC_AV_NTSC_MKV_2024-09-20.xml'
-
-# # Modify a value
-# checks_config.tools['exiftool'].run_tool = 'no'
-# checks_config.tools['qct-parse'].barsDetection = False
 
 @dataclass
 class FilenameValues:
