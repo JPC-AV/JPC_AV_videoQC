@@ -404,7 +404,7 @@ checks_config = ChecksConfig()
 from ..utils.config_manager import ConfigManager
 ConfigManager.initialize(checks_config)
 # Export the get_config function for convenience
-get_config = ConfigManager.get_config
+get_checks_config = ConfigManager.get_config
 
 
 spex_config = SpexConfig()

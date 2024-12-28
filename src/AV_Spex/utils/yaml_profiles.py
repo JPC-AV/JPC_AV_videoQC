@@ -2,87 +2,111 @@ import argparse
 from dataclasses import asdict, replace
 from ..utils.find_config import SpexConfig, ChecksConfig
 from ..utils.log_setup import logger
+from ..utils.config_manager import with_checks_config
 
 
 # Function to apply profile changes
-def apply_profile(checks_config: ChecksConfig, selected_profile: dict) -> ChecksConfig:
-    # Convert the current dataclass to a dictionary for easier manipulation
-    config_dict = asdict(checks_config)
+@with_checks_config
+def apply_profile(selected_profile, checks_config=None):
+    """
+    Apply profile changes to the given ChecksConfig instance.
 
+    :param selected_profile: The profile containing updates for outputs and tools.
+    :param checks_config: The ChecksConfig instance provided by the @with_checks_config decorator.
+    """
     # Update outputs
     if 'outputs' in selected_profile:
         for output, output_settings in selected_profile["outputs"].items():
-            if output in config_dict["outputs"]:
+            if output in checks_config.outputs:
                 if isinstance(output_settings, dict):
-                    # If output setting is a nested dictionary (like fixity)
-                    config_dict["outputs"][output].update(output_settings)
+                    checks_config.outputs[output].update(output_settings)
                 else:
-                    # If output setting is a simple value
-                    config_dict["outputs"][output] = output_settings
+                    checks_config.outputs[output] = output_settings
 
     # Update tools
     if 'tools' in selected_profile:
         for tool, updates in selected_profile["tools"].items():
-            if tool in config_dict["tools"]:
-                # Handle different tool types (ToolCheckConfig vs dict)
-                if isinstance(config_dict["tools"][tool], dict):
-                    config_dict["tools"][tool].update(updates)
-                else:
-                    # For ToolCheckConfig, update individual attributes
+            if tool in checks_config.tools:
+                tool_config = checks_config.tools[tool]
+                if isinstance(tool_config, dict):
+                    tool_config.update(updates)
+                elif hasattr(tool_config, "__dict__"):
                     for key, value in updates.items():
-                        setattr(config_dict["tools"][tool], key, value)
-
-    # Create a new ChecksConfig instance with updated values
-    return ChecksConfig(**config_dict)
+                        if hasattr(tool_config, key):
+                            setattr(tool_config, key, value)
 
 
-def apply_by_name(checks_config: ChecksConfig, tool_names: list[str]) -> ChecksConfig:
+@with_checks_config
+def apply_by_name(tool_names, checks_config=None):
+    """
+    Apply a profile by enabling specific tools while turning others off.
+
+    :param tool_names: A list of tool names to enable.
+    :param checks_config: The ChecksConfig instance provided by the @with_checks_config decorator.
+    """
     # Turn everything off initially
-    checks_config = apply_profile(checks_config, profile_allOff)
+    profile_all_off = {
+        "tools": {tool: {"run_tool": "no", "check_tool": "no"} for tool in checks_config.tools}
+    }
+    apply_profile(profile_all_off, checks_config=checks_config)
 
-    # Initialize the tool_profile dictionary
+    # Create a profile to enable the selected tools
     tool_profile = {"tools": {}}
 
     for tool in tool_names:
-        # Check if the tool exists in the checks_config
-        if tool in asdict(checks_config)["tools"]:
+        # Check if the tool exists in checks_config
+        if tool in checks_config.tools:
             tool_profile["tools"][tool] = {
-                subfield: "yes" for subfield in asdict(checks_config)["tools"][tool]
+                subfield: "yes" for subfield in checks_config.tools[tool].__dict__
             }
             logger.debug(f"{tool} set to 'on'")
 
     # Apply the selective changes
-    return apply_profile(checks_config, tool_profile)
-
-# Example usage
-# updated_config = apply_by_name(checks_config, ["tool1", "tool2"])
+    apply_profile(tool_profile, checks_config=checks_config)
 
 
-def toggle_on(checks_config: ChecksConfig, tool_names: list[str]) -> ChecksConfig:
+@with_checks_config
+def toggle_on(tool_names, checks_config=None):
+    """
+    Enable specific tools by setting all their subfields to 'yes'.
 
-     # Initialize the tool_profile dictionary
+    :param tool_names: A list of tool names to enable.
+    :param checks_config: The ChecksConfig instance provided by the @with_checks_config decorator.
+    """
     tool_profile = {"tools": {}}
 
     for tool in tool_names:
-        # Check if the tool exists in the checks_config
-        if tool in asdict(checks_config)["tools"]:
+        # Check if the tool exists in checks_config
+        if tool in checks_config.tools:
             tool_profile["tools"][tool] = {
-                subfield: "yes" for subfield in asdict(checks_config)["tools"][tool]
+                subfield: "yes" for subfield in checks_config.tools[tool].__dict__
             }
             logger.debug(f"{tool} set to 'on'")
 
+    # Apply the changes
+    apply_profile(tool_profile, checks_config=checks_config)
 
-def toggle_off(checks_config: ChecksConfig, tool_names: list[str]) -> ChecksConfig:
 
-    tool_profile = {"tools": {}}  # Initialize the tool_profile dictionary
+@with_checks_config
+def toggle_off(tool_names, checks_config=None):
+    """
+    Disable specific tools by setting all their subfields to 'no'.
+
+    :param tool_names: A list of tool names to disable.
+    :param checks_config: The ChecksConfig instance provided by the @with_checks_config decorator.
+    """
+    tool_profile = {"tools": {}}
 
     for tool in tool_names:
-        # Check if the tool exists in the command_config
-        if tool in asdict(checks_config)["tools"]:
+        # Check if the tool exists in checks_config
+        if tool in checks_config.tools:
             tool_profile["tools"][tool] = {
-                subfield: "yes" for subfield in asdict(checks_config)["tools"][tool]
+                subfield: "no" for subfield in checks_config.tools[tool].__dict__
             }
             logger.debug(f"{tool} set to 'off'")
+
+    # Apply the changes
+    apply_profile(tool_profile, checks_config=checks_config)
 
 
 def update_config(checks_config: ChecksConfig, nested_key: str, value_dict: dict) -> ChecksConfig:

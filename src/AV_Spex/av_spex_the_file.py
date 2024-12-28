@@ -27,11 +27,11 @@ from .utils import dir_setup
 from .utils import edit_config
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from .utils.find_config import spex_config, get_config
+from .utils.find_config import spex_config, get_checks_config
 from .utils import yaml_profiles
 from .utils.generate_report import write_html_report
 from .utils.gui_setup import ConfigWindow, MainWindow
-from .utils.config_manager import with_config
+from .utils.config_manager import with_checks_config
 
 
 @dataclass
@@ -330,8 +330,8 @@ def run_cli_mode(args):
         sys.exit(1)
 
 
-@with_config
-def run_avspex(source_directories, config=None):
+@with_checks_config
+def run_avspex(source_directories, checks_config=None):
     '''
     av-spex takes 1 input file or directory as an argument, like this:
     av-spex <input_directory> (or -f <input_file.mkv>)
@@ -356,7 +356,8 @@ def run_avspex(source_directories, config=None):
 
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
-def main_gui():
+@with_checks_config
+def main_gui(checks_config=None):
     app = QApplication(sys.argv)
     checks_config_dict = asdict(checks_config)
     while True:
@@ -386,7 +387,7 @@ def main():
     # Default behavior based on command-line arguments
     args = parse_arguments()
 
-    checks_config = get_config()
+    checks_config = get_checks_config()
 
     if args.gui or (args.source_directories is None and not sys.argv[1:]):
         main_gui()
