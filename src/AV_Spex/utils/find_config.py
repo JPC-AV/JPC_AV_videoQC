@@ -397,7 +397,14 @@ class ChecksConfig:
         'qctools': ToolCheckConfig(check_tool='no', run_tool='no'),
         'qct-parse': QctParseConfig()
     })
+    pass
 
 # Create a config with all defaults
 checks_config = ChecksConfig()
+from ..utils.config_manager import ConfigManager
+ConfigManager.initialize(checks_config)
+# Export the get_config function for convenience
+get_config = ConfigManager.get_config
+
+
 spex_config = SpexConfig()

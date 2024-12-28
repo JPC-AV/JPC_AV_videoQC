@@ -12,6 +12,7 @@ from dataclasses import asdict
 
 from ..utils.find_config import checks_config, spex_config
 from ..utils.log_setup import logger
+from ..utils.config_manager import ConfigManager
 from ..utils import yaml_profiles
 
 
@@ -62,10 +63,10 @@ class DirectoryListWidget(QListWidget):
 
 
 class ConfigWindow(QWidget):
-    def __init__(self, checks_config_dict, checks_config):
+    def __init__(self):
         super().__init__()
-        self.checks_config_dict = checks_config_dict
-        self.checks_config = checks_config
+        self.checks_config = ConfigManager.get_config()
+        self.checks_config_dict = self._create_config_dict()
 
         # Create the main layout only once
         self.main_layout = QVBoxLayout(self)
@@ -73,6 +74,10 @@ class ConfigWindow(QWidget):
 
         # Populate the UI
         self.init_ui()
+
+    def _create_config_dict(self):
+        checks_config_dict = asdict(checks_config)
+        return checks_config_dict
 
     def init_ui(self):
         # Populate the layout with widgets based on the config dictionary
@@ -136,17 +141,67 @@ class ConfigWindow(QWidget):
 
     def on_checkbox_changed(self, value, command_name):
         """Handle changes in checkbox state."""
-        # Convert the state to a Qt CheckState
         state = Qt.CheckState(value)
         
-        if state == Qt.CheckState.Checked:
-            logger.debug(f"Checkbox '{command_name}' is Checked.")
-            # Use 'yes' instead of 'on' to match your config values
-            self.checks_config = yaml_profiles.checkbox_on(self.checks_config, command_name, 'yes')
-        elif state == Qt.CheckState.Unchecked:
-            logger.debug(f"Checkbox '{command_name}' is Unchecked.")
-            # Use 'no' instead of 'off' to match your config values
-            self.checks_config = yaml_profiles.checkbox_on(self.checks_config, command_name, 'no')
+        # Handle boolean values for QctParse config
+        if command_name in ['bars_detection', 'evaluate_bars', 'thumb_export']:
+            new_value = state == Qt.CheckState.Checked
+        else:
+            new_value = 'yes' if state == Qt.CheckState.Checked else 'no'
+        
+        config_path = self._get_config_path(command_name)
+        if config_path:
+            try:
+                ConfigManager.update_config(config_path, new_value)
+                logger.debug(f"Updated {command_name} to {new_value}")
+            except Exception as e:
+                logger.error(f"Failed to update config: {e}")
+        else:
+            logger.error(f"Could not find configuration path for {command_name}")
+
+
+    def _get_config_path(self, command_name):
+        """
+        Map UI command names to configuration paths
+        Returns the appropriate path for updating values in the nested configuration
+        """
+        # Outputs section
+        if command_name in ['access_file', 'report']:
+            return f'outputs.{command_name}'
+        
+        # Fixity section
+        if command_name in ['check_fixity', 'check_stream_fixity', 'embed_stream_fixity', 
+                          'output_fixity', 'overwrite_stream_fixity']:
+            return f'fixity.{command_name}'
+        
+        # Tools section - ToolCheckConfig tools
+        if command_name in ['exiftool', 'ffprobe', 'mediainfo', 'mediatrace', 'qctools']:
+            # Handle both check_tool and run_tool - this assumes the checkbox name includes the specific action
+            if command_name.endswith('_check'):
+                tool_name = command_name.replace('_check', '')
+                return f'tools.{tool_name}.check_tool'
+            else:
+                return f'tools.{tool_name}.run_tool'
+        
+        # Mediaconch (special case as it's a dict)
+        if command_name == 'run_mediaconch':
+            return 'tools.mediaconch.run_mediaconch'
+        
+        # QctParse config
+        qct_parse_booleans = {
+            'bars_detection': 'tools.qct-parse.barsDetection',
+            'evaluate_bars': 'tools.qct-parse.evaluateBars',
+            'thumb_export': 'tools.qct-parse.thumbExport'
+        }
+        if command_name in qct_parse_booleans:
+            return qct_parse_booleans[command_name]
+
+        # If no mapping is found, log a warning and return None
+        logger.warning(f"No configuration path mapping found for command: {command_name}")
+        return None
+    
+    def update_mediaconch_policy(self, new_path):
+        ConfigManager.update_config('tools.mediaconch.mediaconch_policy', new_path)
 
 
 class MainWindow(QMainWindow):

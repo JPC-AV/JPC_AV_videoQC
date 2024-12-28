@@ -27,11 +27,11 @@ from .utils import dir_setup
 from .utils import edit_config
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from .utils.find_config import spex_config, checks_config
+from .utils.find_config import spex_config, get_config
 from .utils import yaml_profiles
 from .utils.generate_report import write_html_report
 from .utils.gui_setup import ConfigWindow, MainWindow
-
+from .utils.config_manager import with_config
 
 
 @dataclass
@@ -254,10 +254,6 @@ def process_single_directory(source_directory):
     # Display initial processing banner
     display_processing_banner()
 
-    # Use processing timer for tracking
-    #with create_processing_timer() as timer:
-     #   try:
-            # Call the new prep_directory function
     init_dir_result = dir_setup.initialize_directory(source_directory)
     if init_dir_result is None:
         return  # Skip to the next source_directory if preparation failed
@@ -295,15 +291,8 @@ def process_single_directory(source_directory):
     # Display final processing banner
     display_processing_banner(video_id)
 
-#   except Exception as e:
-#      logger.critical(f"Error processing directory {source_directory}: {e}")
-#    return None
-# finally:
     # Optional brief pause between directory processing
     time.sleep(1)
-
-    # Log processing time
-    #timer.log_time_details(video_id)
 
 
 def print_av_spex_logo():
@@ -341,7 +330,8 @@ def run_cli_mode(args):
         sys.exit(1)
 
 
-def run_avspex(source_directories):
+@with_config
+def run_avspex(source_directories, config=None):
     '''
     av-spex takes 1 input file or directory as an argument, like this:
     av-spex <input_directory> (or -f <input_file.mkv>)
@@ -355,9 +345,6 @@ def run_avspex(source_directories):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
 
-    # Reload the dictionaries if the profile has been applied
-    # config_path.reload()
-    # command_config.reload()
 
     overall_start_time = time.time()
 
@@ -398,6 +385,8 @@ def main_cli():
 def main():
     # Default behavior based on command-line arguments
     args = parse_arguments()
+
+    checks_config = get_config()
 
     if args.gui or (args.source_directories is None and not sys.argv[1:]):
         main_gui()
