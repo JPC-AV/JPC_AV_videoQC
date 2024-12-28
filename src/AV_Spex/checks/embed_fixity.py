@@ -6,7 +6,7 @@ import sys
 import logging
 from dataclasses import dataclass, asdict, replace
 from ..utils.log_setup import logger
-from ..utils.find_config import spex_config, checks_config
+from ..utils.config_manager import with_checks_config
 
 
 def get_total_frames(video_path):
@@ -233,7 +233,8 @@ def validate_embedded_md5(video_path):
         logger.critical("mkvextract unable to extract MKV tags! Cannot validate stream hashes.\n")   
 
 
-def process_embedded_fixity(video_path):
+@with_checks_config
+def process_embedded_fixity(video_path, checks_config=None):
     """
     Handles embedding stream fixity tags in the video file.
     """
@@ -249,12 +250,12 @@ def process_embedded_fixity(video_path):
         embed_fixity(video_path)
     else:
         logger.critical("Existing stream hashes found!")
-        if asdict(checks_config)['fixity']['overwrite_stream_fixity'] == 'yes':
+        if checks_config.fixity.overwrite_stream_fixity == 'yes':
             logger.critical('New stream hashes will be generated and old hashes will be overwritten!')
             embed_fixity(video_path)
-        elif asdict(checks_config)['fixity']['overwrite_stream_fixity'] == 'no':
+        elif checks_config.fixity.overwrite_stream_fixity == 'no':
             logger.error('Not writing stream hashes to MKV\n')
-        elif asdict(checks_config)['fixity']['overwrite_stream_fixity'] == 'ask me':
+        elif checks_config.fixity.overwrite_stream_fixity == 'ask me':
             # User input for handling existing stream hashes
             while True:
                 user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
