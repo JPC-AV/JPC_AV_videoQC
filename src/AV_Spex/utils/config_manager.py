@@ -1,12 +1,20 @@
 from dataclasses import asdict
 from typing import Optional, TypeVar, Type, Dict, Any
 import json
+import os
 
 T = TypeVar('T')
 
 class ConfigManager:
     _instance = None
     _configs: Dict[str, Any] = {}
+    
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    
+    def find_file(self, filename: str, subdir: str = 'config') -> str:
+        """Find file in project directory structure"""
+        file_path = os.path.join(self.project_root, subdir, filename)
+        return file_path if os.path.exists(file_path) else None
     
     def __new__(cls):
         if cls._instance is None:

@@ -218,7 +218,7 @@ def process_video_metadata(video_path, destination_directory, video_id):
     return metadata_differences
 
 
-def validate_video_with_mediaconch(video_path, destination_directory, video_id, config_path):
+def validate_video_with_mediaconch(video_path, destination_directory, video_id):
     """
     Coordinate the entire MediaConch validation process.
     
@@ -237,7 +237,7 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id, 
         return {}
 
     # Find the policy file
-    policy_path = find_mediaconch_policy(config_path)
+    policy_path = find_mediaconch_policy()
     if not policy_path:
         return {}
 

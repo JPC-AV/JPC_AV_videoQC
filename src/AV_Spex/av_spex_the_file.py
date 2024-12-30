@@ -280,8 +280,7 @@ def process_single_directory(source_directory):
             mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
             video_path, 
             destination_directory, 
-            video_id, 
-            config_path
+            video_id
             )
 
             metadata_differences = processing_mgmt.process_video_metadata(

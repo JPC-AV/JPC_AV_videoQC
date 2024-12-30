@@ -12,34 +12,18 @@ from ..utils.config_manager import ConfigManager
 config_mgr = ConfigManager()
 checks_config = config_mgr.get_config('checks', ChecksConfig)
 
-def find_mediaconch_policy(config_path):
-    """
-    Find and validate the MediaConch policy file.
-    
-    Args:
-        command_config (object): Configuration object with tool settings
-        config_path (object): Configuration path object
-        
-    Returns:
-        str or None: Full path to the policy file, or None if not found
-    """
+def find_mediaconch_policy():
     try:
-        # Get policy filename from configuration
         policy_file = checks_config.tools['mediaconch']['mediaconch_policy']
-        policy_path = os.path.join(config_path.config_dir, policy_file)
-
-        if not os.path.exists(policy_path):
+        policy_path = config_mgr.find_file(policy_file)
+        
+        if not policy_path:
             logger.critical(f'Policy file not found: {policy_file}')
             return None
-
-        logger.debug(f'Using MediaConch policy {policy_file}')
+            
         return policy_path
-
-    except KeyError as e:
-        logger.critical(f'Configuration error: {e}')
-        return None
     except Exception as e:
-        logger.critical(f'Unexpected error finding MediaConch policy: {e}')
+        logger.critical(f'Error finding MediaConch policy: {e}')
         return None
 
 
