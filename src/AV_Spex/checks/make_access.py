@@ -2,7 +2,11 @@ import subprocess
 import os
 import sys
 from ..utils.log_setup import logger
+from ..utils.find_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
 
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
 
 def get_duration(video_path):
     command = [
@@ -59,7 +63,7 @@ def make_access_file(video_path, output_path):
         logger.error(f"Error during ffmpeg process: {str(e)}")
 
 
-def process_access_file(video_path, source_directory, video_id, command_config):
+def process_access_file(video_path, source_directory, video_id):
     """
     Generate access file if configured and not already existing.
     
@@ -73,7 +77,7 @@ def process_access_file(video_path, source_directory, video_id, command_config):
         str or None: Path to the created access file, or None
     """
     # Check if access file should be generated
-    if command_config.command_dict['outputs']['access_file'] != 'yes':
+    if checks_config.outputs['access_file'] != 'yes':
         return None
 
     access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')

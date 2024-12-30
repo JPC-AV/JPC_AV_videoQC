@@ -6,9 +6,13 @@ import sys
 import csv
 import subprocess
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.find_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
 
-def find_mediaconch_policy(command_config, config_path):
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+
+def find_mediaconch_policy(config_path):
     """
     Find and validate the MediaConch policy file.
     
@@ -21,7 +25,7 @@ def find_mediaconch_policy(command_config, config_path):
     """
     try:
         # Get policy filename from configuration
-        policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
+        policy_file = checks_config.tools['mediaconch']['mediaconch_policy']
         policy_path = os.path.join(config_path.config_dir, policy_file)
 
         if not os.path.exists(policy_path):

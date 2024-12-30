@@ -270,7 +270,6 @@ def process_single_directory(source_directory):
             video_path, 
             destination_directory, 
             video_id, 
-            command_config, 
             config_path
             )
 
@@ -286,7 +285,6 @@ def process_single_directory(source_directory):
                 source_directory,
                 destination_directory,
                 video_id,
-                command_config,
                 metadata_differences
             )
 
