@@ -8,8 +8,10 @@ from PyQt6.QtGui import QPixmap, QAction
 
 import os
 import sys
+from dataclasses import dataclass, asdict, field
 
-from ..utils.find_config import config_path, command_config, yaml
+from ..utils.find_config import SpexConfig, ChecksConfig
+from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 from ..utils import yaml_profiles
 
@@ -61,25 +63,21 @@ class DirectoryListWidget(QListWidget):
 
 
 class ConfigWindow(QWidget):
-    def __init__(self, command_config_dict, command_config):
+    def __init__(self):
         super().__init__()
-        self.command_config_dict = command_config_dict
-        self.command_config = command_config
-
-        # Create the main layout only once
+        self.config_mgr = ConfigManager()
+        self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
+        
         self.main_layout = QVBoxLayout(self)
-        self.setLayout(self.main_layout)  # Assign layout at initialization
-
-        # Populate the UI
+        self.setLayout(self.main_layout)
         self.init_ui()
 
     def init_ui(self):
-        # Populate the layout with widgets based on the config dictionary
-        for section, items in self.command_config_dict.items():
+        # Convert checks_config to dictionary format for UI creation
+        config_dict = asdict(self.checks_config)
+        for section, items in config_dict.items():
             section_box = self.create_section(section, items)
             self.main_layout.addWidget(section_box)
-
-        # Add spacer to use any remaining space
         self.main_layout.addStretch()
 
     def create_section(self, section_name, items):
@@ -118,9 +116,9 @@ class ConfigWindow(QWidget):
         group_box.setLayout(layout)
         return group_box
 
-    def refresh_checkboxes(self, updated_config_dict):
+    def refresh_checkboxes(self):
         """Clear and repopulate the widgets based on the updated config."""
-        self.command_config_dict = updated_config_dict
+        self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
 
         # Remove all widgets from the main layout
         while self.main_layout.count():
@@ -134,23 +132,21 @@ class ConfigWindow(QWidget):
         self.init_ui()
 
     def on_checkbox_changed(self, value, command_name):
-        """Handle changes in checkbox state."""
-        # Convert the state to a Qt CheckState
         state = Qt.CheckState(value)
-        
+        updates = {}
         if state == Qt.CheckState.Checked:
-            logger.debug(f"Checkbox '{command_name}' is Checked.")
-            # Call the backend function for 'on' state
-            yaml_profiles.checkbox_on(self.command_config, command_name, 'on')
-        elif state == Qt.CheckState.Unchecked:
-            logger.debug(f"Checkbox '{command_name}' is Unchecked.")
-            # Call the backend function for 'off' state
-            yaml_profiles.checkbox_on(self.command_config, command_name, 'off')
+            updates[command_name] = 'yes'
+        else:
+            updates[command_name] = 'no'
+        self.config_mgr.update_config('checks', updates)
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, command_config, command_config_dict, config_path):
+    def __init__(self):
         super().__init__()
+        self.config_mgr = ConfigManager()
+        self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
+        self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
         
          # Initialize settings
         self.settings = QSettings('NMAAHC', 'AVSpex')
@@ -225,9 +221,9 @@ class MainWindow(QMainWindow):
         self.command_profile_dropdown.addItem("step1")
         self.command_profile_dropdown.addItem("step2")
         # Set dropdown based on condition
-        if command_config_dict["tools"]["exiftool"]["run_exiftool"] == "yes":
+        if self.checks_config.tools["exiftool"]["run_exiftool"] == "yes":
             self.command_profile_dropdown.setCurrentText("step1")
-        elif command_config_dict["tools"]["exiftool"]["run_exiftool"] == "no":
+        elif self.checks_config.tools["tools"]["exiftool"]["run_exiftool"] == "no":
             self.command_profile_dropdown.setCurrentText("step2")
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
         vertical_layout.addWidget(command_profile_label)
@@ -236,7 +232,7 @@ class MainWindow(QMainWindow):
         # Checkboxes (ConfigWidget) section
         command_checks_label = QLabel("Command options:")
         config_scroll_area = QScrollArea()
-        self.config_widget = ConfigWindow(command_config_dict, command_config)
+        self.config_widget = ConfigWindow()
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
 
@@ -458,34 +454,23 @@ class MainWindow(QMainWindow):
 
 
     def on_profile_selected(self, index):
-        # Get the selected profile from the dropdown
         selected_profile = self.command_profile_dropdown.currentText()
-        try:
-            # Call the backend function to apply the selected profile
-            yaml_profiles.apply_selected_profile(selected_profile, command_config)
-            logger.debug(f"Profile '{selected_profile}' applied successfully.")
-            command_config.reload()
-            self.config_widget.refresh_checkboxes(command_config.command_dict)
-        except ValueError as e:
-            logger.critical(f"Error: {e}")
+        if selected_profile == "step1":
+            updates = {"tools": {"exiftool": {"run_exiftool": "yes"}}}
+        else:
+            updates = {"tools": {"exiftool": {"run_exiftool": "no"}}}
+        self.config_mgr.update_config('checks', updates)
+        self.config_widget.refresh_checkboxes()
 
 
     def on_filename_profile_changed(self, index):
-        """
-        Handle changes in the filename profile dropdown.
-        :param index: The index of the selected item.
-        """
         selected_option = self.filename_profile_dropdown.itemText(index)
-        logger.debug(f"Selected filename profile: {selected_option}")
+        updates = {}
         if selected_option == "JPC file names":
-            fn_config_changes = yaml_profiles.JPCAV_filename
+            updates["Collection"] = "JPC"
         elif selected_option == "Bowser file names":
-            fn_config_changes = yaml_profiles.bowser_filename
-        else:
-            fn_config_changes = None
-        if fn_config_changes:
-            yaml_profiles.update_config(config_path, 'filename_values', fn_config_changes)
-            config_path.reload()
+            updates["Collection"] = "2012_79"
+        self.config_mgr.update_config('spex', {'filename_values': updates})
 
 
     def on_signalflow_profile_changed(self, index):
