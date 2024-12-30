@@ -1,172 +1,82 @@
 import argparse
-from ruamel.yaml import YAML
-from ruamel.yaml.compat import StringIO
-from ..utils.find_config import config_path, command_config, yaml
 from ..utils.log_setup import logger
+from ..utils.find_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
 
+config_mgr = ConfigManager()
 
-# Function to apply profile changes
-def apply_profile(command_config, selected_profile):
-    with open(command_config.command_yml, "r") as f:
-        command_dict = yaml.load(f)
-
+def apply_profile(selected_profile):
+    """Apply profile changes to checks_config."""
+    checks_config = config_mgr.get_config('checks', ChecksConfig)
+    
     if 'outputs' in selected_profile:
-        for output, output_settings in selected_profile["outputs"].items():
-            if output in command_dict["outputs"]:
-                if isinstance(output_settings, dict):
-                    command_dict["outputs"][output].update(output_settings)
+        for output, settings in selected_profile["outputs"].items():
+            if hasattr(checks_config.outputs, output):
+                if isinstance(settings, dict):
+                    current_value = getattr(checks_config.outputs, output)
+                    current_value.update(settings)
                 else:
-                    command_dict["outputs"][output] = output_settings
+                    setattr(checks_config.outputs, output, settings)
 
     if 'tools' in selected_profile:
         for tool, updates in selected_profile["tools"].items():
-            if tool in command_dict["tools"]:
-                command_dict["tools"][tool].update(updates)
+            if tool in checks_config.tools:
+                tool_config = checks_config.tools[tool]
+                if isinstance(tool_config, dict):
+                    tool_config.update(updates)
+                elif hasattr(tool_config, "__dict__"):
+                    for key, value in updates.items():
+                        if hasattr(tool_config, key):
+                            setattr(tool_config, key, value)
+    
+    config_mgr.set_config('checks', checks_config)
 
-    with open(command_config.command_yml, "w") as f:
-        yaml.dump(command_dict, f)
 
+def apply_by_name(tool_names):
+    # Get config instance
+    checks_config = config_mgr.get_config('checks', ChecksConfig)
+    
+    # Turn all tools off first
+    for tool in checks_config.tools:
+        if hasattr(checks_config.tools[tool], 'run_tool'):
+            checks_config.tools[tool].run_tool = 'no'
+            checks_config.tools[tool].check_tool = 'no'
 
-def apply_by_name(command_config, tool_names):
-    apply_profile(command_config, profile_allOff)  # Turn everything off initially
-
-    tool_profile = {"tools": {}}  # Initialize the tool_profile dictionary
-
+    # Enable specified tools
     for tool in tool_names:
-        # Check if the tool exists in the command_config
-        if tool in command_config.command_dict["tools"]:
-            tool_profile["tools"][tool] = {
-                subfield: "yes" for subfield in command_config.command_dict["tools"][tool]
-            }
+        if tool in checks_config.tools:
+            if hasattr(checks_config.tools[tool], 'run_tool'):
+                checks_config.tools[tool].run_tool = 'yes'
+                checks_config.tools[tool].check_tool = 'yes'
             logger.debug(f"{tool} set to 'on'")
 
-    apply_profile(command_config, tool_profile)  # Apply the selective changes
+    config_mgr.set_config('checks', checks_config)
 
 
-def toggle_on(command_config, tool_names):
-
-    tool_profile = {"tools": {}}  # Initialize the tool_profile dictionary
-
+def toggle_on(tool_names):
+    checks_config = config_mgr.get_config('checks', ChecksConfig)
+    
     for tool in tool_names:
-        # Check if the tool exists in the command_config
-        if tool in command_config.command_dict["tools"]:
-            tool_profile["tools"][tool] = {
-                subfield: "yes" for subfield in command_config.command_dict["tools"][tool]
-            }
+        if tool in checks_config.tools:
+            tool_config = checks_config.tools[tool]
+            for field in vars(tool_config):
+                setattr(tool_config, field, 'yes')
             logger.debug(f"{tool} set to 'on'")
 
-    apply_profile(command_config, tool_profile)  # Apply the selective changes
+    config_mgr.set_config('checks', checks_config)
 
 
-def toggle_off(command_config, tool_names):
-
-    tool_profile = {"tools": {}}  # Initialize the tool_profile dictionary
-
+def toggle_off(tool_names):
+    checks_config = config_mgr.get_config('checks', ChecksConfig)
+    
     for tool in tool_names:
-        # Check if the tool exists in the command_config
-        if tool in command_config.command_dict["tools"]:
-            tool_profile["tools"][tool] = {
-                subfield: "no" for subfield in command_config.command_dict["tools"][tool]
-            }
+        if tool in checks_config.tools:
+            tool_config = checks_config.tools[tool]
+            for field in vars(tool_config):
+                setattr(tool_config, field, 'no')
             logger.debug(f"{tool} set to 'off'")
 
-    apply_profile(command_config, tool_profile)  # Apply the selective changes
-
-
-def update_config(config_path, nested_key, value_dict):
-    with open(config_path.config_yml, "r") as f:
-        config_dict = yaml.load(f)
-
-    keys = nested_key.split('.')                # creates a list of keys from the input, for example 'ffmpeg_values.format.tags.ENCODER_SETTINGS'
-    current_dict = config_dict                  # initializes current_dict as config.yaml, this var will be reset in the for loop below
-    for key in keys[:-1]:                       # Iterating through the keys (except the last one)
-        if key in current_dict:             
-            current_dict = current_dict[key]
-        else:
-            return                              # If the current key is in the current_dict, move loop "in" to nested dict
-    last_key = keys[-1]
-    # The code block above should get us to the nested dictionary we want to update 
-    if last_key in current_dict:
-        # Remove keys from current_dict[last_key] that are not in value_dict
-        for k in list(current_dict[last_key].keys()):
-            if k not in value_dict:
-                del current_dict[last_key][k]
-
-        # Create a new ordered dictionary based on value_dict
-        ordered_dict = {k: value_dict[k] for k in value_dict}
-
-        # Replace the old dictionary with the ordered one
-        current_dict[last_key].clear()
-        current_dict[last_key].update(ordered_dict)
-
-        with open(config_path.config_yml, 'w') as y:
-            yaml.dump(config_dict, y)
-            logger.info(f'config.yaml updated to match profile {last_key}\n')
-
-
-# Function to save the current state of the command_config.yaml to a dictionary (profile)
-def save_current_profile(config):
-    if config == command_config:
-        with open(config.command_yml, 'r') as f:
-            current_profile = yaml.load(f)
-    else:
-        with open(config.config_yml, 'r') as f:
-            current_profile = yaml.load(f)
-    return current_profile
-
-
-# Function to save the current profile to a new YAML file
-def save_profile_to_file(config, new_file_path):
-    current_profile = save_current_profile(config)
-    if current_profile:
-        with open(new_file_path, 'w') as f:
-            yaml.dump(current_profile, f)
-        logger.info(f'Profile saved to {new_file_path}\n')
-    else:
-        logger.critical('Unable to save command profile!\n')
-
-
-def apply_selected_profile(profile_name, command_config):
-    if profile_name == "step1":
-        profile = profile_step1
-    elif profile_name == "step2":
-        profile = profile_step2
-    else:
-        raise ValueError(f"Unknown profile: {profile_name}")
-
-    apply_profile(command_config, profile)
-    logger.info(f'command_config.yaml updated to match selected tool profile: {profile_name}')
-
-def checkbox_on(command_config, command_name, state):
-    """
-    Recursively updates the value of `command_name` in a nested dictionary
-    and saves the updated dictionary back to the YAML file.
-
-    Parameters:
-        command_config (CommandConfig): An instance of the CommandConfig class.
-        command_name (str): The key to find and update its value.
-        state (str): Either "on" or "off". Determines the value to set.
-    """
-    if state not in ["on", "off"]:
-        raise ValueError("Invalid state. Use 'on' or 'off'.")
-    
-    new_value = 'yes' if state == 'on' else 'no'
-
-    def update_dict(d):
-        """Helper function to recursively update the dictionary."""
-        for key, value in d.items():
-            if isinstance(value, dict):  # If the value is a dictionary, recurse into it.
-                update_dict(value)
-            elif key == command_name:  # If the key matches, update the value.
-                d[key] = new_value
-                logger.info(f"{command_name} set to '{state}'")  # Use logging if needed.
-
-    # Update the command_dict
-    update_dict(command_config.command_dict)
-
-    # Save the updated dictionary back to the YAML file
-    with open(command_config.command_yml, 'w') as f:
-        yaml.dump(command_config.command_dict, f)
+    config_mgr.set_config('checks', checks_config)
 
 
 profile_step1 = {
@@ -348,4 +258,4 @@ def parse_arguments():
 # Only execute if this file is run directly, not imported)
 if __name__ == "__main__":
     selected_profile = parse_arguments()
-    apply_profile(command_config, selected_profile)
+    apply_profile(selected_profile)

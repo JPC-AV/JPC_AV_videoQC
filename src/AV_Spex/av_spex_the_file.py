@@ -31,7 +31,7 @@ from .utils.find_config import ChecksConfig, SpexConfig
 from .utils.config_manager import ConfigManager
 from .utils.gui_setup import ConfigWindow, MainWindow
 
-
+config_mgr = ConfigManager()
 
 @dataclass
 class ParsedArguments:
@@ -71,6 +71,17 @@ FILENAME_MAPPING = {
 }
 
 
+SIGNAL_FLOW_CONFIGS = {
+    "JPC_AV_SVHS": {
+        "format_tags": {"ENCODER_SETTINGS": yaml_profiles.JPC_AV_SVHS},
+        "mediatrace": {"ENCODER_SETTINGS": yaml_profiles.JPC_AV_SVHS}
+    },
+    "BVH3100": {
+        "format_tags": {"ENCODER_SETTINGS": yaml_profiles.BVH3100}, 
+        "mediatrace": {"ENCODER_SETTINGS": yaml_profiles.BVH3100}
+    }
+}
+
 def parse_arguments():
     # Read version from pyproject.toml
     pyproject_path = os.path.join(os.path.dirname(config_path.config_dir), 'pyproject.toml')
@@ -101,10 +112,10 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         action='append', help="Select specific tools to turn on")
     parser.add_argument("--off", choices=AVAILABLE_TOOLS, 
                         action='append', help="Select specific tools to turn off")
-    parser.add_argument("-sn","--signalflow", choices=SIGNALFLOW_MAPPING,
-                        help="Select signal flow config type (JPC_AV_SVHS or BVH3100")
-    parser.add_argument("-fn","--filename", choices=FILENAME_MAPPING, 
-                        help="Select file name config type (jpc or bowser)")
+    parser.add_argument("-sn","--signalflow", choices=['JPC_AV_SVHS', 'BVH3100'],
+                    help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
+    parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
+                   help="Select file name config type (jpc or bowser)")
     parser.add_argument("-sp","--saveprofile", choices=["config", "command"], 
                         help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference.")
     parser.add_argument("-pp","--printprofile", action="store_true", 
@@ -277,7 +288,6 @@ def process_single_directory(source_directory):
                 video_path, 
                 destination_directory, 
                 video_id, 
-                command_config
                 )
 
             processing_results = processing_mgmt.process_video_outputs(
@@ -323,16 +333,43 @@ def log_overall_time(overall_start_time, overall_end_time):
     return formatted_overall_time
 
 
+def update_spex_config(config_type: str, profile_name: str):
+    spex_config = config_mgr.get_config('spex', SpexConfig)
+    
+    if config_type == 'signalflow' and profile_name in SIGNAL_FLOW_CONFIGS:
+        settings = SIGNAL_FLOW_CONFIGS[profile_name]
+        spex_config.ffmpeg_values.format.tags.update(settings['format_tags'])
+        spex_config.mediatrace.update(settings['mediatrace'])
+    elif config_type == 'filename':
+        if profile_name == 'jpc':
+            spex_config.filename_values = yaml_profiles.JPCAV_filename
+        elif profile_name == 'bowser':
+            spex_config.filename_values = yaml_profiles.bowser_filename
+            
+    config_mgr.set_config('spex', spex_config)
+
+
 def run_cli_mode(args):
     print_av_spex_logo()
 
-    # Update YAML configs
-    edit_config.update_yaml_configs(args.selected_profile, args.tool_names, args.tools_on_names, args.tools_off_names,
-                        args.sn_config_changes, args.fn_config_changes, args.save_config_type,
-                        args.user_profile_config)
+    # Update checks config
+    if args.selected_profile:
+        yaml_profiles.apply_profile(args.selected_profile)
+    if args.tool_names:
+        yaml_profiles.apply_by_name(args.tool_names)
+    if args.tools_on_names:
+        yaml_profiles.toggle_on(args.tools_on_names)
+    if args.tools_off_names:
+        yaml_profiles.toggle_off(args.tools_off_names)
 
-    # Print config
-    edit_config.print_config(args.print_config_profile)
+    # Update spex config
+    if args.signalflow:
+        update_spex_config('signalflow', args.signalflow)
+    if args.filename:
+        update_spex_config('filename', args.filename)
+
+    if args.print_config_profile:
+        edit_config.print_config()
 
     if args.dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
@@ -353,9 +390,8 @@ def run_avspex(source_directories):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
 
-    # Reload the dictionaries if the profile has been applied
-    config_path.reload()
-    command_config.reload()
+    checks_config = config_mgr.get_config('checks', ChecksConfig)
+    spex_config = config_mgr.get_config('spex', SpexConfig)
 
     overall_start_time = time.time()
 
@@ -370,7 +406,7 @@ def run_avspex(source_directories):
 def main_gui():
     app = QApplication(sys.argv)  # Create the QApplication instance once
     while True:
-        window = MainWindow(command_config, command_config.command_dict, config_path)
+        window = MainWindow()
         window.show()
         app.exec()  # Blocks until the GUI window is closed
         source_directories = window.get_source_directories()

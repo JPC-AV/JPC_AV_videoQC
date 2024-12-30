@@ -33,7 +33,6 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id):
         video_path (str): Path to the input video file
         destination_directory (str): Directory to store output files
         video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
         
     Returns:
         str or None: Path to the output file, or None if tool is not run

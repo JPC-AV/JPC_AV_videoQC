@@ -19,6 +19,7 @@ from ..checks.mediaconch_check import find_mediaconch_policy, run_mediaconch_com
 
 config_mgr = ConfigManager()
 checks_config = config_mgr.get_config('checks', ChecksConfig)
+spex_config = config_mgr.get_config('spex', SpexConfig)
 
 
 def process_fixity(source_directory, video_path, video_id):
@@ -157,6 +158,7 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
 
     return processing_results
 
+
 def check_tool_metadata(tool_name, output_path):
     """
     Check metadata for a specific tool if configured.
@@ -214,6 +216,7 @@ def process_video_metadata(video_path, destination_directory, video_id):
             metadata_differences[tool] = differences
     
     return metadata_differences
+
 
 def validate_video_with_mediaconch(video_path, destination_directory, video_id, config_path):
     """

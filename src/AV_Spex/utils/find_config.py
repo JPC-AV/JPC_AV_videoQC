@@ -334,7 +334,7 @@ class SpexConfig:
 @dataclass
 class FixityConfig:
     check_fixity: str = 'no'
-    check_stream_fixity: str = 'no'
+    validate_stream_fixity: str = 'no'
     embed_stream_fixity: str = 'yes'
     output_fixity: str = 'yes'
     overwrite_stream_fixity: str = 'no'
