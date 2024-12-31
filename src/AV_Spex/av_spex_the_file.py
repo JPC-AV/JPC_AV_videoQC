@@ -29,6 +29,7 @@ from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
 from .utils.find_config import ChecksConfig, SpexConfig
 from .utils.config_manager import ConfigManager
+from .utils.config_io import ConfigIO
 from .utils.gui_setup import ConfigWindow, MainWindow
 
 config_mgr = ConfigManager()
@@ -42,11 +43,12 @@ class ParsedArguments:
     fn_config_changes: Optional[Any]
     print_config_profile: bool
     dry_run_only: bool
-    save_config_type: Optional[Any]
-    user_profile_config: Optional[str]
     tools_on_names: List[str]
     tools_off_names: List[str]
     gui: Optional[Any]
+    export_config: Optional[str]
+    export_file: Optional[str] 
+    import_config: Optional[str]
 
 
 AVAILABLE_TOOLS = ["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"]
@@ -82,13 +84,13 @@ SIGNAL_FLOW_CONFIGS = {
     }
 }
 
+
+
 def parse_arguments():
-    # Read version from pyproject.toml
     pyproject_path = os.path.join(os.path.dirname(config_path.config_dir), 'pyproject.toml')
     with open(pyproject_path, 'r') as f:
         version_string = toml.load(f)['project']['version']
 
-    # Create argument parser
     parser = argparse.ArgumentParser(
         description=f"""\
 %(prog)s {version_string}
@@ -99,7 +101,6 @@ The scripts will confirm that the digital files conform to predetermined specifi
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    # Add arguments (with AVAILABLE_TOOLS as choices)
     parser.add_argument('--version', action='version', version=f'%(prog)s {version_string}')
     parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("-dr","--dryrun", action="store_true", 
@@ -116,8 +117,6 @@ The scripts will confirm that the digital files conform to predetermined specifi
                     help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
                    help="Select file name config type (jpc or bowser)")
-    parser.add_argument("-sp","--saveprofile", choices=["config", "command"], 
-                        help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference.")
     parser.add_argument("-pp","--printprofile", action="store_true", 
                         help="Show current config profile.")
     parser.add_argument("-d","--directory", action="store_true", 
@@ -127,31 +126,27 @@ The scripts will confirm that the digital files conform to predetermined specifi
     parser.add_argument('--gui', action='store_true', 
                         help='Force launch in GUI mode')
     
+    # Config export/import arguments
+    parser.add_argument('--export-config', 
+                    choices=['all', 'spex', 'checks'],
+                    help='Export current config(s) to JSON')
+    parser.add_argument('--export-file',
+                    help='Specify export filename (default: auto-generated)')
+    parser.add_argument('--import-config',
+                    help='Import configs from JSON file')
 
-    # Parse arguments
     args = parser.parse_args()
 
-    # Validate and process arguments
     if not args.dryrun and not args.paths and not args.gui:
         parser.error("the following arguments are required: paths")
 
     input_paths = [] if args.dryrun else args.paths
     source_directories = dir_setup.validate_input_paths(input_paths, args.file)
 
-    # Determine save_config_type based on saveprofile
-    if args.saveprofile == 'config':
-        save_config_type = config_path
-    elif args.saveprofile == 'command':
-        save_config_type = command_config
-    else:
-        save_config_type = None
-
-    # Resolve configurations using mapping functions
     selected_profile = edit_config.resolve_config(args.profile, PROFILE_MAPPING)
     sn_config_changes = edit_config.resolve_config(args.signalflow, SIGNALFLOW_MAPPING)
     fn_config_changes = edit_config.resolve_config(args.filename, FILENAME_MAPPING)
 
-    # Return parsed arguments
     return ParsedArguments(
         source_directories=source_directories,
         selected_profile=selected_profile,
@@ -160,22 +155,13 @@ The scripts will confirm that the digital files conform to predetermined specifi
         fn_config_changes=fn_config_changes,
         print_config_profile=args.printprofile,
         dry_run_only=args.dryrun,
-        save_config_type=save_config_type,
-        user_profile_config=_generate_profile_filename(args.saveprofile),
         tools_on_names=args.on or [],
         tools_off_names=args.off or [],
-        gui=args.gui
+        gui=args.gui,
+        export_config=args.export_config,
+        export_file=args.export_file,
+        import_config=args.import_config
     )
-
-
-def _generate_profile_filename(saveprofile):
-    if not saveprofile:
-        return None
-    config_dir = (config_path.config_dir if saveprofile == 'config' 
-                  else command_config.config_dir)
-    profile_type = 'config' if saveprofile == 'config' else 'command'
-    return os.path.join(config_dir, 
-                        f"{profile_type}_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
 
 
 def create_processing_timer():
@@ -366,6 +352,20 @@ def run_cli_mode(args):
         update_spex_config('signalflow', args.signalflow)
     if args.filename:
         update_spex_config('filename', args.filename)
+
+    # Handle config I/O operations
+    if args.export_config:
+        config_types = ['spex', 'checks'] if args.export_config == 'all' else [args.export_config]
+        config_io = ConfigIO(config_mgr)
+        filename = config_io.save_configs(args.export_file, config_types)
+        print(f"Configs exported to: {filename}")
+        if args.dry_run_only:
+            sys.exit(0)
+    
+    if args.import_config:
+        config_io = ConfigIO(config_mgr)
+        config_io.import_configs(args.import_config)
+        print(f"Configs imported from: {args.import_config}")
 
     if args.print_config_profile:
         edit_config.print_config()

@@ -31,13 +31,18 @@ def format_config_value(value, indent=0, is_nested=False):
 
 
 def print_config():
-    """Print current config state."""
-    checks_config = config_mgr.get_config('checks', ChecksConfig)
-    config_dict = asdict(checks_config)
+    """Print current config state for both checks and spex configs."""
+    configs = {
+        'Checks Config': config_mgr.get_config('checks', ChecksConfig),
+        'Spex Config': config_mgr.get_config('spex', SpexConfig)
+    }
     
-    for key, value in config_dict.items():
-        print(f"{key}:")
-        print(format_config_value(value, indent=2))
+    for config_name, config in configs.items():
+        print(f"\n{config_name}:")
+        config_dict = asdict(config)
+        for key, value in config_dict.items():
+            print(f"{key}:")
+            print(format_config_value(value, indent=2))
 
 
 def resolve_config(args, config_mapping):
