@@ -18,8 +18,15 @@ import re
 import operator
 import csv
 import datetime as dt
+from dataclasses import dataclass, asdict, field
+
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path, command_config            
+from ..utils.find_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
+
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+spex_config = config_mgr.get_config('spex', SpexConfig)
 
 
 # Dictionary to map the string to the corresponding operator function
@@ -29,7 +36,7 @@ operator_mapping = {
 }
 
 # init variable for config list of QCTools tags
-fullTagList = config_path.config_dict['qct-parse']['fullTagList']
+fullTagList = asdict(spex_config.qct_parse_values.fullTagList)
 
 def parse_frame_data(startObj, pkt):
     '''
@@ -612,7 +619,8 @@ def printresults(profile, kbeyond, frameCount, overallFrameFail, qctools_check_o
         else:
             return f"{percent:.2f}"
 
-    color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
+    color_bar_dict = asdict(spex_config.qct_parse_values.smpte_color_bars)
+    color_bar_keys = color_bar_dict.keys()
 
     with open(qctools_check_output, 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
@@ -820,9 +828,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     logger.info("Starting qct-parse\n")
 
     ###### Initialize variables ######
-    qct_parse = command_config.command_dict['tools']['qct-parse']
+    qct_parse = asdict(checks_config.tools['qct-parse'])
 
-    qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+    qctools_ext = asdict(checks_config.outputs['qctools_ext'])
 
     if qctools_ext.lower().endswith('mkv'):
 
@@ -918,18 +926,18 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         for filter in qct_parse['contentFilter']:
             logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {filter}\n")
             contentFilter_name = filter
-            contentFilter_dict = config_path.config_dict['qct-parse']['content'][contentFilter_name]
+            contentFilter_dict = spex_config.qct_parse_values.content[contentFilter_name]
             qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{contentFilter_name}_summary.csv")
             detectContentFilter(startObj, pkt, contentFilter_name, contentFilter_dict, qctools_content_check_output, framesList, qct_parse, thumbPath, video_path)
 
     ######## Iterate Through the XML for General Analysis ########
     if qct_parse['profile']:
         template = qct_parse['profile'] # get the profile/ section name from the command config
-        if template in config_path.config_dict['qct-parse']['profiles']:
+        if template in spex_config.qct_parse_values.profiles:
         # If the template matches one of the profiles
             for t in tagList:
-                if t in config_path.config_dict['qct-parse']['profiles'][template]:
-                    profile[t] = config_path.config_dict['qct-parse']['profiles'][template][t]
+                if t in spex_config.qct_parse_values.profiles[template]:
+                    profile[t] = spex_config.qct_parse_values.profiles[template][t]
         logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
         # set thumbExportDelay for profile check
         thumbExportDelay = 9000
@@ -988,7 +996,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
             else:
                 logger.debug(f"Starting qct-parse color bars evaluation on {baseName}\n")
                 # make maxBars vs smpte bars csv
-                smpte_color_bars = config_path.config_dict['qct-parse']['smpte_color_bars']
+                smpte_color_bars = asdict(spex_config.qct_parse_values.smpte_color_bars)
                 colorbars_values_output = os.path.join(report_directory, "qct-parse_colorbars_values.csv")
                 print_color_bar_values(baseName, smpte_color_bars, maxBarsDict, colorbars_values_output)
                 # set durationStart/End, profile, profile name, and thumbExportDelay for bars evaluation check

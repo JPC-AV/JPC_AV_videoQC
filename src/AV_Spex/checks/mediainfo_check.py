@@ -3,16 +3,23 @@
 
 import os
 import sys
+from dataclasses import dataclass, asdict, field
+
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.find_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
+
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+spex_config = config_mgr.get_config('spex', SpexConfig)
 
 
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_mediainfo(file_path):
-    expected_general = config_path.config_dict['mediainfo_values']['expected_general']
-    expected_video = config_path.config_dict['mediainfo_values']['expected_video']
-    expected_audio = config_path.config_dict['mediainfo_values']['expected_audio']
+    expected_general = asdict(spex_config.mediainfo_values['expected_general'])
+    expected_video = asdict(spex_config.mediainfo_values['expected_video'])
+    expected_audio = asdict(spex_config.mediainfo_values['expected_audio'])
 
     section_data = {}
     # creates empty dictionary "section_data"

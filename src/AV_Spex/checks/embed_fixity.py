@@ -5,7 +5,11 @@ import os
 import sys
 import logging
 from ..utils.log_setup import logger
-from ..utils.find_config import command_config
+from ..utils.find_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
+
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
 
 
 def get_total_frames(video_path):
@@ -248,12 +252,12 @@ def process_embedded_fixity(video_path):
         embed_fixity(video_path)
     else:
         logger.critical("Existing stream hashes found!")
-        if command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'yes':
+        if checks_config.outputs['fixity']['overwrite_stream_fixity'] == 'yes':
             logger.critical('New stream hashes will be generated and old hashes will be overwritten!\n')
             embed_fixity(video_path)
-        elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'no':
+        elif checks_config.outputs['fixity']['overwrite_stream_fixity'] == 'no':
             logger.error('Not writing stream hashes to MKV\n')
-        elif command_config.command_dict['outputs']['fixity']['overwrite_stream_fixity'] == 'ask me':
+        elif checks_config.outputs['fixity']['overwrite_stream_fixity'] == 'ask me':
             # User input for handling existing stream hashes
             while True:
                 user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
