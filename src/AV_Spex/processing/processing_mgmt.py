@@ -87,7 +87,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         results['qctools_output_path'] = qctools_output_path
 
         # Check QCTools output if configured
-        if checks_config.tools['qctools']['check_qctools'] == 'yes':
+        if checks_config.tools['qctools'].check_tool == 'yes':
             # Ensure report directory exists
             if not report_directory:
                 report_directory = dir_setup.make_report_dir(source_directory, video_id)
@@ -100,7 +100,6 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
             # Run QCTools parsing
             run_qctparse(video_path, qctools_output_path, report_directory)
             # currently not using results['qctools_check_output']
-
     except Exception as e:
         logger.critical(f"Error processing QCTools output: {e}")
 

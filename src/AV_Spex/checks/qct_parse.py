@@ -417,8 +417,8 @@ def detectContentFilter(startObj, pkt, contentFilter_name, contentFilter_dict, q
 
 
 def getCompFromConfig(qct_parse, profile, tag):
-    """
-    Determines the comparison operator based on profile and tag.
+   """
+   Determines the comparison operator based on profile and tag.
 
     Args:
         qct_parse (dict): qct-parse configuration.
@@ -427,20 +427,20 @@ def getCompFromConfig(qct_parse, profile, tag):
 
     Returns:
         callable: Comparison operator (e.g., operator.lt, operator.gt).
-    """
+   """
+   smpte_color_bars_keys = asdict(spex_config.qct_parse_values.smpte_color_bars).keys()
 
-    color_bar_keys = config_path.config_dict['qct-parse']['smpte_color_bars'].keys()
+   if qct_parse['profile']:
+       template = qct_parse['profile']
+       if hasattr(spex_config.qct_parse_values.profiles, template):
+           profile_keys = asdict(getattr(spex_config.qct_parse_values.profiles, template)).keys()
+           if set(profile) == set(profile_keys):
+               return operator.lt if "MIN" in tag or "LOW" in tag else operator.gt
 
-    if qct_parse['profile']:
-        template = qct_parse['profile']
-        if set(profile) == set(config_path.config_dict['qct-parse']['profiles'][template]):
-            return operator.lt if "MIN" in tag or "LOW" in tag else operator.gt
+   if set(profile) == set(smpte_color_bars_keys):
+       return operator.lt if "MIN" in tag else operator.gt
 
-    if set(profile) == set(color_bar_keys):
-        return operator.lt if "MIN" in tag else operator.gt
-
-    # Handle the case where no match is found (consider raising an exception or providing a default)
-    raise ValueError(f"No matching comparison operator found for profile and tag: {profile}, {tag}") 
+   raise ValueError(f"No matching comparison operator found for profile and tag: {profile}, {tag}")
 
 
 def assign_comparison(qct_parse, profile, frameDict):
@@ -830,7 +830,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     ###### Initialize variables ######
     qct_parse = asdict(checks_config.tools['qct-parse'])
 
-    qctools_ext = asdict(checks_config.outputs['qctools_ext'])
+    qctools_ext = checks_config.outputs['qctools_ext']
 
     if qctools_ext.lower().endswith('mkv'):
 
@@ -923,22 +923,22 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
 
     ######## Iterate Through the XML for content detection ########
     if qct_parse['contentFilter']:
-        for filter in qct_parse['contentFilter']:
-            logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {filter}\n")
-            contentFilter_name = filter
-            contentFilter_dict = spex_config.qct_parse_values.content[contentFilter_name]
-            qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{contentFilter_name}_summary.csv")
-            detectContentFilter(startObj, pkt, contentFilter_name, contentFilter_dict, qctools_content_check_output, framesList, qct_parse, thumbPath, video_path)
+        for filter_name in qct_parse['contentFilter']:
+            logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {filter_name}\n")
+            if hasattr(spex_config.qct_parse_values.content, filter_name):
+                contentFilter_dict = asdict(getattr(spex_config.qct_parse_values.content, filter_name))
+                qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{filter_name}_summary.csv")
+                detectContentFilter(startObj, pkt, filter_name, contentFilter_dict, qctools_content_check_output, framesList, qct_parse, thumbPath, video_path)
 
     ######## Iterate Through the XML for General Analysis ########
     if qct_parse['profile']:
         template = qct_parse['profile'] # get the profile/ section name from the command config
-        if template in spex_config.qct_parse_values.profiles:
+        if template in spex_config.qct_parse_values.profiles.__dict__:
         # If the template matches one of the profiles
             for t in tagList:
-                if t in spex_config.qct_parse_values.profiles[template]:
-                    profile[t] = spex_config.qct_parse_values.profiles[template][t]
-        logger.debug(f"Starting qct-parse analysis against {qct_parse['profile']} thresholds on {baseName}\n")
+                if hasattr(getattr(spex_config.qct_parse_values.profiles, template), t):
+                    profile[t] = getattr(getattr(spex_config.qct_parse_values.profiles, template), t)
+        logger.debug(f"Starting qct-parse analysis against {template} thresholds on {baseName}\n")
         # set thumbExportDelay for profile check
         thumbExportDelay = 9000
         # set profile_name
