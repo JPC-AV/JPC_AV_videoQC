@@ -221,9 +221,9 @@ class MainWindow(QMainWindow):
         self.command_profile_dropdown.addItem("step1")
         self.command_profile_dropdown.addItem("step2")
         # Set dropdown based on condition
-        if self.checks_config.tools["exiftool"]["run_exiftool"] == "yes":
+        if self.checks_config.tools["exiftool"].run_tool == "yes":
             self.command_profile_dropdown.setCurrentText("step1")
-        elif self.checks_config.tools["tools"]["exiftool"]["run_exiftool"] == "no":
+        elif self.checks_config.tools["exiftool"].run_tool == "no":
             self.command_profile_dropdown.setCurrentText("step2")
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
         vertical_layout.addWidget(command_profile_label)
@@ -273,16 +273,16 @@ class MainWindow(QMainWindow):
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
         # Set dropdown based on condition
-        if config_path.config_dict["filename_values"]["Collection"] == "JPC":
+        if self.spex_config.filename_values.Collection == "JPC":
             self.filename_profile_dropdown.setCurrentText("JPC file names")
-        elif config_path.config_dict["filename_values"]["Collection"] == "2012_79":
+        elif self.spex_config.filename_values.Collection == "2012_79":
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
         spex_layout.addWidget(self.filename_profile_dropdown)
 
         # Create a toggle button to open a new window
         filename_button = QPushButton("Open Section")
-        filename_button.clicked.connect(lambda: self.open_new_window('Filename Values', config_path.config_dict['filename_values']))
+        filename_button.clicked.connect(lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values)))
         spex_layout.addWidget(filename_button)
         
         # Create a label to display the section name
@@ -290,7 +290,7 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(mediainfo_section_label)
          # Create a toggle button to open a new window
         mediainfo_toggle_button = QPushButton("Open Section")
-        mediainfo_toggle_button.clicked.connect(lambda: self.open_new_window('MediaInfo Values', config_path.config_dict['mediainfo_values']))
+        mediainfo_toggle_button.clicked.connect(lambda: self.open_new_window('MediaInfo Values', asdict(self.spex_config.mediainfo_values)))
         spex_layout.addWidget(mediainfo_toggle_button)
 
         # Create a label to display the section name
@@ -298,7 +298,7 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(exiftool_section_label)
          # Create a toggle button to open a new window
         exiftool_toggle_button = QPushButton("Open Section")
-        exiftool_toggle_button.clicked.connect(lambda: self.open_new_window('Exiftool Values', config_path.config_dict['exiftool_values']))
+        exiftool_toggle_button.clicked.connect(lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values)))
         spex_layout.addWidget(exiftool_toggle_button)
 
         # Create a label to display the section name
@@ -306,7 +306,7 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(ffprobe_section_label)
          # Create a toggle button to open a new window
         ffprobe_toggle_button = QPushButton("Open Section")
-        ffprobe_toggle_button.clicked.connect(lambda: self.open_new_window('FFprobe Values', config_path.config_dict['ffmpeg_values']))
+        ffprobe_toggle_button.clicked.connect(lambda: self.open_new_window('FFprobe Values', asdict(self.spex_config.ffmpeg_values)))
         spex_layout.addWidget(ffprobe_toggle_button)
 
         # Create a label to display the section name
@@ -321,16 +321,16 @@ class MainWindow(QMainWindow):
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
         # Set dropdown based on condition
-        if "SVO5800" in config_path.config_dict["mediatrace"]["ENCODER_SETTINGS"]["Source VTR"]:
+        if "SVO5800" in self.spex_config.mediatrace_values.ENCODER_SETTINGS.Source_VTR:
             self.signalflow_profile_dropdown.setCurrentText("JPC_AV_SVHS Signal Flow")
-        elif "Sony BVH3100" in config_path.config_dict["mediatrace"]["ENCODER_SETTINGS"]["Source VTR"]:
+        elif "Sony BVH3100" in self.spex_config.mediatrace_values.ENCODER_SETTINGS.Source_VTR:
             self.signalflow_profile_dropdown.setCurrentText("BVH3100 Signal Flow")
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
         spex_layout.addWidget(self.signalflow_profile_dropdown)
 
         # Create a toggle button to open a new window
         mediatrace_toggle_button = QPushButton("Open Section")
-        mediatrace_toggle_button.clicked.connect(lambda: self.open_new_window('Mediatrace Values', config_path.config_dict['mediatrace']))
+        mediatrace_toggle_button.clicked.connect(lambda: self.open_new_window('Mediatrace Values', asdict(self.spex_config.mediatrace_values)))
         spex_layout.addWidget(mediatrace_toggle_button)
 
         # Create a label to display the section name
@@ -338,7 +338,7 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(qct_section_label)
         # Create a toggle button to open a new window
         qct_toggle_button = QPushButton("Open Section")
-        qct_toggle_button.clicked.connect(lambda: self.open_new_window('Expected qct-parse options', config_path.config_dict['qct-parse']))
+        qct_toggle_button.clicked.connect(lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values)))
         spex_layout.addWidget(qct_toggle_button)
 
 
@@ -474,21 +474,34 @@ class MainWindow(QMainWindow):
 
 
     def on_signalflow_profile_changed(self, index):
-        # Get the selected profile from the dropdown
         selected_option = self.signalflow_profile_dropdown.itemText(index)
         logger.debug(f"Selected signal flow profile: {selected_option}")
+
         if selected_option == "JPC_AV_SVHS Signal Flow":
             sn_config_changes = yaml_profiles.JPC_AV_SVHS
         elif selected_option == "BVH3100 Signal Flow":
             sn_config_changes = yaml_profiles.BVH3100
         else:
-            sn_config_changes = None
-        if sn_config_changes:    
-            yaml_profiles.update_config(config_path, 'ffmpeg_values.format.tags.ENCODER_SETTINGS', sn_config_changes)
-            yaml_profiles.update_config(config_path, 'mediatrace.ENCODER_SETTINGS', sn_config_changes)
-            config_path.reload()
-        else:
             logger.error("Signal flow identifier not recognized, config not updated")
+            return
+
+        # Update FFmpeg settings
+        self.config_mgr.update_config('spex', {
+            'ffmpeg_values': {
+                'format': {
+                    'tags': {
+                        'ENCODER_SETTINGS': sn_config_changes
+                    }
+                }
+            }
+        })
+
+        # Update MediaTrace settings 
+        self.config_mgr.update_config('spex', {
+            'mediatrace_values': {
+                'ENCODER_SETTINGS': sn_config_changes
+            }
+        })
 
 
     def open_new_window(self, title, nested_dict):
