@@ -87,7 +87,7 @@ SIGNAL_FLOW_CONFIGS = {
 
 
 def parse_arguments():
-    pyproject_path = os.path.join(os.path.dirname(config_path.config_dir), 'pyproject.toml')
+    pyproject_path = os.path.join(config_mgr.project_root, 'pyproject.toml')
     with open(pyproject_path, 'r') as f:
         version_string = toml.load(f)['project']['version']
 
@@ -117,8 +117,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
                     help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
                    help="Select file name config type (jpc or bowser)")
-    parser.add_argument("-pp","--printprofile", action="store_true", 
-                        help="Show current config profile.")
+    parser.add_argument("-pp","--printprofile", choices=['all', 'spex', 'checks'], nargs='?', const='all',
+                        help="Show config profile(s). Default: all")
     parser.add_argument("-d","--directory", action="store_true", 
                         help="Flag to indicate input is a directory")
     parser.add_argument("-f","--file", action="store_true", 
@@ -348,10 +348,10 @@ def run_cli_mode(args):
         yaml_profiles.toggle_off(args.tools_off_names)
 
     # Update spex config
-    if args.signalflow:
-        update_spex_config('signalflow', args.signalflow)
-    if args.filename:
-        update_spex_config('filename', args.filename)
+    if args.sn_config_changes:
+        update_spex_config('signalflow', args.sn_config_changes)
+    if args.fn_config_changes:
+        update_spex_config('filename', args.fn_config_changes)
 
     # Handle config I/O operations
     if args.export_config:
@@ -368,7 +368,7 @@ def run_cli_mode(args):
         print(f"Configs imported from: {args.import_config}")
 
     if args.print_config_profile:
-        edit_config.print_config()
+        edit_config.print_config(args.print_config_profile)
 
     if args.dry_run_only:
         logger.critical("Dry run selected. Exiting now.")

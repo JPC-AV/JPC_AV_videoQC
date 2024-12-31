@@ -30,13 +30,14 @@ def format_config_value(value, indent=0, is_nested=False):
     return str(value)
 
 
-def print_config():
-    """Print current config state for both checks and spex configs."""
-    configs = {
-        'Checks Config': config_mgr.get_config('checks', ChecksConfig),
-        'Spex Config': config_mgr.get_config('spex', SpexConfig)
-    }
-    
+def print_config(config_type='all'):
+    """Print config state for specified config type(s)."""
+    configs = {}
+    if config_type in ['all', 'checks']:
+        configs['Checks Config'] = config_mgr.get_config('checks', ChecksConfig)
+    if config_type in ['all', 'spex']:
+        configs['Spex Config'] = config_mgr.get_config('spex', SpexConfig)
+        
     for config_name, config in configs.items():
         print(f"\n{config_name}:")
         config_dict = asdict(config)
