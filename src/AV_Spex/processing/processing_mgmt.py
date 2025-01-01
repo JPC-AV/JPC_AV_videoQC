@@ -73,7 +73,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     }
 
     # Check if QCTools should be run
-    if checks_config.tools['qctools'].run_tool != 'yes':
+    if checks_config.tools['qctools']['run_tool'] != 'yes':
         return results
 
     # Prepare QCTools output path
@@ -87,7 +87,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         results['qctools_output_path'] = qctools_output_path
 
         # Check QCTools output if configured
-        if checks_config.tools['qctools'].check_tool == 'yes':
+        if checks_config.tools['qctools']['check_tool'] == 'yes':
             # Ensure report directory exists
             if not report_directory:
                 report_directory = dir_setup.make_report_dir(source_directory, video_id)
@@ -178,7 +178,7 @@ def check_tool_metadata(tool_name, output_path):
     }
 
     # Check if tool metadata checking is enabled
-    if output_path and checks_config.tools[tool_name].check_tool == 'yes':
+    if output_path and checks_config.tools[tool_name]['check_tool'] == 'yes':
         parse_function = parse_functions.get(tool_name)
         if parse_function:
             return parse_function(output_path)

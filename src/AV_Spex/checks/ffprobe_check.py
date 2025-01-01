@@ -21,10 +21,10 @@ spex_config = config_mgr.get_config('spex', SpexConfig)
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_ffprobe(file_path):
     # creates a dictionary of expected keys and values
-    expected_video_values = asdict(spex_config.ffmpeg_values['video_stream'])
-    expected_audio_values = asdict(spex_config.ffmpeg_values['audio_stream'])
-    expected_format_values = asdict(spex_config.ffmpeg_values['format'])
-    expected_settings_values = asdict(spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'])
+    expected_video_values = spex_config.ffmpeg_values['video_stream']
+    expected_audio_values = spex_config.ffmpeg_values['audio_stream']
+    expected_format_values = spex_config.ffmpeg_values['format']
+    expected_settings_values = spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS']
 
     if not os.path.exists(file_path):
         logger.critical(f"Cannot perform ffprobe check!No such file: {file_path}")

@@ -17,9 +17,9 @@ spex_config = config_mgr.get_config('spex', SpexConfig)
 ## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_mediainfo(file_path):
-    expected_general = asdict(spex_config.mediainfo_values['expected_general'])
-    expected_video = asdict(spex_config.mediainfo_values['expected_video'])
-    expected_audio = asdict(spex_config.mediainfo_values['expected_audio'])
+    expected_general = spex_config.mediainfo_values['expected_general']
+    expected_video = spex_config.mediainfo_values['expected_video']
+    expected_audio = spex_config.mediainfo_values['expected_audio']
 
     section_data = {}
     # creates empty dictionary "section_data"

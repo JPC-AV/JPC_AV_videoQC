@@ -55,7 +55,7 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id):
     output_path = os.path.join(destination_directory, f'{video_id}_{tool_name}_output.{_get_file_extension(tool_name)}')
     
     # Check if tool should be run based on configuration
-    if checks_config.tools[tool_name].run_tool == 'yes':
+    if checks_config.tools[tool_name]['run_tool'] == 'yes':
         if tool_name == 'mediatrace':
             logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
         
