@@ -63,41 +63,32 @@ class DirectoryListWidget(QListWidget):
 
 
 class ConfigWindow(QWidget):
-    def __init__(self):
+    def __init__(self, config_mgr=None):
         super().__init__()
-        self.config_mgr = ConfigManager()
+        self.config_mgr = config_mgr or ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         
-        self.main_layout = QVBoxLayout(self)
-        self.setLayout(self.main_layout)
-        self.init_ui()
+        self.refresh_checkboxes()
 
-    def init_ui(self):
-        # Convert checks_config to dictionary format for UI creation
-        config_dict = asdict(self.checks_config)
-        for section, items in config_dict.items():
-            section_box = self.create_section(section, items)
-            self.main_layout.addWidget(section_box)
-        self.main_layout.addStretch()
-
-    def create_section(self, section_name, items):
+    def create_section(self, section_name, items, path):
         # Create a QGroupBox for each section
         group_box = QGroupBox(section_name)
         layout = QVBoxLayout()
 
         for key, value in items.items():
+            current_path = path + [key]
             if isinstance(value, dict):  # Nested dictionary
-                sub_section = self.create_section(key, value)
+                sub_section = self.create_section(key, value, current_path)
                 layout.addWidget(sub_section)
             elif isinstance(value, str):
-                if value in ("yes", "no"):  # Checkbox for yes/no values
+                if value.lower() in ("yes", "no"):  # Checkbox for yes/no values
                     if key == "output_fixity":
                         checkbox = QCheckBox(f"{key} (to .txt and .md5 files)")
                     else:
                         checkbox = QCheckBox(key)
-                    checkbox.setChecked(value == "yes")
+                    checkbox.setChecked(value.lower() == "yes")
                     checkbox.stateChanged.connect(
-                        lambda state, name=key: self.on_checkbox_changed(state, name)
+                        lambda state, p=current_path: self.on_checkbox_changed(state, p)
                     )
                     layout.addWidget(checkbox)
                 else:  # QLineEdit for text fields
@@ -109,7 +100,16 @@ class ConfigWindow(QWidget):
                 checkbox = QCheckBox(key)
                 checkbox.setChecked(value)
                 checkbox.stateChanged.connect(
-                    lambda state, name=key: self.on_checkbox_changed(state, name)
+                    lambda state, p=current_path: self.on_checkbox_changed(state, p)
+                )
+                layout.addWidget(checkbox)
+            elif isinstance(value, dict):  # Handle mediaconch dictionary case
+                if key == "mediaconch":
+                    checkbox = QCheckBox("run_mediaconch")
+                    checkbox.setChecked(value.get("run_mediaconch") == "yes")
+                    checkbox.stateChanged.connect(
+                        lambda state, p=current_path+["run_mediaconch"]: 
+                        self.on_checkbox_changed(state, p)
                 )
                 layout.addWidget(checkbox)
 
@@ -117,28 +117,52 @@ class ConfigWindow(QWidget):
         return group_box
 
     def refresh_checkboxes(self):
-        """Clear and repopulate the widgets based on the updated config."""
+        """Reload config and rebuild UI"""
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
-
-        # Remove all widgets from the main layout
-        while self.main_layout.count():
-            child = self.main_layout.takeAt(0)
-            if child.widget():
-                child.widget().deleteLater()
-            elif child.layout():
-                child.layout().deleteLater()
-
-        # Rebuild the UI
-        self.init_ui()
-
-    def on_checkbox_changed(self, value, command_name):
-        state = Qt.CheckState(value)
-        updates = {}
-        if state == Qt.CheckState.Checked:
-            updates[command_name] = 'yes'
+        
+        # Clear existing layout
+        if hasattr(self, 'main_layout'):
+            while self.main_layout.count():
+                item = self.main_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
         else:
-            updates[command_name] = 'no'
-        self.config_mgr.update_config('checks', updates)
+            self.main_layout = QVBoxLayout(self)
+            self.setLayout(self.main_layout)
+
+        # Rebuild UI with fresh config
+        config_dict = asdict(self.checks_config)
+        for section, items in config_dict.items():
+            section_box = self.create_section(section, items, [section])
+            self.main_layout.addWidget(section_box)
+        self.main_layout.addStretch()
+
+    def on_checkbox_changed(self, value, path):
+        updates = {}
+        current = updates
+        for i, key in enumerate(path[:-1]):
+            current[key] = {}
+            current = current[key]
+        
+        new_value = 'yes' if Qt.CheckState(value) == Qt.CheckState.Checked else 'no'
+        current[path[-1]] = new_value
+        
+        if len(path) >= 2:
+            if path[0] == "tools":
+                tool_name = path[1]
+                tool_config = self.checks_config.tools[tool_name]
+                if isinstance(tool_config, dict):
+                    tool_config[path[-1]] = new_value
+                else:
+                    setattr(tool_config, path[-1], new_value)
+            elif path[0] == "outputs":
+                self.checks_config.outputs[path[-1]] = new_value
+            elif path[0] == "fixity":
+                setattr(self.checks_config.fixity, path[-1], new_value)
+        else:
+            self.config_mgr.update_config('checks', updates)
+        
+        self.refresh_checkboxes()
 
 
 class MainWindow(QMainWindow):
@@ -232,7 +256,7 @@ class MainWindow(QMainWindow):
         # Checkboxes (ConfigWidget) section
         command_checks_label = QLabel("Command options:")
         config_scroll_area = QScrollArea()
-        self.config_widget = ConfigWindow()
+        self.config_widget = ConfigWindow(config_mgr=self.config_mgr)
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
 
@@ -290,7 +314,7 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(mediainfo_section_label)
          # Create a toggle button to open a new window
         mediainfo_toggle_button = QPushButton("Open Section")
-        mediainfo_toggle_button.clicked.connect(lambda: self.open_new_window('MediaInfo Values', asdict(self.spex_config.mediainfo_values)))
+        mediainfo_toggle_button.clicked.connect(lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values))
         spex_layout.addWidget(mediainfo_toggle_button)
 
         # Create a label to display the section name
@@ -456,11 +480,17 @@ class MainWindow(QMainWindow):
     def on_profile_selected(self, index):
         selected_profile = self.command_profile_dropdown.currentText()
         if selected_profile == "step1":
-            updates = {"tools": {"exiftool": {"run_exiftool": "yes"}}}
-        else:
-            updates = {"tools": {"exiftool": {"run_exiftool": "no"}}}
-        self.config_mgr.update_config('checks', updates)
-        self.config_widget.refresh_checkboxes()
+            profile = yaml_profiles.profile_step1
+        elif selected_profile == "step2":
+            profile = yaml_profiles.profile_step2
+        try:
+            # Call the backend function to apply the selected profile
+            yaml_profiles.apply_profile(profile)
+            logger.debug(f"Profile '{selected_profile}' applied successfully.")
+            # command_config.reload()
+            self.config_widget.refresh_checkboxes()
+        except ValueError as e:
+            logger.critical(f"Error: {e}")
 
 
     def on_filename_profile_changed(self, index):

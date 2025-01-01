@@ -348,7 +348,8 @@ class ToolCheckConfig:
 class QctParseConfig:
     barsDetection: Optional[bool] = True
     evaluateBars: Optional[bool] = True
-    contentFilter: Dict[str, str] = field(default_factory=lambda: {'profile': ''})
+    contentFilter: List[str] = field(default_factory=list)  # Can contain 'allBlack', 'static', etc.
+    profile: List[str] = field(default_factory=list)  # Can contain 'default', 'highTolerance', etc.
     tagname: Optional[List[Union[str, int]]] = None
     thumbExport: Optional[bool] = True
 

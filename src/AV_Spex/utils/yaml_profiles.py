@@ -10,13 +10,7 @@ def apply_profile(selected_profile):
     checks_config = config_mgr.get_config('checks', ChecksConfig)
     
     if 'outputs' in selected_profile:
-        for output, settings in selected_profile["outputs"].items():
-            if hasattr(checks_config.outputs, output):
-                if isinstance(settings, dict):
-                    current_value = getattr(checks_config.outputs, output)
-                    current_value.update(settings)
-                else:
-                    setattr(checks_config.outputs, output, settings)
+        checks_config.outputs.update(selected_profile["outputs"])
 
     if 'tools' in selected_profile:
         for tool, updates in selected_profile["tools"].items():
@@ -28,6 +22,11 @@ def apply_profile(selected_profile):
                     for key, value in updates.items():
                         if hasattr(tool_config, key):
                             setattr(tool_config, key, value)
+
+    if 'fixity' in selected_profile:
+        for key, value in selected_profile["fixity"].items():
+            if hasattr(checks_config.fixity, key):
+                setattr(checks_config.fixity, key, value)
     
     config_mgr.set_config('checks', checks_config)
 
@@ -82,128 +81,137 @@ def toggle_off(tool_names):
 profile_step1 = {
     "tools": {
         "qctools": {
-            "run_qctools": 'no',
-            "check_qctools": 'no'   
+            "check_tool": "no",
+            "run_tool": "no"   
         },
         "exiftool": {
-            "check_exiftool": 'yes',
-            "run_exiftool": 'yes'
+            "check_tool": "yes",
+            "run_tool": "yes"
         },
         "ffprobe": {
-            "check_ffprobe": 'no',
-            "run_ffprobe": 'yes'
+            "check_tool": "no",
+            "run_tool": "yes"
         },
         "mediaconch": {
-            "run_mediaconch": 'yes'
+            "mediaconch_policy": "JPC_AV_NTSC_MKV_2024-09-20.xml",
+            "run_mediaconch": "yes"
         },
         "mediainfo": {
-            "check_mediainfo": 'yes',
-            "run_mediainfo": 'yes'
+            "check_tool": "yes",
+            "run_tool": "yes"
         },
         "mediatrace": {
-            "check_mediatrace": 'yes',
-            "run_mediatrace": 'yes'
-        },
+            "check_tool": "yes",
+            "run_tool": "yes"
+        }
     },
     "outputs": {
-        "report": 'no',
-        "access_file": 'no',
-        "fixity": {
-            "output_fixity": 'yes',
-            "check_fixity": 'no',
-            "embed_stream_fixity": 'yes',
-            "validate_stream_fixity": 'no'
-        }
+        "access_file": "no",
+        "report": "no",
+        "qctools_ext": "qctools.xml.gz"
+    },
+    "fixity": {
+        "check_fixity": "no",
+        "validate_stream_fixity": "no",
+        "embed_stream_fixity": "yes",
+        "output_fixity": "yes",
+        "overwrite_stream_fixity": "no"
     }
 }
 
 profile_step2 = {
     "tools": {
         "exiftool": {
-            "check_exiftool": 'yes',
-            "run_exiftool": 'no'
+            "check_tool": "yes",
+            "run_tool": "no"
         },
         "ffprobe": {
-            "check_ffprobe": 'yes',
-            "run_ffprobe": 'no'
+            "check_tool": "yes",
+            "run_tool": "no"
         },
         "mediaconch": {
-            "run_mediaconch": 'yes'
-        },
-        "mediatrace": {
-            "check_mediatrace": 'yes',
-            "run_mediatrace": 'no'
+            "mediaconch_policy": "JPC_AV_NTSC_MKV_2024-09-20.xml",
+            "run_mediaconch": "yes"
         },
         "mediainfo": {
-            "check_mediainfo": 'yes',
-            "run_mediainfo": 'no'
+            "check_tool": "yes",
+            "run_tool": "no"
+        },
+        "mediatrace": {
+            "check_tool": "yes",
+            "run_tool": "no"
         },
         "qctools": {
-            "run_qctools": 'yes',
-            "check_qctools": 'yes'
+            "check_tool": "yes",
+            "run_tool": "yes"
         },
         "qct-parse": {
             "barsDetection": True,
             "evaluateBars": True,
-            "contentFilter": None,
-            "profile": None,
+            "contentFilter": {"profile": ""},
+            "tagname": None,
             "thumbExport": True
         }
     },
     "outputs": {
-        "report": 'yes',
-        "access_file": 'no',
-        "fixity": {
-            "output_fixity": 'no',
-            "check_fixity": 'yes',
-            "embed_stream_fixity": 'no',
-            "validate_stream_fixity": 'yes'
-        }
+        "access_file": "no",
+        "report": "yes",
+        "qctools_ext": "qctools.xml.gz"
+    },
+    "fixity": {
+        "check_fixity": "yes",
+        "validate_stream_fixity": "yes",
+        "embed_stream_fixity": "no",
+        "output_fixity": "no",
+        "overwrite_stream_fixity": "no"
     }
 }
 
 profile_allOff = {
     "tools": {
         "exiftool": {
-            "check_exiftool": 'no',
-            "run_exiftool": 'no'
+            "check_tool": "no",
+            "run_tool": "no"
         },
         "ffprobe": {
-            "check_ffprobe": 'no',
-            "run_ffprobe": 'no'
+            "check_tool": "no",
+            "run_tool": "no"
         },
         "mediaconch": {
-            "run_mediaconch": 'no'
-        },
-        "mediatrace": {
-            "check_mediatrace": 'no',
-            "run_mediatrace": 'no'
+            "mediaconch_policy": "JPC_AV_NTSC_MKV_2024-09-20.xml",
+            "run_mediaconch": "no"
         },
         "mediainfo": {
-            "check_mediainfo": 'no',
-            "run_mediainfo": 'no'
+            "check_tool": "no",
+            "run_tool": "no"
+        },
+        "mediatrace": {
+            "check_tool": "no",
+            "run_tool": "no"
         },
         "qctools": {
-            "run_qctools": 'no',
-            "check_qctools": 'no'
+            "check_tool": "no",
+            "run_tool": "no"
         },
         "qct-parse": {
             "barsDetection": None,
             "evaluateBars": None,
-            "contentFilter": None,
-            "profile": None,
+            "contentFilter": {"profile": ""},
+            "tagname": None,
             "thumbExport": None
         }
     },
     "outputs": {
-        "report": 'no',
-        "access_file": 'no',
-        "fixity": {
-            "output_fixity": 'no',
-            "check_fixity": 'no',
-            "embed_stream_fixity": 'no',
-            "validate_stream_fixity": 'no'
-        }
+        "access_file": "no",
+        "report": "no",
+        "qctools_ext": "qctools.xml.gz"
+    },
+    "fixity": {
+        "check_fixity": "no",
+        "validate_stream_fixity": "no",
+        "embed_stream_fixity": "no",
+        "output_fixity": "no",
+        "overwrite_stream_fixity": "no"
     }
 }
 
