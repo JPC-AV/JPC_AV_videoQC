@@ -3,6 +3,7 @@
 
 import re
 import csv
+import os
 import xml.etree.ElementTree as ET
 
 from ..utils.log_setup import logger

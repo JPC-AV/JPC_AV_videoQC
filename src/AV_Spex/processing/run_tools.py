@@ -71,10 +71,8 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id, com
         # Run the tool command
         run_command(tool_config['command'], video_path, '>', output_path)
         
-        return output_path if os.path.isfile(output_path) else None
+    return output_path
     
-    return None
-
 
 def _get_file_extension(tool_name):
     """
