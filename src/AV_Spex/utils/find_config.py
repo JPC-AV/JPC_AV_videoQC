@@ -1,378 +1,294 @@
 import os
 import json
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, field
 from typing import List, Dict, Union, Optional
-
 
 @dataclass
 class FilenameValues:
-    Collection: str = 'JPC'
-    MediaType: str = 'AV'
-    ObjectID: str = r'\d{5}'
-    FileExtension: str = 'mkv'
+    Collection: str
+    MediaType: str
+    ObjectID: str
+    FileExtension: str
 
 @dataclass
 class MediainfoGeneralValues:
-    file_extension: str = 'mkv'
-    format: str = 'Matroska'
-    overall_bit_rate_mode: str = 'Variable'
+    file_extension: str
+    format: str
+    overall_bit_rate_mode: str
 
 @dataclass
 class MediainfoVideoValues:
-    format: str = 'FFV1'
-    format_settings_gop: str = 'N=1'
-    codec_id: str = 'V_MS/VFW/FOURCC / FFV1'
-    width: str = '720 pixels'
-    height: str = '486 pixels'
-    pixel_aspect_ratio: str = '0.900'
-    display_aspect_ratio: str = '4:3'
-    frame_rate_mode: str = 'Constant'
-    frame_rate: str = '29.970'
-    standard: str = 'NTSC'
-    color_space: str = 'YUV'
-    chroma_subsampling: str = '4:2:2'
-    bit_depth: str = '10 bits'
-    scan_type: str = 'Interlaced'
-    scan_order: str = 'Bottom Field First'
-    compression_mode: str = 'Lossless'
-    color_primaries: str = 'BT.601 NTSC'
-    colour_primaries_source: str = 'Container'
-    transfer_characteristics: str = 'BT.709'
-    transfer_characteristics_source: str = 'Container'
-    matrix_coefficients: str = 'BT.601'
-    max_slices_count: str = '24'
-    error_detection_type: str = 'Per slice'
+    format: str
+    format_settings_gop: str
+    codec_id: str
+    width: str
+    height: str
+    pixel_aspect_ratio: str
+    display_aspect_ratio: str
+    frame_rate_mode: str
+    frame_rate: str
+    standard: str
+    color_space: str
+    chroma_subsampling: str
+    bit_depth: str
+    scan_type: str
+    scan_order: str
+    compression_mode: str
+    color_primaries: str
+    colour_primaries_source: str
+    transfer_characteristics: str
+    transfer_characteristics_source: str
+    matrix_coefficients: str
+    max_slices_count: str
+    error_detection_type: str
 
 @dataclass
 class MediainfoAudioValues:
-    format: List[str] = field(default_factory=lambda: ['FLAC', 'PCM'])
-    channels: str = '2 channels'
-    sampling_rate: str = '48.0 kHz'
-    bit_depth: str = '24 bits'
-    compression_mode: str = 'Lossless'
+    format: List[str]
+    channels: str
+    sampling_rate: str
+    bit_depth: str
+    compression_mode: str
 
 @dataclass
 class ExiftoolValues:
-    file_type: str = 'MKV'
-    file_type_extension: str = 'mkv'
-    mime_type: str = 'video/x-matroska'
-    video_frame_rate: str = '29.97'
-    image_width: str = '720'
-    image_height: str = '486'
-    video_scan_type: str = 'Interlaced'
-    display_width: str = '4'
-    display_height: str = '3'
-    display_unit: str = 'Display Aspect Ratio'
-    codec_id: List[str] = field(default_factory=lambda: ['A_FLAC', 'A_PCM/INT/LIT'])
-    audio_channels: str = '2'
-    audio_sample_rate: str = '48000'
-    audio_bits_per_sample: str = '24'
+    file_type: str
+    file_type_extension: str
+    mime_type: str
+    video_frame_rate: str
+    image_width: str
+    image_height: str
+    video_scan_type: str
+    display_width: str
+    display_height: str
+    display_unit: str
+    codec_id: List[str]
+    audio_channels: str
+    audio_sample_rate: str
+    audio_bits_per_sample: str
 
 @dataclass
 class FFmpegVideoStream:
-    codec_name: str = 'ffv1'
-    codec_long_name: str = 'FFmpeg video codec #1'
-    codec_type: str = 'video'
-    codec_tag_string: str = 'FFV1'
-    codec_tag: str = '0x31564646'
-    width: str = '720'
-    height: str = '486'
-    display_aspect_ratio: str = '4:3'
-    pix_fmt: str = 'yuv422p10le'
-    color_space: str = 'smpte170m'
-    color_transfer: str = 'bt709'
-    color_primaries: str = 'smpte170m'
-    field_order: str = 'bt'
-    bits_per_raw_sample: str = '10'
+    codec_name: str
+    codec_long_name: str
+    codec_type: str
+    codec_tag_string: str
+    codec_tag: str
+    width: str
+    height: str
+    display_aspect_ratio: str
+    pix_fmt: str
+    color_space: str
+    color_transfer: str
+    color_primaries: str
+    field_order: str
+    bits_per_raw_sample: str
 
 @dataclass
 class FFmpegAudioStream:
-    codec_name: List[str] = field(default_factory=lambda: ['flac', 'pcm_s24le'])
-    codec_long_name: List[str] = field(default_factory=lambda: ['FLAC (Free Lossless Audio Codec)', 'PCM signed 24-bit little-endian'])
-    codec_type: str = 'audio'
-    codec_tag: str = '0x0000'
-    sample_fmt: str = 's32'
-    sample_rate: str = '48000'
-    channels: str = '2'
-    channel_layout: str = 'stereo'
-    bits_per_raw_sample: str = '24'
-
-@dataclass
-class FFmpegEncoderSettings:
-    source_vtr: List[str] = field(default_factory=lambda: ['Sony BVH3100', 'SN 10525', 'composite', 'analog balanced'])
-    tbc_framesync: List[str] = field(default_factory=lambda: ['Sony BVH3100', 'SN 10525', 'composite', 'analog balanced'])
-    adc: List[str] = field(default_factory=lambda: ['Leitch DPS575 with flash firmware h2.16', 'SN 15230', 'SDI', 'embedded'])
-    capture_device: List[str] = field(default_factory=lambda: ['Blackmagic Design UltraStudio 4K Extreme', 'SN B022159', 'Thunderbolt'])
-    computer: List[str] = field(default_factory=lambda: ['2023 Mac Mini', 'Apple M2 Pro chip', 'SN H9HDW53JMV', 'OS 14.5', 'vrecord v2023-08-07', 'ffmpeg'])
+    codec_name: List[str]
+    codec_long_name: List[str]
+    codec_type: str
+    codec_tag: str
+    sample_fmt: str
+    sample_rate: str
+    channels: str
+    channel_layout: str
+    bits_per_raw_sample: str
 
 @dataclass
 class FFmpegFormat:
-    format_name: str = 'matroska webm'
-    format_long_name: str = 'Matroska / WebM'
-    tags: Dict[str, Optional[str]] = field(default_factory=lambda: {
-        'creation_time': None,
-        'ENCODER': None,
-        'TITLE': None,
-        'ENCODER_SETTINGS': None,
-        'DESCRIPTION': None,
-        'ORIGINAL MEDIA TYPE': None,
-        'ENCODED_BY': None
-    })
+    format_name: str
+    format_long_name: str
+    tags: Dict[str, Optional[str]]
 
 @dataclass
 class EncoderSettings:
-    Source_VTR: List[str] = field(default_factory=lambda: [
-        'Sony BVH3100',
-        'SN 10525',
-        'composite',
-        'analog balanced'
-    ])
-    TBC_Framesync: List[str] = field(default_factory=lambda: [
-        'Sony BVH3100',
-        'SN 10525',
-        'composite',
-        'analog balanced'
-    ])
-    ADC: List[str] = field(default_factory=lambda: [
-        'Leitch DPS575 with flash firmware h2.16',
-        'SN 15230',
-        'SDI',
-        'embedded'
-    ])
-    Capture_Device: List[str] = field(default_factory=lambda: [
-        'Blackmagic Design UltraStudio 4K Extreme',
-        'SN B022159',
-        'Thunderbolt'
-    ])
-    Computer: List[str] = field(default_factory=lambda: [
-        '2023 Mac Mini',
-        'Apple M2 Pro chip',
-        'SN H9HDW53JMV',
-        'OS 14.5',
-        'vrecord v2023-08-07',
-        'ffmpeg'
-    ])
+    Source_VTR: List[str]
+    TBC_Framesync: List[str]
+    ADC: List[str]
+    Capture_Device: List[str]
+    Computer: List[str]
 
 @dataclass
 class MediaTraceValues:
-    COLLECTION: Optional[str] = None
-    TITLE: Optional[str] = None
-    CATALOG_NUMBER: Optional[str] = None
-    DESCRIPTION: Optional[str] = None
-    DATE_DIGITIZED: Optional[str] = None
-    ENCODER_SETTINGS: EncoderSettings = field(default_factory=EncoderSettings)
-    ENCODED_BY: Optional[str] = None
-    ORIGINAL_MEDIA_TYPE: Optional[str] = None
-    DATE_TAGGED: Optional[str] = None
-    TERMS_OF_USE: Optional[str] = None
-    _TECHNICAL_NOTES: Optional[str] = None
-    _ORIGINAL_FPS: Optional[str] = None
+    COLLECTION: Optional[str]
+    TITLE: Optional[str]
+    CATALOG_NUMBER: Optional[str]
+    DESCRIPTION: Optional[str]
+    DATE_DIGITIZED: Optional[str]
+    ENCODER_SETTINGS: EncoderSettings
+    ENCODED_BY: Optional[str]
+    ORIGINAL_MEDIA_TYPE: Optional[str]
+    DATE_TAGGED: Optional[str]
+    TERMS_OF_USE: Optional[str]
+    _TECHNICAL_NOTES: Optional[str]
+    _ORIGINAL_FPS: Optional[str]
 
 @dataclass
 class AllBlackContent:
-    YMAX: tuple[float, str] = field(default_factory=lambda: (300, 'lt'))
-    YHIGH: tuple[float, str] = field(default_factory=lambda: (115, 'lt'))
-    YLOW: tuple[float, str] = field(default_factory=lambda: (97, 'lt'))
-    YMIN: tuple[float, str] = field(default_factory=lambda: (6.5, 'lt'))
+    YMAX: tuple[float, str]
+    YHIGH: tuple[float, str]
+    YLOW: tuple[float, str]
+    YMIN: tuple[float, str]
 
 @dataclass
 class StaticContent:
-    YMIN: tuple[float, str] = field(default_factory=lambda: (5, 'lt'))
-    YLOW: tuple[float, str] = field(default_factory=lambda: (6, 'lt'))
-    YAVG: tuple[float, str] = field(default_factory=lambda: (240, 'lt'))
-    YMAX: tuple[float, str] = field(default_factory=lambda: (1018, 'gt'))
-    YDIF: tuple[float, str] = field(default_factory=lambda: (260, 'gt'))
-    ULOW: tuple[float, str] = field(default_factory=lambda: (325, 'gt'))
-    UAVG: tuple[float, str] = field(default_factory=lambda: (509, 'gt'))
-    UHIGH: tuple[float, str] = field(default_factory=lambda: (695, 'lt'))
-    UMAX: tuple[float, str] = field(default_factory=lambda: (990, 'gt'))
-    UDIF: tuple[float, str] = field(default_factory=lambda: (138, 'gt'))
-    VMIN: tuple[float, str] = field(default_factory=lambda: (100, 'lt'))
-    VLOW: tuple[float, str] = field(default_factory=lambda: (385, 'gt'))
-    VAVG: tuple[float, str] = field(default_factory=lambda: (500, 'gt'))
-    VHIGH: tuple[float, str] = field(default_factory=lambda: (650, 'lt'))
-    VMAX: tuple[float, str] = field(default_factory=lambda: (940, 'gt'))
-    VDIF: tuple[float, str] = field(default_factory=lambda: (98, 'gt'))
+    YMIN: tuple[float, str]
+    YLOW: tuple[float, str]
+    YAVG: tuple[float, str]
+    YMAX: tuple[float, str]
+    YDIF: tuple[float, str]
+    ULOW: tuple[float, str]
+    UAVG: tuple[float, str]
+    UHIGH: tuple[float, str]
+    UMAX: tuple[float, str]
+    UDIF: tuple[float, str]
+    VMIN: tuple[float, str]
+    VLOW: tuple[float, str]
+    VAVG: tuple[float, str]
+    VHIGH: tuple[float, str]
+    VMAX: tuple[float, str]
+    VDIF: tuple[float, str]
 
 @dataclass
 class Content:
-    allBlack: AllBlackContent = field(default_factory=AllBlackContent)
-    static: StaticContent = field(default_factory=StaticContent)
+    allBlack: AllBlackContent
+    static: StaticContent
 
 @dataclass
 class DefaultProfile:
-    YLOW: float = 64
-    YHIGH: float = 940
-    ULOW: float = 64
-    UHIGH: float = 940
-    VLOW: float = 0
-    VHIGH: float = 1023
-    SATMAX: float = 181.02
-    TOUT: float = 0.009
-    VREP: float = 0.03
+    YLOW: float
+    YHIGH: float
+    ULOW: float
+    UHIGH: float
+    VLOW: float
+    VHIGH: float
+    SATMAX: float
+    TOUT: float
+    VREP: float
 
 @dataclass
 class HighToleranceProfile:
-    YLOW: float = 40
-    YMAX: float = 1000
-    UMIN: float = 64
-    UMAX: float = 1000
-    VMIN: float = 0
-    VMAX: float = 1023
-    SATMAX: float = 181.02
-    TOUT: float = 0.009
-    VREP: float = 0.03
+    YLOW: float
+    YMAX: float
+    UMIN: float
+    UMAX: float
+    VMIN: float
+    VMAX: float
+    SATMAX: float
+    TOUT: float
+    VREP: float
 
 @dataclass
 class MidToleranceProfile:
-    YLOW: float = 40
-    YMAX: float = 980
-    UMIN: float = 64
-    UMAX: float = 980
-    VMIN: float = 0
-    VMAX: float = 1023
-    SATMAX: float = 181.02
-    TOUT: float = 0.009
-    VREP: float = 0.03
+    YLOW: float
+    YMAX: float
+    UMIN: float
+    UMAX: float
+    VMIN: float
+    VMAX: float
+    SATMAX: float
+    TOUT: float
+    VREP: float
 
 @dataclass
 class LowToleranceProfile:
-    YLOW: float = 64
-    YMAX: float = 940
-    UMIN: float = 64
-    UMAX: float = 940
-    VMIN: float = 0
-    VMAX: float = 1023
-    SATMAX: float = 181.02
-    TOUT: float = 0.009
-    VREP: float = 0.03
+    YLOW: float
+    YMAX: float
+    UMIN: float
+    UMAX: float
+    VMIN: float
+    VMAX: float
+    SATMAX: float
+    TOUT: float
+    VREP: float
 
 @dataclass
 class Profiles:
-    default: DefaultProfile = field(default_factory=DefaultProfile)
-    highTolerance: HighToleranceProfile = field(default_factory=HighToleranceProfile)
-    midTolerance: MidToleranceProfile = field(default_factory=MidToleranceProfile)
-    lowTolerance: LowToleranceProfile = field(default_factory=LowToleranceProfile)
+    default: DefaultProfile
+    highTolerance: HighToleranceProfile
+    midTolerance: MidToleranceProfile
+    lowTolerance: LowToleranceProfile
 
 @dataclass
 class FullTagList:
-    YMIN: Optional[float] = None
-    YLOW: Optional[float] = None
-    YAVG: Optional[float] = None
-    YHIGH: Optional[float] = None
-    YMAX: Optional[float] = None
-    UMIN: Optional[float] = None
-    ULOW: Optional[float] = None
-    UAVG: Optional[float] = None
-    UHIGH: Optional[float] = None
-    UMAX: Optional[float] = None
-    VMIN: Optional[float] = None
-    VLOW: Optional[float] = None
-    VAVG: Optional[float] = None
-    VHIGH: Optional[float] = None
-    VMAX: Optional[float] = None
-    SATMIN: Optional[float] = None
-    SATLOW: Optional[float] = None
-    SATAVG: Optional[float] = None
-    SATHIGH: Optional[float] = None
-    SATMAX: Optional[float] = None
-    HUEMED: Optional[float] = None
-    HUEAVG: Optional[float] = None
-    YDIF: Optional[float] = None
-    UDIF: Optional[float] = None
-    VDIF: Optional[float] = None
-    TOUT: Optional[float] = None
-    VREP: Optional[float] = None
-    BRNG: Optional[float] = None
-    mse_y: Optional[float] = None
-    mse_u: Optional[float] = None
-    mse_v: Optional[float] = None
-    mse_avg: Optional[float] = None
-    psnr_y: Optional[float] = None
-    psnr_u: Optional[float] = None
-    psnr_v: Optional[float] = None
-    psnr_avg: Optional[float] = None
-    Overall_Min_level: Optional[float] = None
-    Overall_Max_level: Optional[float] = None
+    YMIN: Optional[float]
+    YLOW: Optional[float]
+    YAVG: Optional[float]
+    YHIGH: Optional[float]
+    YMAX: Optional[float]
+    UMIN: Optional[float]
+    ULOW: Optional[float]
+    UAVG: Optional[float]
+    UHIGH: Optional[float]
+    UMAX: Optional[float]
+    VMIN: Optional[float]
+    VLOW: Optional[float]
+    VAVG: Optional[float]
+    VHIGH: Optional[float]
+    VMAX: Optional[float]
+    SATMIN: Optional[float]
+    SATLOW: Optional[float]
+    SATAVG: Optional[float]
+    SATHIGH: Optional[float]
+    SATMAX: Optional[float]
+    HUEMED: Optional[float]
+    HUEAVG: Optional[float]
+    YDIF: Optional[float]
+    UDIF: Optional[float]
+    VDIF: Optional[float]
+    TOUT: Optional[float]
+    VREP: Optional[float]
+    BRNG: Optional[float]
+    mse_y: Optional[float]
+    mse_u: Optional[float]
+    mse_v: Optional[float]
+    mse_avg: Optional[float]
+    psnr_y: Optional[float]
+    psnr_u: Optional[float]
+    psnr_v: Optional[float]
+    psnr_avg: Optional[float]
+    Overall_Min_level: Optional[float]
+    Overall_Max_level: Optional[float]
 
 @dataclass
 class SmpteColorBars:
-    YMAX: float = 940
-    YMIN: float = 28
-    UMIN: float = 148
-    UMAX: float = 876
-    VMIN: float = 124
-    VMAX: float = 867
-    SATMIN: float = 0
-    SATMAX: float = 405
+    YMAX: float
+    YMIN: float
+    UMIN: float
+    UMAX: float
+    VMIN: float
+    VMAX: float
+    SATMIN: float
+    SATMAX: float
 
 @dataclass
 class QCTParseValues:
-    content: Content = field(default_factory=Content)
-    profiles: Profiles = field(default_factory=Profiles)
-    fullTagList: FullTagList = field(default_factory=FullTagList)
-    smpte_color_bars: SmpteColorBars = field(default_factory=SmpteColorBars)
-
+    content: Content
+    profiles: Profiles
+    fullTagList: FullTagList
+    smpte_color_bars: SmpteColorBars
 
 @dataclass
 class SpexConfig:
-    filename_values: FilenameValues = field(default_factory=FilenameValues)
-    mediainfo_values: Dict[str, Union[MediainfoGeneralValues, MediainfoVideoValues, MediainfoAudioValues]] = field(default_factory=lambda: {
-        'expected_general': MediainfoGeneralValues(),
-        'expected_video': MediainfoVideoValues(),
-        'expected_audio': MediainfoAudioValues()
-    })
-    exiftool_values: ExiftoolValues = field(default_factory=ExiftoolValues)
-    ffmpeg_values: Dict[str, Union[FFmpegVideoStream, FFmpegAudioStream, FFmpegFormat]] = field(default_factory=lambda: {
-        'video_stream': FFmpegVideoStream(),
-        'audio_stream': FFmpegAudioStream(),
-        'format': FFmpegFormat()
-    })
-    mediatrace_values: MediaTraceValues = field(default_factory=MediaTraceValues)
-    qct_parse_values: QCTParseValues = field(default_factory=QCTParseValues)
+    filename_values: FilenameValues
+    mediainfo_values: Dict[str, Union[MediainfoGeneralValues, MediainfoVideoValues, MediainfoAudioValues]]
+    exiftool_values: ExiftoolValues
+    ffmpeg_values: Dict[str, Union[FFmpegVideoStream, FFmpegAudioStream, FFmpegFormat]]
+    mediatrace_values: MediaTraceValues
+    qct_parse_values: QCTParseValues
 
 @dataclass
 class FixityConfig:
-    check_fixity: str = 'no'
-    validate_stream_fixity: str = 'no'
-    embed_stream_fixity: str = 'yes'
-    output_fixity: str = 'yes'
-    overwrite_stream_fixity: str = 'no'
-
-@dataclass
-class ToolCheckConfig:
-    check_tool: str = 'yes'
-    run_tool: str = 'yes'
-
-@dataclass
-class QctParseConfig:
-    barsDetection: Optional[bool] = True
-    evaluateBars: Optional[bool] = True
-    contentFilter: List[str] = field(default_factory=list)  # Can contain 'allBlack', 'static', etc.
-    profile: List[str] = field(default_factory=list)  # Can contain 'default', 'highTolerance', etc.
-    tagname: Optional[List[Union[str, int]]] = None
-    thumbExport: Optional[bool] = True
+    check_fixity: str
+    validate_stream_fixity: str
+    embed_stream_fixity: str
+    output_fixity: str
+    overwrite_stream_fixity: str
 
 @dataclass
 class ChecksConfig:
-    outputs: Dict[str, str] = field(default_factory=lambda: {
-        'access_file': 'no',
-        'report': 'no',
-        'qctools_ext': 'qctools.xml.gz'
-    })
-    
-    fixity: FixityConfig = field(default_factory=FixityConfig)
-    
-    tools: Dict[str, Union[ToolCheckConfig, Dict[str, str]]] = field(default_factory=lambda: {
-        'exiftool': ToolCheckConfig(check_tool='yes', run_tool='yes'),
-        'ffprobe': ToolCheckConfig(check_tool='no', run_tool='yes'),
-        'mediaconch': {
-            'mediaconch_policy': 'JPC_AV_NTSC_MKV_2024-09-20.xml',
-            'run_mediaconch': 'yes'
-        },
-        'mediainfo': ToolCheckConfig(check_tool='yes', run_tool='yes'),
-        'mediatrace': ToolCheckConfig(check_tool='yes', run_tool='yes'),
-        'qctools': ToolCheckConfig(check_tool='no', run_tool='no'),
-        'qct-parse': QctParseConfig()
-    })
-    pass
+    outputs: Dict[str, str]
+    fixity: FixityConfig
+    tools: Dict[str, Dict[str, str]]
