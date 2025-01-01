@@ -71,15 +71,53 @@ class ConfigWindow(QWidget):
         self.refresh_checkboxes()
 
     def create_section(self, section_name, items, path):
-        # Create a QGroupBox for each section
         group_box = QGroupBox(section_name)
         layout = QVBoxLayout()
 
+        # Special handling for qct-parse section
+        is_qct_parse = (len(path) > 1 and path[0] == "tools" and path[1] == "qct-parse")
+
         for key, value in items.items():
             current_path = path + [key]
+            
             if isinstance(value, dict):  # Nested dictionary
                 sub_section = self.create_section(key, value, current_path)
                 layout.addWidget(sub_section)
+                
+            elif is_qct_parse and key in ["contentFilter", "profile"]:
+                # Get available options based on the field
+                if key == "contentFilter":
+                    options = ["allBlack", "static"]
+                else:  # profile
+                    options = ["default", "highTolerance", "midTolerance", "lowTolerance"]
+                    
+                # Create multi-select combo box
+                label = QLabel(key)
+                combo = QComboBox()
+                combo.setObjectName(f"qct_parse_{key}_combo")
+                combo.setStyleSheet("QComboBox { min-width: 150px; }")
+                
+                # Add placeholder item
+                combo.addItem("Select options...")
+                
+                # Add actual options
+                for option in options:
+                    combo.addItem(option)
+                
+                # Set current selection based on existing value
+                if isinstance(value, list) and value:
+                    index = combo.findText(value[0])
+                    if index >= 0:
+                        combo.setCurrentIndex(index)
+                
+                # Connect signal
+                combo.currentTextChanged.connect(
+                    lambda text, p=current_path, k=key: self.on_combo_changed(text, p, k)
+                )
+                
+                layout.addWidget(label)
+                layout.addWidget(combo)
+                
             elif isinstance(value, str):
                 if value.lower() in ("yes", "no"):  # Checkbox for yes/no values
                     if key == "output_fixity":
@@ -96,6 +134,7 @@ class ConfigWindow(QWidget):
                     text_field = QLineEdit(value)
                     layout.addWidget(label)
                     layout.addWidget(text_field)
+                    
             elif isinstance(value, bool):  # Checkbox for True/False values
                 checkbox = QCheckBox(key)
                 checkbox.setChecked(value)
@@ -103,21 +142,28 @@ class ConfigWindow(QWidget):
                     lambda state, p=current_path: self.on_checkbox_changed(state, p)
                 )
                 layout.addWidget(checkbox)
-            elif isinstance(value, dict):  # Handle mediaconch dictionary case
-                if key == "mediaconch":
-                    checkbox = QCheckBox("run_mediaconch")
-                    checkbox.setChecked(value.get("run_mediaconch") == "yes")
-                    checkbox.stateChanged.connect(
-                        lambda state, p=current_path+["run_mediaconch"]: 
-                        self.on_checkbox_changed(state, p)
-                )
-                layout.addWidget(checkbox)
+            
+            # Add handling for None/null values and empty lists
+            elif value is None or (isinstance(value, list) and not value):
+                if is_qct_parse:
+                    # For qct-parse section, preserve None and empty list values
+                    if isinstance(value, list):
+                        # Handle empty lists (contentFilter and profile)
+                        continue  # Already handled above in the special case
+                    else:
+                        # Handle null values (tagname)
+                        label = QLabel(key)
+                        text_field = QLineEdit("")
+                        text_field.setPlaceholderText("None")
+                        layout.addWidget(label)
+                        layout.addWidget(text_field)
 
         group_box.setLayout(layout)
         return group_box
 
     def refresh_checkboxes(self):
-        """Reload config and rebuild UI"""
+        """Reload config and rebuild UI while preserving empty values"""
+        # Get fresh config
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         
         # Clear existing layout
@@ -130,12 +176,45 @@ class ConfigWindow(QWidget):
             self.main_layout = QVBoxLayout(self)
             self.setLayout(self.main_layout)
 
-        # Rebuild UI with fresh config
+        # Convert to dict while preserving empty values
         config_dict = asdict(self.checks_config)
+        
+        # Ensure qct-parse empty values are preserved
+        if "tools" in config_dict and "qct-parse" in config_dict["tools"]:
+            qct_parse = config_dict["tools"]["qct-parse"]
+            # Ensure these fields exist even if empty
+            if "contentFilter" not in qct_parse:
+                qct_parse["contentFilter"] = []
+            if "profile" not in qct_parse:
+                qct_parse["profile"] = []
+            if "tagname" not in qct_parse:
+                qct_parse["tagname"] = None
+
+        # Rebuild UI with preserved empty values
         for section, items in config_dict.items():
             section_box = self.create_section(section, items, [section])
             self.main_layout.addWidget(section_box)
         self.main_layout.addStretch()
+
+    def on_combo_changed(self, text, path, key):
+        """Handle changes in the combo boxes"""
+        if text == "Select options...":
+            value = []
+        else:
+            value = [text]
+            
+        # Update the config manager
+        current_config = self.config_mgr.get_config('checks', ChecksConfig)
+        
+        # Navigate to the qct-parse section and update the specific field
+        qct_parse = current_config.tools["qct-parse"]
+        if key == "contentFilter":
+            qct_parse["contentFilter"] = value
+        elif key == "profile":
+            qct_parse["profile"] = value
+        
+        # Update the config without refreshing the GUI
+        self.config_mgr.set_config('checks', current_config)
 
     def on_checkbox_changed(self, value, path):
         updates = {}
@@ -241,6 +320,7 @@ class MainWindow(QMainWindow):
         self.command_profile_dropdown = QComboBox()
         self.command_profile_dropdown.addItem("step1")
         self.command_profile_dropdown.addItem("step2")
+        self.command_profile_dropdown.addItem("allOff")
         # Set dropdown based on condition
         if self.checks_config.tools["exiftool"]["run_tool"] == "yes":
             self.command_profile_dropdown.setCurrentText("step1")
@@ -480,6 +560,8 @@ class MainWindow(QMainWindow):
             profile = yaml_profiles.profile_step1
         elif selected_profile == "step2":
             profile = yaml_profiles.profile_step2
+        elif selected_profile == "allOff":
+            profile = yaml_profiles.profile_allOff
         try:
             # Call the backend function to apply the selected profile
             yaml_profiles.apply_profile(profile)

@@ -431,7 +431,7 @@ def getCompFromConfig(qct_parse, profile, tag):
    smpte_color_bars_keys = asdict(spex_config.qct_parse_values.smpte_color_bars).keys()
 
    if qct_parse['profile']:
-       template = qct_parse['profile']
+       template = qct_parse['profile'][0]
        if hasattr(spex_config.qct_parse_values.profiles, template):
            profile_keys = asdict(getattr(spex_config.qct_parse_values.profiles, template)).keys()
            if set(profile) == set(profile_keys):
@@ -926,13 +926,18 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         for filter_name in qct_parse['contentFilter']:
             logger.debug(f"Checking for segments of {os.path.basename(video_path)} that match the content filter {filter_name}\n")
             if hasattr(spex_config.qct_parse_values.content, filter_name):
-                contentFilter_dict = asdict(getattr(spex_config.qct_parse_values.content, filter_name))
+                raw_dict = asdict(getattr(spex_config.qct_parse_values.content, filter_name))
+                # Convert the [value, operation] lists to "value, operation" strings
+                contentFilter_dict = {
+                    key: f"{value[0]}, {value[1]}" 
+                    for key, value in raw_dict.items()
+                }
                 qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{filter_name}_summary.csv")
                 detectContentFilter(startObj, pkt, filter_name, contentFilter_dict, qctools_content_check_output, framesList, qct_parse, thumbPath, video_path)
 
     ######## Iterate Through the XML for General Analysis ########
     if qct_parse['profile']:
-        template = qct_parse['profile'] # get the profile/ section name from the command config
+        template = qct_parse['profile'][0] 
         if template in spex_config.qct_parse_values.profiles.__dict__:
         # If the template matches one of the profiles
             for t in tagList:

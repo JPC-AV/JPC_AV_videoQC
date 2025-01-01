@@ -194,11 +194,12 @@ profile_allOff = {
             "run_tool": "no"
         },
         "qct-parse": {
-            "barsDetection": None,
-            "evaluateBars": None,
-            "contentFilter": {"profile": ""},
+            "barsDetection": False,
+            "evaluateBars": False,
+            "contentFilter": [],
+            "profile": [],
             "tagname": None,
-            "thumbExport": None
+            "thumbExport": False
         }
     },
     "outputs": {
