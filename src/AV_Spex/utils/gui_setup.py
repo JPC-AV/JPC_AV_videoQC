@@ -330,7 +330,7 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(ffprobe_section_label)
          # Create a toggle button to open a new window
         ffprobe_toggle_button = QPushButton("Open Section")
-        ffprobe_toggle_button.clicked.connect(lambda: self.open_new_window('FFprobe Values', asdict(self.spex_config.ffmpeg_values)))
+        ffprobe_toggle_button.clicked.connect(lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values))
         spex_layout.addWidget(ffprobe_toggle_button)
 
         # Create a label to display the section name
@@ -535,36 +535,40 @@ class MainWindow(QMainWindow):
 
 
     def open_new_window(self, title, nested_dict):
-        """
-        Create and open a new window to display the section's content.
-        Dynamically processes the nested_dict to avoid precomputing it.
-        """
+        # Convert any dataclass instances in mediainfo_values to dictionaries
+        if title == 'MediaInfo Values':
+            nested_dict = {
+                'expected_general': asdict(nested_dict['expected_general']),
+                'expected_video': asdict(nested_dict['expected_video']), 
+                'expected_audio': asdict(nested_dict['expected_audio'])
+            }
+        # Convert ffmpeg_values dataclass instances
+        elif title == 'FFprobe Values':
+            nested_dict = {
+                'video_stream': asdict(nested_dict['video_stream']),
+                'audio_stream': asdict(nested_dict['audio_stream']),
+                'format': asdict(nested_dict['format'])
+            }
 
-        # Process the nested_dict into a string representation
         content_text = self.dict_to_string(nested_dict)
-
-        # Create a new window to display the processed content
+        
+        # Rest of the original method remains the same
         self.new_window = QWidget()
         self.new_window.setWindowTitle(title)
         self.new_window.setLayout(QVBoxLayout())
-
-        # Add the content in a scrollable area
+        
         scroll_area = QScrollArea(self.new_window)
         scroll_area.setWidgetResizable(True)
-
-        # Create a content widget for detailed content
+        
         content_widget = QTextEdit()
-        content_widget.setPlainText(content_text)  # Use plain-text mode
-        content_widget.setReadOnly(True)  # Make the text widget read-only
+        content_widget.setPlainText(content_text)
+        content_widget.setReadOnly(True)
         content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
         content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
         scroll_area.setWidget(content_widget)
-
-        # Add the scroll area to the new window
+        
         self.new_window.layout().addWidget(scroll_area)
-
-        # Show the new window
-        self.new_window.resize(600, 400)  # Set an appropriate size
+        self.new_window.resize(600, 400)
         self.new_window.show()
 
 
