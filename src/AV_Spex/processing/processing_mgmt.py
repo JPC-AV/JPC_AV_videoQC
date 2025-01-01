@@ -232,7 +232,7 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id):
     """
     # Check if MediaConch should be run
     if checks_config.tools['mediaconch']['run_mediaconch'] != 'yes':
-        logger.info("MediaConch validation skipped")
+        logger.info(f"MediaConch validation skipped\n")
         return {}
 
     # Find the policy file
