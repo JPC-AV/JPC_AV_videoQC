@@ -29,6 +29,7 @@ class ConfigManager:
 
     def find_file(self, filename: str, subdir: str = 'config') -> Optional[str]:
         """Find file in project directory structure"""
+        # If subdir includes subdirectories, join them all
         file_path = os.path.join(self.project_root, subdir, filename)
         print(f"Looking for config file at: {file_path}")
         print(f"Project root is: {self.project_root}")
