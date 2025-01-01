@@ -151,10 +151,7 @@ class ConfigWindow(QWidget):
             if path[0] == "tools":
                 tool_name = path[1]
                 tool_config = self.checks_config.tools[tool_name]
-                if isinstance(tool_config, dict):
-                    tool_config[path[-1]] = new_value
-                else:
-                    setattr(tool_config, path[-1], new_value)
+                tool_config[path[-1]] = new_value
             elif path[0] == "outputs":
                 self.checks_config.outputs[path[-1]] = new_value
             elif path[0] == "fixity":
@@ -245,9 +242,9 @@ class MainWindow(QMainWindow):
         self.command_profile_dropdown.addItem("step1")
         self.command_profile_dropdown.addItem("step2")
         # Set dropdown based on condition
-        if self.checks_config.tools["exiftool"].run_tool == "yes":
+        if self.checks_config.tools["exiftool"]["run_tool"] == "yes":
             self.command_profile_dropdown.setCurrentText("step1")
-        elif self.checks_config.tools["exiftool"].run_tool == "no":
+        elif self.checks_config.tools["exiftool"]["run_tool"] == "no":
             self.command_profile_dropdown.setCurrentText("step2")
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
         vertical_layout.addWidget(command_profile_label)

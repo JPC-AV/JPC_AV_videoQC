@@ -87,7 +87,8 @@ SIGNAL_FLOW_CONFIGS = {
 
 
 def parse_arguments():
-    pyproject_path = os.path.join(config_mgr.project_root, 'pyproject.toml')
+    project_path = os.path.dirname(os.path.dirname(config_mgr.project_root))
+    pyproject_path = os.path.join(project_path, 'pyproject.toml')
     with open(pyproject_path, 'r') as f:
         version_string = toml.load(f)['project']['version']
 

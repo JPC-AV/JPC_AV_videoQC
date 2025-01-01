@@ -15,10 +15,12 @@ checks_config = config_mgr.get_config('checks', ChecksConfig)
 def find_mediaconch_policy():
     try:
         policy_file = checks_config.tools['mediaconch']['mediaconch_policy']
-        policy_path = config_mgr.find_file(policy_file)
+        # Look in config/mediaconch_policies subdirectory
+        policy_path = config_mgr.find_file(policy_file, os.path.join('config', 'mediaconch_policies'))
         
         if not policy_path:
             logger.critical(f'Policy file not found: {policy_file}')
+            logger.critical('Make sure the file exists in the config/mediaconch_policies directory')
             return None
             
         return policy_path
