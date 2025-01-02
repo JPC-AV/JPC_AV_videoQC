@@ -3,7 +3,7 @@ import os
 from ..processing import run_tools
 from ..utils import dir_setup
 from ..utils.log_setup import logger
-from ..utils.find_config import ChecksConfig, SpexConfig
+from ..utils.setup_config import ChecksConfig, SpexConfig
 from ..utils.config_manager import ConfigManager
 from ..utils.generate_report import generate_final_report
 from ..checks.fixity_check import check_fixity, output_fixity

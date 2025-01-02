@@ -2,7 +2,7 @@ import os
 import csv
 import subprocess
 from ..utils.log_setup import logger
-from ..utils.find_config import ChecksConfig, SpexConfig
+from ..utils.setup_config import ChecksConfig, SpexConfig
 from ..utils.config_manager import ConfigManager
 
 config_mgr = ConfigManager()
