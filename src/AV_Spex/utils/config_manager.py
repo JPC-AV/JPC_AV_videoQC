@@ -74,27 +74,39 @@ class ConfigManager:
 
         type_hints = get_type_hints(cls)
         processed_data = {}
+        
         for field_name, field_value in data.items():
             if field_name not in type_hints:
                 continue
                 
             field_type = type_hints[field_name]
             
+            # Check if the field type is a dataclass
+            if hasattr(field_type, '__dataclass_fields__'):
+                if isinstance(field_value, dict):
+                    processed_data[field_name] = self._create_dataclass_instance(
+                        field_type, field_value
+                    )
+                continue
+                
+            # Handle typing.Dict
             if (isinstance(field_value, dict) and 
-                hasattr(field_type, '__dataclass_fields__')):
-                processed_data[field_name] = self._create_dataclass_instance(
-                    field_type, field_value
-                )
-            elif (isinstance(field_value, dict) and 
-                  str(field_type).startswith('typing.Dict')):
+                str(field_type).startswith('typing.Dict')):
                 processed_data[field_name] = field_value
+                
+            # Handle typing.List
             elif (isinstance(field_value, list) and 
-                  str(field_type).startswith('typing.List')):
-                processed_data[field_name] = [
-                    self._create_dataclass_instance(v.__class__, v) 
-                    if is_dataclass(v) else v
-                    for v in field_value
-                ]
+                str(field_type).startswith('typing.List')):
+                # Get the type parameter of the List
+                list_type = str(field_type)
+                if 'List[str]' in list_type:
+                    processed_data[field_name] = field_value
+                else:
+                    processed_data[field_name] = [
+                        self._create_dataclass_instance(v.__class__, v) 
+                        if is_dataclass(v) else v
+                        for v in field_value
+                    ]
             else:
                 processed_data[field_name] = field_value
                 

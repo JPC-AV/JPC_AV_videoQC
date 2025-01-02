@@ -9,6 +9,7 @@ class FilenameValues:
     MediaType: str
     ObjectID: str
     FileExtension: str
+    DigitalGeneration: Optional[str] = None
 
 @dataclass
 class MediainfoGeneralValues:
@@ -100,15 +101,23 @@ class FFmpegAudioStream:
 class FFmpegFormat:
     format_name: str
     format_long_name: str
-    tags: Dict[str, Optional[str]]
+    tags: Dict[str, Optional[str]] = field(default_factory=lambda: {
+        'creation_time': None,
+        'ENCODER': None,
+        'TITLE': None,
+        'ENCODER_SETTINGS': EncoderSettings,
+        'DESCRIPTION': None,
+        'ORIGINAL MEDIA TYPE': None,
+        'ENCODED_BY': None
+    })
 
 @dataclass
 class EncoderSettings:
-    Source_VTR: List[str]
-    TBC_Framesync: List[str]
-    ADC: List[str]
-    Capture_Device: List[str]
-    Computer: List[str]
+    Source_VTR: List[str] = field(default_factory=list)
+    TBC_Framesync: List[str] = field(default_factory=list)
+    ADC: List[str] = field(default_factory=list)
+    Capture_Device: List[str] = field(default_factory=list)
+    Computer: List[str] = field(default_factory=list)
 
 @dataclass
 class MediaTraceValues:

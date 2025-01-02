@@ -423,9 +423,15 @@ class MainWindow(QMainWindow):
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
         # Set dropdown based on condition
-        if "SVO5800" in self.spex_config.mediatrace_values.ENCODER_SETTINGS.Source_VTR:
+        encoder_settings = self.spex_config.mediatrace_values.ENCODER_SETTINGS
+        if isinstance(encoder_settings, dict):
+            source_vtr = encoder_settings.get('Source_VTR', [])
+        else:
+            source_vtr = encoder_settings.Source_VTR
+
+        if any("SVO5800" in vtr for vtr in source_vtr):
             self.signalflow_profile_dropdown.setCurrentText("JPC_AV_SVHS Signal Flow")
-        elif "Sony BVH3100" in self.spex_config.mediatrace_values.ENCODER_SETTINGS.Source_VTR:
+        elif any("Sony BVH3100" in vtr for vtr in source_vtr):
             self.signalflow_profile_dropdown.setCurrentText("BVH3100 Signal Flow")
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
         spex_layout.addWidget(self.signalflow_profile_dropdown)
@@ -576,11 +582,29 @@ class MainWindow(QMainWindow):
     def on_filename_profile_changed(self, index):
         selected_option = self.filename_profile_dropdown.itemText(index)
         updates = {}
+        
         if selected_option == "JPC file names":
-            updates["Collection"] = "JPC"
+            updates = {
+                "filename_values": {
+                    "Collection": "JPC",
+                    "MediaType": "AV",
+                    "ObjectID": r"\d{5}",
+                    "DigitalGeneration": None,
+                    "FileExtension": "mkv"
+                }
+            }
         elif selected_option == "Bowser file names":
-            updates["Collection"] = "2012_79"
-        self.config_mgr.update_config('spex', {'filename_values': updates})
+            updates = {
+                "filename_values": {
+                    "Collection": "2012_79",
+                    "MediaType": "2",
+                    "ObjectID": r"\d{3}_\d{1}[a-zA-Z]",
+                    "DigitalGeneration": "PM",
+                    "FileExtension": "mkv"
+                }
+            }
+        
+        self.config_mgr.update_config('spex', updates)
         self.config_mgr.save_last_used_config('spex')
 
 

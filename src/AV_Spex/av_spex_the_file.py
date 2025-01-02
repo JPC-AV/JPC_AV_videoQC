@@ -311,17 +311,33 @@ def log_overall_time(overall_start_time, overall_end_time):
 def update_spex_config(config_type: str, profile_name: str):
     spex_config = config_mgr.get_config('spex', SpexConfig)
     
-    if config_type == 'signalflow' and profile_name in SIGNAL_FLOW_CONFIGS:
-        settings = SIGNAL_FLOW_CONFIGS[profile_name]
-        spex_config.ffmpeg_values.format.tags.update(settings['format_tags'])
-        spex_config.mediatrace.update(settings['mediatrace'])
-    elif config_type == 'filename':
-        if profile_name == 'jpc':
-            spex_config.filename_values = yaml_profiles.JPCAV_filename
-        elif profile_name == 'bowser':
-            spex_config.filename_values = yaml_profiles.bowser_filename
+    if config_type == 'signalflow':
+        if not isinstance(profile_name, dict):
+            logger.critical(f"Invalid signalflow settings: {profile_name}")
+            return
             
-    config_mgr.set_config('spex', spex_config)
+        #spex_config.ffmpeg_values.format.tags.update(profile_name['format_tags'])
+        for key, value in profile_name.items():
+            setattr(spex_config.mediatrace_values.ENCODER_SETTINGS, key, value)
+        config_mgr.set_config('spex', spex_config)
+            
+    elif config_type == 'filename':
+        if not isinstance(profile_name, dict):
+            logger.critical(f"Invalid filename settings: {profile_name}")
+            return
+            
+        updates = {
+            "filename_values": profile_name
+        }
+        # Update and save config
+        config_mgr.update_config('spex', updates)
+        
+    else:
+        logger.critical(f"Invalid configuration type: {config_type}")
+        return
+        
+    # Save the last used config
+    config_mgr.save_last_used_config('spex')
 
 
 def run_cli_mode(args):

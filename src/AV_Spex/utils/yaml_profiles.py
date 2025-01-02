@@ -217,18 +217,18 @@ profile_allOff = {
 }
 
 JPC_AV_SVHS = {
-    "Source VTR": ["SVO5800", "SN 122345", "composite", "analog balanced"], 
-    "TBC/Framesync": ["DPS575 with flash firmware h2.16", "SN 15230", "SDI", "audio embedded"], 
+    "Source_VTR": ["SVO5800", "SN 122345", "composite", "analog balanced"], 
+    "TBC_Framesync": ["DPS575 with flash firmware h2.16", "SN 15230", "SDI", "audio embedded"], 
     "ADC": ["DPS575 with flash firmware h2.16", "SN 15230", "SDI"], 
-    "Capture Device": ["Black Magic Ultra Jam", "SN B022159", "Thunderbolt"],
+    "Capture_Device": ["Black Magic Ultra Jam", "SN B022159", "Thunderbolt"],
     "Computer": ["2023 Mac Mini", "Apple M2 Pro chip", "SN H9HDW53JMV", "OS 14.5", "vrecord v2023-08-07", "ffmpeg"]
 }
 
 BVH3100 = {
-    "Source VTR": ["Sony BVH3100", "SN 10525", "composite", "analog balanced"],
-    "TBC/Framesync": ["Sony BVH3100", "SN 10525", "composite", "analog balanced"],
+    "Source_VTR": ["Sony BVH3100", "SN 10525", "composite", "analog balanced"],
+    "TBC_Framesync": ["Sony BVH3100", "SN 10525", "composite", "analog balanced"],
     "ADC": ["Leitch DPS575 with flash firmware h2.16", "SN 15230", "SDI", "embedded"],
-    "Capture Device": ["Blackmagic Design UltraStudio 4K Extreme", "SN B022159", "Thunderbolt"],
+    "Capture_Device": ["Blackmagic Design UltraStudio 4K Extreme", "SN B022159", "Thunderbolt"],
     "Computer": ["2023 Mac Mini", "Apple M2 Pro chip", "SN H9HDW53JMV", "OS 14.5", "vrecord v2023-08-07", "ffmpeg"]
 }
 
@@ -244,6 +244,7 @@ JPCAV_filename = {
     "Collection": "JPC",
     "MediaType": "AV",
     "ObjectID": r"\d{5}",
+    "DigitalGeneration": None,
     "FileExtension": "mkv"
 }
 

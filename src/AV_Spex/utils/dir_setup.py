@@ -169,8 +169,8 @@ def is_valid_filename(video_filename):
         approved_values['ObjectID']  # ObjectID can contain a regex, so no escaping
     ]
     
-    # Check if 'DigitalGeneration' is part of the convention and include it in the pattern if present
-    if 'DigitalGeneration' in approved_values:
+    # Check if 'DigitalGeneration' exists and is not None
+    if 'DigitalGeneration' in approved_values and approved_values['DigitalGeneration'] is not None:
         pattern_parts.append(re.escape(approved_values['DigitalGeneration']))
     
     # Append the file extension

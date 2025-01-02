@@ -3,7 +3,8 @@
     "Collection": "JPC",
     "MediaType": "AV",
     "ObjectID": "\\d{5}",
-    "FileExtension": "mkv"
+    "FileExtension": "mkv",
+    "DigitalGeneration": null
   },
   "mediainfo_values": {
     "expected_general": {
