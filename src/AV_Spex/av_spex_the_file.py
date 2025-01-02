@@ -316,9 +316,9 @@ def update_spex_config(config_type: str, profile_name: str):
             logger.critical(f"Invalid signalflow settings: {profile_name}")
             return
             
-        #spex_config.ffmpeg_values.format.tags.update(profile_name['format_tags'])
         for key, value in profile_name.items():
             setattr(spex_config.mediatrace_values.ENCODER_SETTINGS, key, value)
+            spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'][key] = value
         config_mgr.set_config('spex', spex_config)
             
     elif config_type == 'filename':
