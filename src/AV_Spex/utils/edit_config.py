@@ -193,7 +193,8 @@ profile_step2 = {
         "qct-parse": {
             "barsDetection": True,
             "evaluateBars": True,
-            "contentFilter": {"profile": ""},
+            "contentFilter": [],
+            "profile": [],
             "tagname": None,
             "thumbExport": True
         }

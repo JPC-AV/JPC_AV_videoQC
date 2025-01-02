@@ -238,8 +238,6 @@ class ConfigWindow(QWidget):
                 
         # Update and save the config
         self.config_mgr.update_config('checks', updates)
-        # self.config_mgr.save_last_used_config('checks')
-        self.refresh_checkboxes()
 
 
 class MainWindow(QMainWindow):
