@@ -4,6 +4,8 @@ import json
 import os
 from pathlib import Path
 
+from ..utils.log_setup import logger
+
 T = TypeVar('T')
 
 class ConfigManager:
@@ -14,10 +16,8 @@ class ConfigManager:
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
             config_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config')
-            print(f"Config directory: {config_dir}")
-            if os.path.exists(config_dir):
-                print(f"Files in config directory: {os.listdir(config_dir)}")
-            else:
+            # print(f"Config directory: {config_dir}")
+            if not os.path.exists(config_dir):
                 raise FileNotFoundError(f"Config directory not found at {config_dir}")
         return cls._instance
 
@@ -27,8 +27,8 @@ class ConfigManager:
 
     def find_file(self, filename: str, subdir: str = 'config') -> Optional[str]:
         file_path = os.path.join(self.project_root, subdir, filename)
-        print(f"Looking for config file at: {file_path}")
-        print(f"Project root is: {self.project_root}")
+        # print(f"Looking for config file at: {file_path}")
+        # print(f"Project root is: {self.project_root}")
         return file_path if os.path.exists(file_path) else None
 
     def _load_json_config(self, config_name: str, last_used: bool = False) -> dict:
@@ -44,14 +44,14 @@ class ConfigManager:
                 try:
                     with open(last_used_path, 'r') as f:
                         data = json.load(f)
-                        print(f"Successfully loaded last_used_{config_name}_config.json")
+                        logger.debug(f"Successfully loaded last_used_{config_name}_config.json")
                         return data
                 except json.JSONDecodeError:
-                    print(f"Error loading last used config, falling back to defaults")
+                    logger.critical(f"Error loading last used config, falling back to defaults")
 
         # Load default config if last_used is False or last_used config doesn't exist
         json_path = self.find_file(f"{config_name}_config.json")
-        print(f"Attempting to load config from: {json_path}")
+        # print(f"Attempting to load config from: {json_path}")
         
         if not json_path or not os.path.exists(json_path):
             raise FileNotFoundError(
@@ -62,7 +62,7 @@ class ConfigManager:
         try:
             with open(json_path, 'r') as f:
                 data = json.load(f)
-                print(f"Successfully loaded {config_name}_config.json")
+                logger.debug(f"Successfully loaded {config_name}_config.json")
                 return data
         except json.JSONDecodeError as e:
             raise ValueError(f"Error parsing {config_name}_config.json: {str(e)}")
@@ -106,10 +106,10 @@ class ConfigManager:
             # Try to load last used config first
             try:
                 json_data = self._load_json_config(config_name, last_used=True)
-                print(f"Successfully loaded last used config for {config_name}")
+                # print(f"Successfully loaded last used config for {config_name}")
             except (FileNotFoundError, json.JSONDecodeError) as e:
                 # If last used config doesn't exist or is invalid, load default config
-                print(f"No valid last used config found for {config_name}, loading defaults")
+                logger.critical(f"No valid last used config found for {config_name}, loading defaults")
                 json_data = self._load_json_config(config_name, last_used=False)
                 # Create a last used config from the defaults
                 self._configs[config_name] = self._create_dataclass_instance(
@@ -129,14 +129,14 @@ class ConfigManager:
 
     def update_config(self, config_name: str, updates: dict) -> None:
         """Update config and save as last used"""
-        print(f"Updating config for {config_name}")
-        print(f"Update contents: {updates}")
+        # print(f"Updating config for {config_name}")
+        # print(f"Update contents: {updates}")
         
         def update_recursively(target, source):
             for key, value in source.items():
                 if isinstance(value, dict):
                     if not hasattr(target, key):
-                        print(f"Warning: {key} not found in target")
+                        logger.critical(f"Warning: {key} not found in target")
                         continue
                     current = getattr(target, key)
                     if isinstance(current, dict):
@@ -145,22 +145,22 @@ class ConfigManager:
                         for subkey, subvalue in value.items():
                             if hasattr(current, subkey):
                                 setattr(current, subkey, subvalue)
-                                print(f"Updated {key}.{subkey} to {subvalue}")
+                                #print(f"Updated {key}.{subkey} to {subvalue}")
                             else:
-                                print(f"Warning: {key}.{subkey} not found in target")
+                                logger.critical(f"Warning: {key}.{subkey} not found in target")
                 elif hasattr(target, key):
                     setattr(target, key, value)
-                    print(f"Updated {key} to {value}")
+                    #print(f"Updated {key} to {value}")
                 else:
-                    print(f"Warning: {key} not found in target")
+                    logger.critical(f"Warning: {key} not found in target")
 
         current_config = self._configs.get(config_name)
         if current_config:
             update_recursively(current_config, updates)
-            print(f"Saving updated config as last used for {config_name}")
+            logger.debug(f"Saving updated config as last used for {config_name}")
             self.save_last_used_config(config_name)
         else:
-            print(f"No current config found for {config_name}")
+            logger.critical(f"No current config found for {config_name}")
 
     def save_config(self, config_name: str) -> None:
         """Save current config state to JSON file"""
@@ -193,6 +193,6 @@ class ConfigManager:
         try:
             with open(last_used_path, 'w') as f:
                 json.dump(asdict(config), f, indent=2)
-            print(f"Successfully saved last used config for {config_name} at {last_used_path}")
+            logger.debug(f"Successfully saved last used config for {config_name} at {last_used_path}")
         except Exception as e:
-            print(f"Error saving last used config for {config_name}: {str(e)}")
+            logger.critical(f"Error saving last used config for {config_name}: {str(e)}")
