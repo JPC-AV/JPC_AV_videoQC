@@ -169,10 +169,10 @@ class ConfigManager:
         current_config = self._configs.get(config_name)
         if current_config:
             update_recursively(current_config, updates)
-            logger.debug(f"Saving updated config as last used for {config_name}")
+            logger.debug(f"Updated {config_name} config")
             self.save_last_used_config(config_name)
         else:
-            logger.critical(f"No current config found for {config_name}")
+            logger.critical(f"No current {config_name} config found")
 
     def save_config(self, config_name: str) -> None:
         """Save current config state to JSON file"""
@@ -205,6 +205,6 @@ class ConfigManager:
         try:
             with open(last_used_path, 'w') as f:
                 json.dump(asdict(config), f, indent=2)
-            logger.debug(f"Successfully saved last used config for {config_name} at {last_used_path}")
+            # logger.debug(f"Successfully saved last used config for {config_name} at {last_used_path}")
         except Exception as e:
             logger.critical(f"Error saving last used config for {config_name}: {str(e)}")

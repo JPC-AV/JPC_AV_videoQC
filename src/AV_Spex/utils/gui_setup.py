@@ -10,10 +10,10 @@ import os
 import sys
 from dataclasses import dataclass, asdict, field
 
-from ..utils.find_config import SpexConfig, ChecksConfig
+from ..utils.setup_config import SpexConfig, ChecksConfig
 from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
-from ..utils import yaml_profiles
+from ..utils import edit_config
 
 
 class DirectoryListWidget(QListWidget):
@@ -238,7 +238,7 @@ class ConfigWindow(QWidget):
                 
         # Update and save the config
         self.config_mgr.update_config('checks', updates)
-        self.config_mgr.save_last_used_config('checks')
+        # self.config_mgr.save_last_used_config('checks')
         self.refresh_checkboxes()
 
 
@@ -564,14 +564,14 @@ class MainWindow(QMainWindow):
     def on_profile_selected(self, index):
         selected_profile = self.command_profile_dropdown.currentText()
         if selected_profile == "step1":
-            profile = yaml_profiles.profile_step1
+            profile = edit_config.profile_step1
         elif selected_profile == "step2":
-            profile = yaml_profiles.profile_step2
+            profile = edit_config.profile_step2
         elif selected_profile == "allOff":
-            profile = yaml_profiles.profile_allOff
+            profile = edit_config.profile_allOff
         try:
             # Call the backend function to apply the selected profile
-            yaml_profiles.apply_profile(profile)
+            edit_config.apply_profile(profile)
             logger.debug(f"Profile '{selected_profile}' applied successfully.")
             self.config_mgr.save_last_used_config('checks')
             self.config_widget.refresh_checkboxes()
@@ -605,7 +605,7 @@ class MainWindow(QMainWindow):
             }
         
         self.config_mgr.update_config('spex', updates)
-        self.config_mgr.save_last_used_config('spex')
+        # self.config_mgr.save_last_used_config('spex')
 
 
     def on_signalflow_profile_changed(self, index):
@@ -613,9 +613,9 @@ class MainWindow(QMainWindow):
         logger.debug(f"Selected signal flow profile: {selected_option}")
 
         if selected_option == "JPC_AV_SVHS Signal Flow":
-            sn_config_changes = yaml_profiles.JPC_AV_SVHS
+            sn_config_changes = edit_config.JPC_AV_SVHS
         elif selected_option == "BVH3100 Signal Flow":
-            sn_config_changes = yaml_profiles.BVH3100
+            sn_config_changes = edit_config.BVH3100
         else:
             logger.error("Signal flow identifier not recognized, config not updated")
             return

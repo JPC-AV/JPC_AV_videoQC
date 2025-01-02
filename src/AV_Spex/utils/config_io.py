@@ -3,7 +3,7 @@ import json
 import os
 from typing import Optional, Union, List
 from datetime import datetime
-from .find_config import SpexConfig, ChecksConfig
+from .setup_config import SpexConfig, ChecksConfig
 from .config_manager import ConfigManager
 
 class ConfigIO:

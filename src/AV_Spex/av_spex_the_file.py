@@ -22,7 +22,6 @@ from PyQt6.QtWidgets import (
 
 from .processing import processing_mgmt
 from .processing import run_tools
-from .utils import yaml_profiles
 from .utils import dir_setup
 from .utils import edit_config
 from .utils.log_setup import logger
@@ -55,32 +54,32 @@ AVAILABLE_TOOLS = ["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace
 
 
 PROFILE_MAPPING = {
-    "step1": yaml_profiles.profile_step1,
-    "step2": yaml_profiles.profile_step2,
-    "off": yaml_profiles.profile_allOff
+    "step1": edit_config.profile_step1,
+    "step2": edit_config.profile_step2,
+    "off": edit_config.profile_allOff
 }
 
 
 SIGNALFLOW_MAPPING = {
-    "JPC_AV_SVHS": yaml_profiles.JPC_AV_SVHS,
-    "BVH3100": yaml_profiles.BVH3100
+    "JPC_AV_SVHS": edit_config.JPC_AV_SVHS,
+    "BVH3100": edit_config.BVH3100
 }
 
 
 FILENAME_MAPPING = {
-    "jpc": yaml_profiles.JPCAV_filename,
-    "bowser": yaml_profiles.bowser_filename
+    "jpc": edit_config.JPCAV_filename,
+    "bowser": edit_config.bowser_filename
 }
 
 
 SIGNAL_FLOW_CONFIGS = {
     "JPC_AV_SVHS": {
-        "format_tags": {"ENCODER_SETTINGS": yaml_profiles.JPC_AV_SVHS},
-        "mediatrace": {"ENCODER_SETTINGS": yaml_profiles.JPC_AV_SVHS}
+        "format_tags": {"ENCODER_SETTINGS": edit_config.JPC_AV_SVHS},
+        "mediatrace": {"ENCODER_SETTINGS": edit_config.JPC_AV_SVHS}
     },
     "BVH3100": {
-        "format_tags": {"ENCODER_SETTINGS": yaml_profiles.BVH3100}, 
-        "mediatrace": {"ENCODER_SETTINGS": yaml_profiles.BVH3100}
+        "format_tags": {"ENCODER_SETTINGS": edit_config.BVH3100}, 
+        "mediatrace": {"ENCODER_SETTINGS": edit_config.BVH3100}
     }
 }
 
@@ -345,13 +344,13 @@ def run_cli_mode(args):
 
     # Update checks config
     if args.selected_profile:
-        yaml_profiles.apply_profile(args.selected_profile)
+        edit_config.apply_profile(args.selected_profile)
     if args.tool_names:
-        yaml_profiles.apply_by_name(args.tool_names)
+        edit_config.apply_by_name(args.tool_names)
     if args.tools_on_names:
-        yaml_profiles.toggle_on(args.tools_on_names)
+        edit_config.toggle_on(args.tools_on_names)
     if args.tools_off_names:
-        yaml_profiles.toggle_off(args.tools_off_names)
+        edit_config.toggle_off(args.tools_off_names)
 
     # Update spex config
     if args.sn_config_changes:
