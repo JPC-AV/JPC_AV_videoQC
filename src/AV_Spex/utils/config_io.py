@@ -49,12 +49,15 @@ class ConfigIO:
             config_data = json.load(f)
         
         if 'spex' in config_data:
-            spex_config = SpexConfig(**config_data['spex'])
+            # Use ConfigManager's _create_dataclass_instance to properly handle nested dataclasses
+            spex_config = self.config_mgr._create_dataclass_instance(SpexConfig, config_data['spex'])
             self.config_mgr.set_config('spex', spex_config)
+            self.config_mgr.save_last_used_config('spex')
         
         if 'checks' in config_data:
             checks_config = ChecksConfig(**config_data['checks'])
             self.config_mgr.set_config('checks', checks_config)
+            self.config_mgr.save_last_used_config('checks')
 
 def handle_config_io(args, config_mgr: ConfigManager):
     """Handle config I/O operations based on arguments"""
