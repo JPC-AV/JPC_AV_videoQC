@@ -235,9 +235,10 @@ class ConfigWindow(QWidget):
                 self.checks_config.outputs[path[-1]] = new_value
             elif path[0] == "fixity":
                 setattr(self.checks_config.fixity, path[-1], new_value)
-        else:
-            self.config_mgr.update_config('checks', updates)
-        
+                
+        # Update and save the config
+        self.config_mgr.update_config('checks', updates)
+        self.config_mgr.save_last_used_config('checks')
         self.refresh_checkboxes()
 
 
@@ -566,7 +567,7 @@ class MainWindow(QMainWindow):
             # Call the backend function to apply the selected profile
             yaml_profiles.apply_profile(profile)
             logger.debug(f"Profile '{selected_profile}' applied successfully.")
-            # command_config.reload()
+            self.config_mgr.save_last_used_config('checks')
             self.config_widget.refresh_checkboxes()
         except ValueError as e:
             logger.critical(f"Error: {e}")
@@ -580,6 +581,7 @@ class MainWindow(QMainWindow):
         elif selected_option == "Bowser file names":
             updates["Collection"] = "2012_79"
         self.config_mgr.update_config('spex', {'filename_values': updates})
+        self.config_mgr.save_last_used_config('spex')
 
 
     def on_signalflow_profile_changed(self, index):
@@ -678,4 +680,6 @@ class MainWindow(QMainWindow):
         """Handle the 'Quit' button click."""
         self.selected_directories = None  # Clear any selections
         self.check_spex_clicked = False  # Ensure the flag is reset
+        self.config_mgr.save_last_used_config('checks')
+        self.config_mgr.save_last_used_config('spex')
         self.close()  # Close the GUI
