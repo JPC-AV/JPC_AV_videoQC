@@ -27,6 +27,12 @@ def find_mediaconch_policy():
     except Exception as e:
         logger.critical(f'Error finding MediaConch policy: {e}')
         return None
+    
+import os
+import shutil
+from pathlib import Path
+from ..utils.log_setup import logger
+from ..utils.config_manager import ConfigManager
 
 
 def run_mediaconch_command(command, input_path, output_type, output_path, policy_path):
