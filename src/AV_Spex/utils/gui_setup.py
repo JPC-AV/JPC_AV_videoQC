@@ -641,16 +641,16 @@ class MainWindow(QMainWindow):
         # Convert any dataclass instances in mediainfo_values to dictionaries
         if title == 'MediaInfo Values':
             nested_dict = {
-                'expected_general': asdict(nested_dict['expected_general']),
-                'expected_video': asdict(nested_dict['expected_video']), 
-                'expected_audio': asdict(nested_dict['expected_audio'])
+                'expected_general': nested_dict['expected_general'],
+                'expected_video': nested_dict['expected_video'], 
+                'expected_audio': nested_dict['expected_audio']
             }
         # Convert ffmpeg_values dataclass instances
         elif title == 'FFprobe Values':
             nested_dict = {
-                'video_stream': asdict(nested_dict['video_stream']),
-                'audio_stream': asdict(nested_dict['audio_stream']),
-                'format': asdict(nested_dict['format'])
+                'video_stream': nested_dict['video_stream'],
+                'audio_stream': nested_dict['audio_stream'],
+                'format': nested_dict['format']
             }
 
         content_text = self.dict_to_string(nested_dict)
