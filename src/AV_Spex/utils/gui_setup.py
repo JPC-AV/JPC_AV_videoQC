@@ -15,6 +15,8 @@ from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 from ..utils import edit_config
 
+from ..processing.processing_mgmt import setup_mediaconch_policy
+
 
 class DirectoryListWidget(QListWidget):
     def __init__(self, parent=None):
@@ -76,6 +78,9 @@ class ConfigWindow(QWidget):
 
         # Special handling for qct-parse section
         is_qct_parse = (len(path) > 1 and path[0] == "tools" and path[1] == "qct-parse")
+        
+        # Check if this is the mediaconch policy field
+        is_mediaconch_policy = (len(path) > 1 and path[0] == "tools" and path[1] == "mediaconch")
 
         for key, value in items.items():
             current_path = path + [key]
@@ -129,6 +134,43 @@ class ConfigWindow(QWidget):
                         lambda state, p=current_path: self.on_checkbox_changed(state, p)
                     )
                     layout.addWidget(checkbox)
+                elif key == "mediaconch_policy":
+                    # Create container widget for policy file selection
+                    policy_container = QWidget()
+                    policy_layout = QVBoxLayout(policy_container)
+                    
+                    # Display current policy filename
+                    filename_label = QLabel(f"Current policy: {value}")
+                    policy_layout.addWidget(filename_label)
+
+                    # Get available policy files
+                    policies_dir = os.path.join(self.config_mgr.project_root, 'config', 'mediaconch_policies')
+                    available_policies = []
+                    if os.path.exists(policies_dir):
+                        available_policies = [f for f in os.listdir(policies_dir) if f.endswith('.xml')]
+
+                    # Create and populate dropdown
+                    policy_combo = QComboBox()
+                    policy_combo.addItems(available_policies)
+                    
+                    # Set current policy in dropdown
+                    if value in available_policies:
+                        policy_combo.setCurrentText(value)
+                    
+                    # Connect dropdown change event
+                    policy_combo.currentTextChanged.connect(self.on_mediaconch_policy_selected)
+                    
+                    # Add dropdown to layout
+                    policy_layout.addWidget(QLabel("Available policies:"))
+                    policy_layout.addWidget(policy_combo)
+                    
+                    # Add import button
+                    import_button = QPushButton("Import MediaConch Policy")
+                    import_button.clicked.connect(self.open_policy_file_dialog)
+                    policy_layout.addWidget(import_button)
+                    
+                    layout.addWidget(policy_container)
+                    continue  # Skip the rest of the loop iteration
                 else:  # QLineEdit for text fields
                     label = QLabel(key)
                     text_field = QLineEdit(value)
@@ -161,6 +203,51 @@ class ConfigWindow(QWidget):
         group_box.setLayout(layout)
         return group_box
 
+    def open_policy_file_dialog(self):
+        """Open file dialog for selecting MediaConch policy file"""
+        file_dialog = QFileDialog()
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+        file_dialog.setNameFilter("XML files (*.xml)")
+        
+        if file_dialog.exec():
+            selected_files = file_dialog.selectedFiles()
+            if selected_files:
+                policy_path = selected_files[0]
+                # Call setup_mediaconch_policy with selected file
+                new_policy_name = setup_mediaconch_policy(policy_path)
+                if new_policy_name:
+                    # Refresh the UI to show the new policy file
+                    self.refresh_checkboxes()
+                else:
+                    # Show error message if policy setup failed
+                    QMessageBox.critical(
+                        self,
+                        "Error",
+                        "Failed to import MediaConch policy file. Check logs for details."
+                    )
+
+    def on_mediaconch_policy_selected(self, policy_name: str):
+        """Handle selection of policy from dropdown"""
+        if not policy_name:
+            return
+            
+        # Get current config to preserve run_mediaconch value
+        current_config = self.config_mgr.get_config('checks', ChecksConfig)
+        run_mediaconch = current_config.tools['mediaconch']['run_mediaconch']
+        
+        # Update config to use selected policy file
+        self.config_mgr.update_config('checks', {
+            'tools': {
+                'mediaconch': {
+                    'mediaconch_policy': policy_name,
+                    'run_mediaconch': run_mediaconch
+                }
+            }
+        })
+        logger.info(f"Updated config to use policy file: {policy_name}")
+        self.refresh_checkboxes()
+
+       
     def refresh_checkboxes(self):
         """Reload config and rebuild UI while preserving empty values"""
         # Get fresh config
