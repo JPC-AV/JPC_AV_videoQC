@@ -48,6 +48,7 @@ class ParsedArguments:
     export_config: Optional[str]
     export_file: Optional[str] 
     import_config: Optional[str]
+    mediaconch_policy: Optional[str]
 
 
 AVAILABLE_TOOLS = ["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"]
@@ -134,6 +135,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
                     help='Specify export filename (default: auto-generated)')
     parser.add_argument('--import-config',
                     help='Import configs from JSON file')
+    parser.add_argument("--mediaconch-policy",
+                    help="Path to custom MediaConch policy XML file")
 
     args = parser.parse_args()
 
@@ -160,7 +163,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
         gui=args.gui,
         export_config=args.export_config,
         export_file=args.export_file,
-        import_config=args.import_config
+        import_config=args.import_config,
+        mediaconch_policy=args.mediaconch_policy
     )
 
 
@@ -249,7 +253,6 @@ def process_single_directory(source_directory):
 
     # Display initial processing banner
     display_processing_banner()
-
 
     # Call the new prep_directory function
     init_dir_result = dir_setup.initialize_directory(source_directory)
@@ -351,6 +354,9 @@ def run_cli_mode(args):
         edit_config.toggle_on(args.tools_on_names)
     if args.tools_off_names:
         edit_config.toggle_off(args.tools_off_names)
+
+    if args.mediaconch_policy:
+        processing_mgmt.setup_mediaconch_policy(args.mediaconch_policy)
 
     # Update spex config
     if args.sn_config_changes:

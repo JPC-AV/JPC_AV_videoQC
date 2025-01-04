@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from ..processing import run_tools
 from ..utils import dir_setup
@@ -257,3 +258,60 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id):
     validation_results = parse_mediaconch_output(mediaconch_output_path)
 
     return validation_results
+
+
+def setup_mediaconch_policy(user_policy_path: str = None) -> str:
+    """
+    Set up MediaConch policy file, either using user-provided policy or default.
+    
+    Args:
+        user_policy_path (str, optional): Path to user-provided policy file
+        
+    Returns:
+        str: Name of the policy file that will be used
+    """
+    config_mgr = ConfigManager()
+    
+    if not user_policy_path:
+        # Return current policy file name from config
+        current_config = config_mgr.get_config('checks', ChecksConfig)
+        return current_config.tools['mediaconch']['mediaconch_policy']
+        
+    try:
+        # Verify user policy file exists
+        if not os.path.exists(user_policy_path):
+            logger.critical(f"User provided policy file not found: {user_policy_path}")
+            return None
+            
+        # Get policy file name and destination path
+        policy_filename = os.path.basename(user_policy_path)
+        policy_dest_dir = os.path.join(config_mgr.project_root, 'config', 'mediaconch_policies')
+        policy_dest_path = os.path.join(policy_dest_dir, policy_filename)
+        
+        # Create mediaconch_policies directory if it doesn't exist
+        os.makedirs(policy_dest_dir, exist_ok=True)
+        
+        # Copy policy file to config directory
+        shutil.copy2(user_policy_path, policy_dest_path)
+        logger.info(f"Copied user policy file to config directory: {policy_filename}")
+        
+        # Get current config to preserve run_mediaconch value
+        current_config = config_mgr.get_config('checks', ChecksConfig)
+        run_mediaconch = current_config.tools['mediaconch']['run_mediaconch']
+        
+        # Update config to use new policy file while preserving run_mediaconch
+        config_mgr.update_config('checks', {
+            'tools': {
+                'mediaconch': {
+                    'mediaconch_policy': policy_filename,
+                    'run_mediaconch': run_mediaconch
+                }
+            }
+        })
+        logger.info(f"Updated config to use new policy file: {policy_filename}")
+        
+        return policy_filename
+        
+    except Exception as e:
+        logger.critical(f"Error setting up MediaConch policy: {e}")
+        return None
