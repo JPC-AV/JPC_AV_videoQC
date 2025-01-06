@@ -68,7 +68,6 @@ class ConfigManager:
             raise ValueError(f"Error parsing {config_name}_config.json: {str(e)}")
 
     def _create_dataclass_instance(self, cls: Type[T], data: dict) -> T:
-        """Recursively create dataclass instances from dict data"""
         if not data:
             raise ValueError(f"No data provided to create {cls.__name__} instance")
 
@@ -80,6 +79,14 @@ class ConfigManager:
                 continue
                 
             field_type = type_hints[field_name]
+            
+            # Handle Optional types
+            if str(field_type).startswith('typing.Optional'):
+                if field_value is None:
+                    processed_data[field_name] = None
+                    continue
+                # Extract the inner type
+                field_type = field_type.__args__[0]
             
             # Check if the field type is a dataclass
             if hasattr(field_type, '__dataclass_fields__'):
@@ -97,7 +104,6 @@ class ConfigManager:
             # Handle typing.List
             elif (isinstance(field_value, list) and 
                 str(field_type).startswith('typing.List')):
-                # Get the type parameter of the List
                 list_type = str(field_type)
                 if 'List[str]' in list_type:
                     processed_data[field_name] = field_value
@@ -115,26 +121,31 @@ class ConfigManager:
     def get_config(self, config_name: str, config_class: Type[T]) -> T:
         """Get config by name, trying last used settings first"""
         if config_name not in self._configs:
-            # Try to load last used config first
-            try:
-                json_data = self._load_json_config(config_name, last_used=True)
-                # print(f"Successfully loaded last used config for {config_name}")
-            except (FileNotFoundError, json.JSONDecodeError) as e:
-                # If last used config doesn't exist or is invalid, load default config
-                logger.critical(f"No valid last used config found for {config_name}, loading defaults")
-                json_data = self._load_json_config(config_name, last_used=False)
-                # Create a last used config from the defaults
-                self._configs[config_name] = self._create_dataclass_instance(
-                    config_class, json_data
-                )
-                self.save_last_used_config(config_name)
-                return self._configs[config_name]
+            # Load default config first
+            default_config = self._load_json_config(config_name, last_used=False)
             
-            self._configs[config_name] = self._create_dataclass_instance(
-                config_class, json_data
-            )
+            try:
+                # Try to load and merge last used config
+                last_used_data = self._load_json_config(config_name, last_used=True)
+                # Deep merge last_used into default config
+                self._deep_merge_dict(default_config, last_used_data)
+            except (FileNotFoundError, json.JSONDecodeError):
+                logger.debug(f"No valid last used config found for {config_name}, using defaults")
                 
+            self._configs[config_name] = self._create_dataclass_instance(
+                config_class, default_config
+            )
+            
         return self._configs[config_name]
+
+    def _deep_merge_dict(self, target: dict, source: dict) -> None:
+        """Recursively merge source dict into target dict"""
+        for key, value in source.items():
+            if key in target:
+                if isinstance(value, dict) and isinstance(target[key], dict):
+                    self._deep_merge_dict(target[key], value)
+                else:
+                    target[key] = value
 
     def set_config(self, config_name: str, config: Any) -> None:
         self._configs[config_name] = config
@@ -146,25 +157,27 @@ class ConfigManager:
         
         def update_recursively(target, source):
             for key, value in source.items():
-                if isinstance(value, dict):
-                    if not hasattr(target, key):
-                        logger.critical(f"Warning: {key} not found in target")
-                        continue
-                    current = getattr(target, key)
-                    if isinstance(current, dict):
-                        current.update(value)
+                try:
+                    if isinstance(value, dict):
+                        if not hasattr(target, key):
+                            logger.error(f"Field '{key}' not found in config")
+                            continue
+                        current = getattr(target, key)
+                        if isinstance(current, dict):
+                            current.update(value)
+                        else:
+                            for subkey, subvalue in value.items():
+                                if hasattr(current, subkey):
+                                    setattr(current, subkey, subvalue)
+                                else:
+                                    logger.error(f"Subfield '{key}.{subkey}' not found in config")
+                    elif hasattr(target, key):
+                        setattr(target, key, value)
                     else:
-                        for subkey, subvalue in value.items():
-                            if hasattr(current, subkey):
-                                setattr(current, subkey, subvalue)
-                                #print(f"Updated {key}.{subkey} to {subvalue}")
-                            else:
-                                logger.critical(f"Warning: {key}.{subkey} not found in target")
-                elif hasattr(target, key):
-                    setattr(target, key, value)
-                    #print(f"Updated {key} to {value}")
-                else:
-                    logger.critical(f"Warning: {key} not found in target")
+                        logger.error(f"Field '{key}' not found in config")
+                except Exception as e:
+                    logger.error(f"Error updating field '{key}': {str(e)}")
+                    continue
 
         current_config = self._configs.get(config_name)
         if current_config:
