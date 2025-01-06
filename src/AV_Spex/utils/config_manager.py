@@ -16,11 +16,10 @@ class ConfigManager:
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
             config_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config')
-            # print(f"Config directory: {config_dir}")
             if not os.path.exists(config_dir):
                 raise FileNotFoundError(f"Config directory not found at {config_dir}")
         return cls._instance
-
+    
     @property
     def project_root(self) -> str:
         return os.path.dirname(os.path.dirname(__file__))
@@ -67,71 +66,138 @@ class ConfigManager:
         except json.JSONDecodeError as e:
             raise ValueError(f"Error parsing {config_name}_config.json: {str(e)}")
 
+
     def _create_dataclass_instance(self, cls: Type[T], data: dict) -> T:
+        """
+        Create a dataclass instance from a dictionary, ensuring nested structures
+        are also converted to dataclasses.
+        """
         if not data:
             raise ValueError(f"No data provided to create {cls.__name__} instance")
 
         type_hints = get_type_hints(cls)
         processed_data = {}
         
-        for field_name, field_value in data.items():
-            if field_name not in type_hints:
+        for field_name, field_type in type_hints.items():
+            if field_name not in data:
+                logger.warning(f"Field {field_name} not found in data for {cls.__name__}")
                 continue
                 
-            field_type = type_hints[field_name]
+            field_value = data[field_name]
             
-            # Handle Optional types
+            # Handle None values
+            if field_value is None:
+                processed_data[field_name] = None
+                continue
+            
+            # Extract actual type from Optional
             if str(field_type).startswith('typing.Optional'):
-                if field_value is None:
-                    processed_data[field_name] = None
-                    continue
-                # Extract the inner type
                 field_type = field_type.__args__[0]
             
-            # Check if the field type is a dataclass
+            # Handle nested dataclasses
             if hasattr(field_type, '__dataclass_fields__'):
                 if isinstance(field_value, dict):
                     processed_data[field_name] = self._create_dataclass_instance(
                         field_type, field_value
                     )
-                continue
-                
-            # Handle typing.Dict
-            if (isinstance(field_value, dict) and 
-                str(field_type).startswith('typing.Dict')):
-                processed_data[field_name] = field_value
-                
-            # Handle typing.List
-            elif (isinstance(field_value, list) and 
-                str(field_type).startswith('typing.List')):
-                list_type = str(field_type)
-                if 'List[str]' in list_type:
-                    processed_data[field_name] = field_value
                 else:
+                    raise ValueError(
+                        f"Expected dict for {field_name}, got {type(field_value)}"
+                    )
+                    
+            # Handle List types
+            elif str(field_type).startswith('typing.List'):
+                if not isinstance(field_value, list):
+                    raise ValueError(
+                        f"Expected list for {field_name}, got {type(field_value)}"
+                    )
+                # Get the type of list elements
+                element_type = field_type.__args__[0]
+                if hasattr(element_type, '__dataclass_fields__'):
+                    # Convert each list element to a dataclass if needed
                     processed_data[field_name] = [
-                        self._create_dataclass_instance(v.__class__, v) 
-                        if is_dataclass(v) else v
-                        for v in field_value
+                        self._create_dataclass_instance(element_type, item)
+                        if isinstance(item, dict) else item
+                        for item in field_value
                     ]
+                else:
+                    processed_data[field_name] = field_value
+                    
+            # Handle Dict types
+            elif str(field_type).startswith('typing.Dict'):
+                if not isinstance(field_value, dict):
+                    raise ValueError(
+                        f"Expected dict for {field_name}, got {type(field_value)}"
+                    )
+                # Get the value type of the dict
+                value_type = field_type.__args__[1]
+                if hasattr(value_type, '__dataclass_fields__'):
+                    # Convert each dict value to a dataclass if needed
+                    processed_data[field_name] = {
+                        k: self._create_dataclass_instance(value_type, v)
+                        if isinstance(v, dict) else v
+                        for k, v in field_value.items()
+                    }
+                else:
+                    processed_data[field_name] = field_value
+            
+            # Handle basic types
             else:
                 processed_data[field_name] = field_value
-                
+        
         return cls(**processed_data)
 
+    def update_config(self, config_name: str, updates: dict) -> None:
+        """
+        Update config while maintaining dataclass structure throughout.
+        """
+        current_config = self._configs.get(config_name)
+        if not current_config:
+            logger.error(f"No current {config_name} config found")
+            return
+
+        def update_recursively(target, source):
+            for key, value in source.items():
+                if not hasattr(target, key):
+                    logger.error(f"Field '{key}' not found in config")
+                    continue
+                    
+                current_value = getattr(target, key)
+                
+                if isinstance(value, dict):
+                    if hasattr(current_value, '__dataclass_fields__'):
+                        # If current value is a dataclass, update it recursively
+                        update_recursively(current_value, value)
+                    else:
+                        # If we're updating a dict field
+                        setattr(target, key, value)
+                else:
+                    # Update the value directly
+                    setattr(target, key, value)
+
+        # Perform the update
+        update_recursively(current_config, updates)
+        logger.debug(f"Updated {config_name} config")
+        
+        # Save the updated config
+        self.save_last_used_config(config_name)
+
     def get_config(self, config_name: str, config_class: Type[T]) -> T:
-        """Get config by name, trying last used settings first"""
+        """
+        Get config, ensuring it's always returned as a proper dataclass instance.
+        """
         if config_name not in self._configs:
-            # Load default config first
+            # Load default config
             default_config = self._load_json_config(config_name, last_used=False)
             
             try:
                 # Try to load and merge last used config
                 last_used_data = self._load_json_config(config_name, last_used=True)
-                # Deep merge last_used into default config
                 self._deep_merge_dict(default_config, last_used_data)
             except (FileNotFoundError, json.JSONDecodeError):
-                logger.debug(f"No valid last used config found for {config_name}, using defaults")
+                logger.debug(f"No valid last used config found for {config_name}")
                 
+            # Create dataclass instance
             self._configs[config_name] = self._create_dataclass_instance(
                 config_class, default_config
             )
@@ -139,54 +205,15 @@ class ConfigManager:
         return self._configs[config_name]
 
     def _deep_merge_dict(self, target: dict, source: dict) -> None:
-        """Recursively merge source dict into target dict"""
+        """
+        Recursively merge source dict into target dict while preserving types.
+        """
         for key, value in source.items():
             if key in target:
                 if isinstance(value, dict) and isinstance(target[key], dict):
                     self._deep_merge_dict(target[key], value)
                 else:
                     target[key] = value
-
-    def set_config(self, config_name: str, config: Any) -> None:
-        self._configs[config_name] = config
-
-    def update_config(self, config_name: str, updates: dict) -> None:
-        """Update config and save as last used"""
-        def update_recursively(target, source):
-            for key, value in source.items():
-                if isinstance(value, dict):
-                    if hasattr(target, key):
-                        current = getattr(target, key)
-                        if isinstance(current, dict):
-                            current.update(value)
-                        else:
-                            # For dataclass attributes
-                            for subkey, subvalue in value.items():
-                                if hasattr(current, subkey):
-                                    setattr(current, subkey, subvalue)
-                                else:
-                                    logger.error(f"Subfield '{key}.{subkey}' not found in config")
-                    else:
-                        logger.error(f"Field '{key}' not found in config")
-                elif hasattr(target, key):
-                    current_value = getattr(target, key)
-                    # Preserve dataclass structure if current value is a dataclass
-                    if hasattr(current_value, '__dataclass_fields__'):
-                        for field in current_value.__dataclass_fields__:
-                            if hasattr(value, field):
-                                setattr(current_value, field, getattr(value, field))
-                    else:
-                        setattr(target, key, value)
-                else:
-                    logger.error(f"Field '{key}' not found in config")
-
-        current_config = self._configs.get(config_name)
-        if current_config:
-            update_recursively(current_config, updates)
-            logger.debug(f"Updated {config_name} config")
-            self.save_last_used_config(config_name)
-        else:
-            logger.error(f"No current {config_name} config found")
 
     def save_config(self, config_name: str) -> None:
         """Save current config state to JSON file"""
@@ -222,3 +249,33 @@ class ConfigManager:
             # logger.debug(f"Successfully saved last used config for {config_name} at {last_used_path}")
         except Exception as e:
             logger.critical(f"Error saving last used config for {config_name}: {str(e)}")
+
+    def set_config(self, config_name: str, config: Any) -> None:
+        """
+        Set config value, ensuring it maintains proper dataclass structure.
+        
+        Args:
+            config_name: Name of the config to set
+            config: Configuration value to set. Can be either a dataclass instance
+                or a dictionary that can be converted to the appropriate dataclass.
+        """
+        # If it's already a dataclass instance, store it directly
+        if hasattr(config, '__dataclass_fields__'):
+            self._configs[config_name] = config
+            return
+            
+        # If it's a dict, try to convert it to the appropriate dataclass
+        if isinstance(config, dict):
+            # Get the appropriate dataclass type from existing config
+            if config_name in self._configs:
+                config_class = self._configs[config_name].__class__
+                self._configs[config_name] = self._create_dataclass_instance(config_class, config)
+            else:
+                logger.error(f"Cannot determine dataclass type for {config_name}")
+                return
+        else:
+            logger.error(f"Config must be either a dataclass instance or a dictionary, got {type(config)}")
+            return
+        
+        # Save the updated config
+        self.save_last_used_config(config_name)
