@@ -828,9 +828,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     logger.info("Starting qct-parse\n")
 
     ###### Initialize variables ######
-    qct_parse = checks_config.tools['qct-parse']
+    qct_parse = asdict(checks_config.tools.qct_parse)
 
-    qctools_ext = checks_config.outputs['qctools_ext']
+    qctools_ext = checks_config.outputs.qctools_ext
 
     if qctools_ext.lower().endswith('mkv'):
 

@@ -73,38 +73,31 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         'qctools_check_output': None
     }
 
-    # Check if QCTools should be run
-    if getattr(checks_config.tools.qctools, "run_tool") != "yes":
-    #if checks_config.tools.qctools.run_tool != 'yes':
-    #if checks_config.tools.qctools['run_tool'] != 'yes':
-        return results
-
     # Prepare QCTools output path
     qctools_ext = checks_config.outputs.qctools_ext
     qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
     
-    try:
-        # Run QCTools command
-        run_tools.run_command('qcli -i', video_path, '-o', qctools_output_path)
-        logger.debug('')  # Add new line for cleaner terminal output
-        results['qctools_output_path'] = qctools_output_path
 
-        # Check QCTools output if configured
-        if getattr(checks_config.tools.qctools, "check_tool") == 'yes':
-            # Ensure report directory exists
-            if not report_directory:
-                report_directory = dir_setup.make_report_dir(source_directory, video_id)
+    # Run QCTools command
+    run_tools.run_command('qcli -i', video_path, '-o', qctools_output_path)
+    logger.debug('')  # Add new line for cleaner terminal output
+    results['qctools_output_path'] = qctools_output_path
 
-            # Verify QCTools output file exists
-            if not os.path.isfile(qctools_output_path):
-                logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
-                return results
+    # Check QCTools output if configured
+    if checks_config.tools.qctools.check_tool == 'yes':
+        # Ensure report directory exists
+        if not report_directory:
+            report_directory = dir_setup.make_report_dir(source_directory, video_id)
 
-            # Run QCTools parsing
-            run_qctparse(video_path, qctools_output_path, report_directory)
-            # currently not using results['qctools_check_output']
-    except Exception as e:
-        logger.critical(f"Error processing QCTools output: {e}")
+        # Verify QCTools output file exists
+        if not os.path.isfile(qctools_output_path):
+            logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
+            return results
+
+        # Run QCTools parsing
+        run_qctparse(video_path, qctools_output_path, report_directory)
+        # currently not using results['qctools_check_output']
+
 
     return results
 
