@@ -55,18 +55,15 @@ def apply_profile(selected_profile):
     checks_config = config_mgr.get_config('checks', ChecksConfig)
     
     if 'outputs' in selected_profile:
-        checks_config.outputs.update(selected_profile["outputs"])
+        for key, value in selected_profile["outputs"].items():
+            setattr(checks_config.outputs, key, value)
 
     if 'tools' in selected_profile:
-        for tool, updates in selected_profile["tools"].items():
-            if tool in checks_config.tools:
-                tool_config = checks_config.tools[tool]
-                if isinstance(tool_config, dict):
-                    tool_config.update(updates)
-                elif hasattr(tool_config, "__dict__"):
-                    for key, value in updates.items():
-                        if hasattr(tool_config, key):
-                            setattr(tool_config, key, value)
+        for tool_name, updates in selected_profile["tools"].items():
+            tool = getattr(checks_config.tools, tool_name, None)
+            if tool:
+                for key, value in updates.items():
+                    setattr(tool, key, value)
 
     if 'fixity' in selected_profile:
         for key, value in selected_profile["fixity"].items():

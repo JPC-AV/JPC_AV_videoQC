@@ -74,7 +74,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     }
 
     # Check if QCTools should be run
-    if checks_config.tools['qctools']['run_tool'] != 'yes':
+    if checks_config.tools.qctools.run_tool != 'yes':
         return results
 
     # Prepare QCTools output path
@@ -132,7 +132,7 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
 
     # Create report directory if report is enabled
     report_directory = None
-    if checks_config.outputs['report'] == 'yes':
+    if checks_config.outputs.report == 'yes':
         report_directory = dir_setup.make_report_dir(source_directory, video_id)
         # Process metadata differences report
         processing_results['metadata_diff_report'] = create_metadata_difference_report(
@@ -179,7 +179,8 @@ def check_tool_metadata(tool_name, output_path):
     }
 
     # Check if tool metadata checking is enabled
-    if output_path and checks_config.tools[tool_name]['check_tool'] == 'yes':
+    tool = getattr(checks_config.tools, tool_name)
+    if output_path and tool.check_tool == 'yes':
         parse_function = parse_functions.get(tool_name)
         if parse_function:
             return parse_function(output_path)
@@ -232,7 +233,7 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id):
         dict: Validation results from MediaConch policy check
     """
     # Check if MediaConch should be run
-    if checks_config.tools['mediaconch']['run_mediaconch'] != 'yes':
+    if checks_config.tools.mediaconch.run_mediaconch != 'yes':
         logger.info(f"MediaConch validation skipped\n")
         return {}
 
@@ -275,7 +276,7 @@ def setup_mediaconch_policy(user_policy_path: str = None) -> str:
     if not user_policy_path:
         # Return current policy file name from config
         current_config = config_mgr.get_config('checks', ChecksConfig)
-        return current_config.tools['mediaconch']['mediaconch_policy']
+        return current_config.tools.mediaconch.mediaconch_policy
         
     try:
         # Verify user policy file exists
@@ -297,7 +298,7 @@ def setup_mediaconch_policy(user_policy_path: str = None) -> str:
         
         # Get current config to preserve run_mediaconch value
         current_config = config_mgr.get_config('checks', ChecksConfig)
-        run_mediaconch = current_config.tools['mediaconch']['run_mediaconch']
+        run_mediaconch = current_config.tools.mediaconch.run_mediaconch
         
         # Update config to use new policy file while preserving run_mediaconch
         config_mgr.update_config('checks', {
