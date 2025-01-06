@@ -50,17 +50,17 @@ def make_access_file(video_path, output_path):
             # Convert string integer
             duration_ms = (duration * 1000000)
             # Calculate the total duration in microseconds
-            for line in ff_output.split(''):
-                if line.startswith(duration_prefix):
-                    current_frame_str = line.split(duration_prefix)[1]
-                    current_frame_ms = float(current_frame_str)
-                    percent_complete = (current_frame_ms / duration_ms) * 100
-                    print(f"\rFFmpeg Access Copy Progress: {percent_complete:.2f}%", end='', flush=True)
+            if ff_output.startswith(duration_prefix):
+                current_frame_str = ff_output.split(duration_prefix)[1]
+                current_frame_ms = float(current_frame_str)
+                percent_complete = (current_frame_ms / duration_ms) * 100
+                print(f"\rFFmpeg Access Copy Progress: {percent_complete:.2f}%", end='', flush=True)
         ffmpeg_stderr = ffmpeg_process.stderr.read()
         if ffmpeg_stderr:
             logger.error(f"ffmpeg stderr: {ffmpeg_stderr.strip()}")
     except Exception as e:
         logger.error(f"Error during ffmpeg process: {str(e)}")
+    print("\n")
 
 
 def process_access_file(video_path, source_directory, video_id):
@@ -77,7 +77,7 @@ def process_access_file(video_path, source_directory, video_id):
         str or None: Path to the created access file, or None
     """
     # Check if access file should be generated
-    if checks_config.outputs['access_file'] != 'yes':
+    if checks_config.outputs.access_file != 'yes':
         return None
 
     access_output_path = os.path.join(source_directory, f'{video_id}_access.mp4')
