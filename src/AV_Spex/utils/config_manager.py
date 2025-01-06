@@ -152,32 +152,33 @@ class ConfigManager:
 
     def update_config(self, config_name: str, updates: dict) -> None:
         """Update config and save as last used"""
-        # print(f"Updating config for {config_name}")
-        # print(f"Update contents: {updates}")
-        
         def update_recursively(target, source):
             for key, value in source.items():
-                try:
-                    if isinstance(value, dict):
-                        if not hasattr(target, key):
-                            logger.error(f"Field '{key}' not found in config")
-                            continue
+                if isinstance(value, dict):
+                    if hasattr(target, key):
                         current = getattr(target, key)
                         if isinstance(current, dict):
                             current.update(value)
                         else:
+                            # For dataclass attributes
                             for subkey, subvalue in value.items():
                                 if hasattr(current, subkey):
                                     setattr(current, subkey, subvalue)
                                 else:
                                     logger.error(f"Subfield '{key}.{subkey}' not found in config")
-                    elif hasattr(target, key):
-                        setattr(target, key, value)
                     else:
                         logger.error(f"Field '{key}' not found in config")
-                except Exception as e:
-                    logger.error(f"Error updating field '{key}': {str(e)}")
-                    continue
+                elif hasattr(target, key):
+                    current_value = getattr(target, key)
+                    # Preserve dataclass structure if current value is a dataclass
+                    if hasattr(current_value, '__dataclass_fields__'):
+                        for field in current_value.__dataclass_fields__:
+                            if hasattr(value, field):
+                                setattr(current_value, field, getattr(value, field))
+                    else:
+                        setattr(target, key, value)
+                else:
+                    logger.error(f"Field '{key}' not found in config")
 
         current_config = self._configs.get(config_name)
         if current_config:
@@ -185,7 +186,7 @@ class ConfigManager:
             logger.debug(f"Updated {config_name} config")
             self.save_last_used_config(config_name)
         else:
-            logger.critical(f"No current {config_name} config found")
+            logger.error(f"No current {config_name} config found")
 
     def save_config(self, config_name: str) -> None:
         """Save current config state to JSON file"""

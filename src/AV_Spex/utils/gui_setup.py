@@ -267,8 +267,8 @@ class ConfigWindow(QWidget):
         config_dict = asdict(self.checks_config)
         
         # Ensure qct-parse empty values are preserved
-        if "tools" in config_dict and "qct-parse" in config_dict["tools"]:
-            qct_parse = config_dict["tools"]["qct-parse"]
+        if "tools" in config_dict and "qct_parse" in config_dict["tools"]:
+            qct_parse = config_dict["tools"]["qct_parse"]
             # Ensure these fields exist even if empty
             if "contentFilter" not in qct_parse:
                 qct_parse["contentFilter"] = []
@@ -293,8 +293,8 @@ class ConfigWindow(QWidget):
         # Update the config manager
         current_config = self.config_mgr.get_config('checks', ChecksConfig)
         
-        # Navigate to the qct-parse section and update the specific field
-        qct_parse = current_config.tools["qct-parse"]
+        # Navigate to the qct_parse section and update the specific field
+        qct_parse = current_config.tools["qct_parse"]
         if key == "contentFilter":
             qct_parse["contentFilter"] = value
         elif key == "profile":
@@ -304,26 +304,27 @@ class ConfigWindow(QWidget):
         self.config_mgr.set_config('checks', current_config)
 
     def on_checkbox_changed(self, value, path):
-        updates = {}
-        current = updates
-        for i, key in enumerate(path[:-1]):
-            current[key] = {}
-            current = current[key]
-        
         new_value = 'yes' if Qt.CheckState(value) == Qt.CheckState.Checked else 'no'
-        current[path[-1]] = new_value
         
-        if len(path) >= 2:
-            if path[0] == "tools":
-                tool_name = path[1]
-                tool_config = self.checks_config.tools[tool_name]
-                tool_config[path[-1]] = new_value
-            elif path[0] == "outputs":
-                self.checks_config.outputs[path[-1]] = new_value
-            elif path[0] == "fixity":
-                setattr(self.checks_config.fixity, path[-1], new_value)
-                
-        # Update and save the config
+        # Build the updates dictionary preserving existing values
+        if path[0] == "tools":
+            tool_name = path[1]
+            tool = getattr(self.checks_config.tools, tool_name)
+            tool_dict = {
+                'check_tool': getattr(tool, 'check_tool', 'no'),
+                'run_tool': getattr(tool, 'run_tool', 'no')
+            }
+            # Update specific field
+            tool_dict[path[-1]] = new_value
+            updates = {'tools': {tool_name: tool_dict}}
+            
+        elif path[0] in ["outputs", "fixity"]:
+            section = getattr(self.checks_config, path[0])
+            section_dict = {k: getattr(section, k) for k in section.__dataclass_fields__}
+            section_dict[path[-1]] = new_value
+            updates = {path[0]: section_dict}
+
+        # Update config
         self.config_mgr.update_config('checks', updates)
 
 
@@ -408,9 +409,9 @@ class MainWindow(QMainWindow):
         self.command_profile_dropdown.addItem("step2")
         self.command_profile_dropdown.addItem("allOff")
         # Set dropdown based on condition
-        if self.checks_config.tools["exiftool"]["run_tool"] == "yes":
+        if self.checks_config.tools.exiftool.run_tool == "yes":
             self.command_profile_dropdown.setCurrentText("step1")
-        elif self.checks_config.tools["exiftool"]["run_tool"] == "no":
+        elif self.checks_config.tools.exiftool.run_tool == "no":
             self.command_profile_dropdown.setCurrentText("step2")
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
         vertical_layout.addWidget(command_profile_label)
