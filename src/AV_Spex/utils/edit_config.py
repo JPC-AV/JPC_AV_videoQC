@@ -51,7 +51,12 @@ def resolve_config(args, config_mapping):
 
 
 def apply_profile(selected_profile):
-    """Apply profile changes to checks_config."""
+    """Apply profile changes to checks_config.
+    
+    Args:
+        selected_profile (dict): The profile configuration to apply
+        config_mgr (ConfigManager): Instance of the config manager
+    """
     checks_config = config_mgr.get_config('checks', ChecksConfig)
     
     if 'outputs' in selected_profile:
@@ -60,16 +65,34 @@ def apply_profile(selected_profile):
 
     if 'tools' in selected_profile:
         for tool_name, updates in selected_profile["tools"].items():
-            tool = getattr(checks_config.tools, tool_name, None)
-            if tool:
-                for key, value in updates.items():
-                    setattr(tool, key, value)
+            # Handle each tool type differently based on its structure
+            if tool_name == 'mediaconch':
+                # MediaConch has mediaconch_policy and run_mediaconch
+                if isinstance(updates, dict):
+                    for key, value in updates.items():
+                        setattr(checks_config.tools.mediaconch, key, value)
+            
+            elif tool_name == 'qct_parse':
+                # QCT Parse has a unique structure with boolean and list fields
+                if isinstance(updates, dict):
+                    for key, value in updates.items():
+                        setattr(checks_config.tools.qct_parse, key, value)
+            
+            else:
+                # Standard tools with check_tool and run_tool
+                tool = getattr(checks_config.tools, tool_name)
+                if isinstance(updates, dict):
+                    if 'check_tool' in updates:
+                        tool.check_tool = updates['check_tool']
+                    if 'run_tool' in updates:
+                        tool.run_tool = updates['run_tool']
 
     if 'fixity' in selected_profile:
         for key, value in selected_profile["fixity"].items():
             if hasattr(checks_config.fixity, key):
                 setattr(checks_config.fixity, key, value)
     
+    # Save the updated config
     config_mgr.set_config('checks', checks_config)
 
 
@@ -187,7 +210,7 @@ profile_step2 = {
             "check_tool": "yes",
             "run_tool": "yes"
         },
-        "qct-parse": {
+        "qct_parse": {
             "barsDetection": True,
             "evaluateBars": True,
             "contentFilter": [],
@@ -236,7 +259,7 @@ profile_allOff = {
             "check_tool": "no",
             "run_tool": "no"
         },
-        "qct-parse": {
+        "qct_parse": {
             "barsDetection": False,
             "evaluateBars": False,
             "contentFilter": [],
