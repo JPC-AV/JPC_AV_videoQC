@@ -310,10 +310,16 @@ class ConfigWindow(QWidget):
         if path[0] == "tools":
             tool_name = path[1]
             tool = getattr(self.checks_config.tools, tool_name)
-            tool_dict = {
-                'check_tool': getattr(tool, 'check_tool', 'no'),
-                'run_tool': getattr(tool, 'run_tool', 'no')
-            }
+            if tool_name == "mediaconch":
+                tool_dict = {
+                    "mediaconch_policy": getattr(tool, 'mediaconch_policy', 'no'),
+                    "run_mediaconch": getattr(tool, 'run_mediaconch', 'no')
+                    }
+            else:
+                tool_dict = {
+                    'check_tool': getattr(tool, 'check_tool', 'no'),
+                    'run_tool': getattr(tool, 'run_tool', 'no')
+                }
             # Update specific field
             tool_dict[path[-1]] = new_value
             updates = {'tools': {tool_name: tool_dict}}
