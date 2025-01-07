@@ -133,11 +133,24 @@ class ConfigWindow(QWidget):
         # Policy selection
         policy_container = QWidget()
         policy_layout = QVBoxLayout(policy_container)
-        self.policy_label = QLabel("Current policy: ")
-        self.policy_combo = QComboBox()
-        self.import_policy_btn = QPushButton("Import MediaConch Policy")
         
-        policy_layout.addWidget(self.policy_label)
+        # Add current policy display
+        current_policy_widget = QWidget()
+        current_policy_layout = QHBoxLayout(current_policy_widget)
+        current_policy_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.policy_label = QLabel("Current policy: ")
+        self.current_policy_display = QLabel()
+        self.current_policy_display.setStyleSheet("font-weight: bold;")
+        
+        current_policy_layout.addWidget(self.policy_label)
+        current_policy_layout.addWidget(self.current_policy_display)
+        current_policy_layout.addStretch()
+
+        self.policy_combo = QComboBox()
+        self.import_policy_btn = QPushButton("Import New MediaConch Policy")
+        
+        policy_layout.addWidget(current_policy_widget)
         policy_layout.addWidget(QLabel("Available policies:"))
         policy_layout.addWidget(self.policy_combo)
         policy_layout.addWidget(self.import_policy_btn)
@@ -289,6 +302,9 @@ class ConfigWindow(QWidget):
         mediaconch = self.checks_config.tools.mediaconch
         self.run_mediaconch_cb.setChecked(mediaconch.run_mediaconch.lower() == 'yes')
         
+        # Update current policy display
+        self.update_current_policy_display(mediaconch.mediaconch_policy)
+        
         # Load available policies
         policies_dir = os.path.join(self.config_mgr.project_root, 'config', 'mediaconch_policies')
         if os.path.exists(policies_dir):
@@ -367,7 +383,15 @@ class ConfigWindow(QWidget):
                     }
                 }
             })
+            self.update_current_policy_display(policy_name)
             logger.info(f"Updated config to use policy file: {policy_name}")
+
+    def update_current_policy_display(self, policy_name):
+        """Update the display of the current policy"""
+        if policy_name:
+            self.current_policy_display.setText(policy_name)
+        else:
+            self.current_policy_display.setText("No policy selected")
 
     def open_policy_file_dialog(self):
         """Open file dialog for selecting MediaConch policy file"""
