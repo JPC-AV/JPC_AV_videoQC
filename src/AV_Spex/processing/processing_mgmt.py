@@ -287,8 +287,8 @@ def setup_mediaconch_policy(user_policy_path: str = None) -> str:
         # Create mediaconch_policies directory if it doesn't exist
         os.makedirs(policy_dest_dir, exist_ok=True)
         
-        # Copy policy file to config directory
-        shutil.copy2(user_policy_path, policy_dest_path)
+        # Copy policy file to config directory, overwriting if file exists
+        shutil.copy2(user_policy_path, policy_dest_path, follow_symlinks=False)
         logger.info(f"Copied user policy file to config directory: {policy_filename}")
         
         # Get current config to preserve run_mediaconch value
