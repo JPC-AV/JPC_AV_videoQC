@@ -288,6 +288,14 @@ class SpexConfig:
     mediatrace_values: MediaTraceValues
     qct_parse_values: QCTParseValues
 
+# Output configuration
+@dataclass
+class OutputsConfig:
+    access_file: str
+    report: str
+    qctools_ext: str
+
+# Fixity configuration
 @dataclass
 class FixityConfig:
     check_fixity: str
@@ -296,8 +304,38 @@ class FixityConfig:
     output_fixity: str
     overwrite_stream_fixity: str
 
+# Tool-specific configurations
+@dataclass
+class BasicToolConfig:
+    check_tool: str
+    run_tool: str
+
+@dataclass
+class MediaConchConfig:
+    mediaconch_policy: str
+    run_mediaconch: str
+
+@dataclass
+class QCTParseToolConfig:
+    barsDetection: bool
+    evaluateBars: bool
+    contentFilter: List[str]
+    profile: List[str]
+    tagname: Optional[str]
+    thumbExport: bool
+
+@dataclass
+class ToolsConfig:
+    exiftool: BasicToolConfig
+    ffprobe: BasicToolConfig
+    mediaconch: MediaConchConfig
+    mediainfo: BasicToolConfig
+    mediatrace: BasicToolConfig
+    qctools: BasicToolConfig
+    qct_parse: QCTParseToolConfig
+
 @dataclass
 class ChecksConfig:
-    outputs: Dict[str, str]
+    outputs: OutputsConfig
     fixity: FixityConfig
-    tools: Dict[str, Dict[str, str]]
+    tools: ToolsConfig

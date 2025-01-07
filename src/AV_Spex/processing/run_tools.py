@@ -54,13 +54,13 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id):
     # Construct output path
     output_path = os.path.join(destination_directory, f'{video_id}_{tool_name}_output.{_get_file_extension(tool_name)}')
     
-    # Check if tool should be run based on configuration
-    if checks_config.tools[tool_name]['run_tool'] == 'yes':
-        if tool_name == 'mediatrace':
-            logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
-        
-        # Run the tool command
-        run_command(command, video_path, '>', output_path)
+    if tool_name != "mediaconch":
+        # Check if tool should be run based on configuration
+        tool = getattr(checks_config.tools, tool_name)
+        if getattr(tool, 'run_tool') == 'yes':
+            if tool_name == 'mediatrace':
+                logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
+            run_command(command, video_path, '>', output_path)
         
     return output_path
 

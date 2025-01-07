@@ -3,6 +3,7 @@ import csv
 import subprocess
 import argparse
 from dataclasses import dataclass, asdict, field
+from typing import List, Optional
 
 from ..utils.log_setup import logger
 from ..utils.setup_config import ChecksConfig, SpexConfig
@@ -51,28 +52,48 @@ def resolve_config(args, config_mapping):
 
 
 def apply_profile(selected_profile):
-    """Apply profile changes to checks_config."""
+    """Apply profile changes to checks_config.
+    
+    Args:
+        selected_profile (dict): The profile configuration to apply
+        config_mgr (ConfigManager): Instance of the config manager
+    """
     checks_config = config_mgr.get_config('checks', ChecksConfig)
     
     if 'outputs' in selected_profile:
-        checks_config.outputs.update(selected_profile["outputs"])
+        for key, value in selected_profile["outputs"].items():
+            setattr(checks_config.outputs, key, value)
 
     if 'tools' in selected_profile:
-        for tool, updates in selected_profile["tools"].items():
-            if tool in checks_config.tools:
-                tool_config = checks_config.tools[tool]
-                if isinstance(tool_config, dict):
-                    tool_config.update(updates)
-                elif hasattr(tool_config, "__dict__"):
+        for tool_name, updates in selected_profile["tools"].items():
+            # Handle each tool type differently based on its structure
+            if tool_name == 'mediaconch':
+                # MediaConch has mediaconch_policy and run_mediaconch
+                if isinstance(updates, dict):
                     for key, value in updates.items():
-                        if hasattr(tool_config, key):
-                            setattr(tool_config, key, value)
+                        setattr(checks_config.tools.mediaconch, key, value)
+            
+            elif tool_name == 'qct_parse':
+                # QCT Parse has a unique structure with boolean and list fields
+                if isinstance(updates, dict):
+                    for key, value in updates.items():
+                        setattr(checks_config.tools.qct_parse, key, value)
+            
+            else:
+                # Standard tools with check_tool and run_tool
+                tool = getattr(checks_config.tools, tool_name)
+                if isinstance(updates, dict):
+                    if 'check_tool' in updates:
+                        tool.check_tool = updates['check_tool']
+                    if 'run_tool' in updates:
+                        tool.run_tool = updates['run_tool']
 
     if 'fixity' in selected_profile:
         for key, value in selected_profile["fixity"].items():
             if hasattr(checks_config.fixity, key):
                 setattr(checks_config.fixity, key, value)
     
+    # Save the updated config
     config_mgr.set_config('checks', checks_config)
 
 
@@ -97,30 +118,54 @@ def apply_by_name(tool_names):
     config_mgr.set_config('checks', checks_config)
 
 
-def toggle_on(tool_names):
-    checks_config = config_mgr.get_config('checks', ChecksConfig)
+def update_tool_setting(tool_names: List[str], value: str):
+    """
+    Update specific tool settings using config_mgr.update_config
+    Args:
+        tool_names: List of strings in format 'tool.field'
+        value: 'yes' or 'no' (or True/False for qct_parse)
+    """
+    updates = {'tools': {}}
     
-    for tool in tool_names:
-        if tool in checks_config.tools:
-            tool_config = checks_config.tools[tool]
-            for field in vars(tool_config):
-                setattr(tool_config, field, 'yes')
-            logger.debug(f"{tool} set to 'on'")
-
-    config_mgr.set_config('checks', checks_config)
-
-
-def toggle_off(tool_names):
-    checks_config = config_mgr.get_config('checks', ChecksConfig)
+    for tool_spec in tool_names:
+        try:
+            tool_name, field = tool_spec.split('.')
+            
+            # Special handling for qct_parse which uses booleans instead of yes/no
+            if tool_name == 'qct_parse':
+                if value.lower() not in ('yes', 'no'):
+                    logger.warning(f"Invalid value '{value}' for qct_parse. Must be 'yes' or 'no'")
+                    continue
+                bool_value = True if value.lower() == 'yes' else False
+                updates['tools'][tool_name] = {field: bool_value}
+                
+            # Special handling for mediaconch which has different field names
+            elif tool_name == 'mediaconch':
+                if field not in ('run_mediaconch'):
+                    logger.warning(f"Invalid field '{field}' for mediaconch. To turn mediaconch on/off use 'mediaconch.run_mediaconch'.")
+                    continue
+                updates['tools'][tool_name] = {field: value}
+                
+            # Standard tools with check_tool/run_tool fields
+            else:
+                if field not in ('check_tool', 'run_tool'):
+                    logger.warning(f"Invalid field '{field}' for {tool_name}. Must be 'check_tool' or 'run_tool'")
+                    continue
+                updates['tools'][tool_name] = {field: value}
+                
+            logger.debug(f"{tool_name}.{field} will be set to '{value}'")
+            
+        except ValueError:
+            logger.warning(f"Invalid format '{tool_spec}'. Expected format: tool.field")
     
-    for tool in tool_names:
-        if tool in checks_config.tools:
-            tool_config = checks_config.tools[tool]
-            for field in vars(tool_config):
-                setattr(tool_config, field, 'no')
-            logger.debug(f"{tool} set to 'off'")
+    if updates['tools']:  # Only update if we have valid changes
+        config_mgr.update_config('checks', updates)
 
-    config_mgr.set_config('checks', checks_config)
+def toggle_on(tool_names: List[str]):
+    update_tool_setting(tool_names, 'yes')
+
+def toggle_off(tool_names: List[str]):
+    update_tool_setting(tool_names, 'no')
 
 
 profile_step1 = {
@@ -190,7 +235,7 @@ profile_step2 = {
             "check_tool": "yes",
             "run_tool": "yes"
         },
-        "qct-parse": {
+        "qct_parse": {
             "barsDetection": True,
             "evaluateBars": True,
             "contentFilter": [],
@@ -239,7 +284,7 @@ profile_allOff = {
             "check_tool": "no",
             "run_tool": "no"
         },
-        "qct-parse": {
+        "qct_parse": {
             "barsDetection": False,
             "evaluateBars": False,
             "contentFilter": [],

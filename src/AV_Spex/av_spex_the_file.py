@@ -110,10 +110,10 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         help="Select processing profile or turn checks off")
     parser.add_argument("-t", "--tool", choices=AVAILABLE_TOOLS, 
                         action='append', help="Select individual tools to enable")
-    parser.add_argument("--on", choices=AVAILABLE_TOOLS, 
-                        action='append', help="Select specific tools to turn on")
-    parser.add_argument("--off", choices=AVAILABLE_TOOLS, 
-                        action='append', help="Select specific tools to turn off")
+    parser.add_argument("--on", 
+                        action='append', help="Turns on specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
+    parser.add_argument("--off", 
+                        action='append', help="Turns off specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
     parser.add_argument("-sn","--signalflow", choices=['JPC_AV_SVHS', 'BVH3100'],
                     help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
@@ -140,10 +140,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
 
     args = parser.parse_args()
 
-    if not args.dryrun and not args.paths and not args.gui:
-        parser.error("the following arguments are required: paths")
-
-    input_paths = [] if args.dryrun else args.paths
+    input_paths = args.paths if args.paths else []
     source_directories = dir_setup.validate_input_paths(input_paths, args.file)
 
     selected_profile = edit_config.resolve_config(args.profile, PROFILE_MAPPING)
@@ -347,13 +344,16 @@ def run_cli_mode(args):
 
     # Update checks config
     if args.selected_profile:
-        edit_config.apply_profile(args.selected_profile)
+        config_mgr.update_config('checks', args.selected_profile)
     if args.tool_names:
         edit_config.apply_by_name(args.tool_names)
+        config_mgr.save_last_used_config('checks')
     if args.tools_on_names:
         edit_config.toggle_on(args.tools_on_names)
+        config_mgr.save_last_used_config('checks')
     if args.tools_off_names:
         edit_config.toggle_off(args.tools_off_names)
+        config_mgr.save_last_used_config('checks')
 
     if args.mediaconch_policy:
         processing_mgmt.setup_mediaconch_policy(args.mediaconch_policy)
@@ -413,6 +413,7 @@ def run_avspex(source_directories):
 
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
+
 def main_gui():
     app = QApplication(sys.argv)  # Create the QApplication instance once
     while True:
@@ -435,7 +436,8 @@ def main_cli():
        main_gui()
     else:
         run_cli_mode(args)
-        run_avspex(args.source_directories)
+        if args.source_directories:
+            run_avspex(args.source_directories)
 
 
 def main():

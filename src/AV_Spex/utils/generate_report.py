@@ -484,7 +484,7 @@ def generate_final_report(video_id, source_directory, report_directory, destinat
     checks_config = config_mgr.get_config('checks', ChecksConfig)
 
     # Check if report should be generated
-    if checks_config.outputs['report'] != 'yes':
+    if checks_config.outputs.report != 'yes':
         return None
 
     try:

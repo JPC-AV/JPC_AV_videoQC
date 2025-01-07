@@ -69,139 +69,295 @@ class ConfigWindow(QWidget):
         super().__init__()
         self.config_mgr = config_mgr or ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
+        self.setup_ui()
+        self.load_config_values()
+
+    def setup_ui(self):
+        """Create fixed layout structure"""
+        main_layout = QVBoxLayout(self)
         
-        self.refresh_checkboxes()
-
-    def create_section(self, section_name, items, path):
-        group_box = QGroupBox(section_name)
-        layout = QVBoxLayout()
-
-        # Special handling for qct-parse section
-        is_qct_parse = (len(path) > 1 and path[0] == "tools" and path[1] == "qct-parse")
+        # Outputs Section
+        outputs_group = QGroupBox("Outputs")
+        outputs_layout = QVBoxLayout()
+        self.access_file_cb = QCheckBox("access_file")
+        self.report_cb = QCheckBox("report")
+        self.qctools_ext_label = QLabel("qctools_ext")
+        self.qctools_ext_input = QLineEdit()
         
-        # Check if this is the mediaconch policy field
-        is_mediaconch_policy = (len(path) > 1 and path[0] == "tools" and path[1] == "mediaconch")
+        outputs_layout.addWidget(self.access_file_cb)
+        outputs_layout.addWidget(self.report_cb)
+        outputs_layout.addWidget(self.qctools_ext_label)
+        outputs_layout.addWidget(self.qctools_ext_input)
+        outputs_group.setLayout(outputs_layout)
+        
+        # Fixity Section
+        fixity_group = QGroupBox("Fixity")
+        fixity_layout = QVBoxLayout()
+        self.check_fixity_cb = QCheckBox("check_fixity")
+        self.validate_stream_cb = QCheckBox("validate_stream_fixity")
+        self.embed_stream_cb = QCheckBox("embed_stream_fixity")
+        self.output_fixity_cb = QCheckBox("output_fixity (to .txt and .md5 files)")
+        self.overwrite_stream_cb = QCheckBox("overwrite_stream_fixity")
+        
+        fixity_layout.addWidget(self.check_fixity_cb)
+        fixity_layout.addWidget(self.validate_stream_cb)
+        fixity_layout.addWidget(self.embed_stream_cb)
+        fixity_layout.addWidget(self.output_fixity_cb)
+        fixity_layout.addWidget(self.overwrite_stream_cb)
+        fixity_group.setLayout(fixity_layout)
+        
+        # Tools Section
+        tools_group = QGroupBox("Tools")
+        tools_layout = QVBoxLayout()
+        
+        # Basic tools (exiftool, ffprobe, mediainfo, mediatrace, qctools)
+        basic_tools = ['exiftool', 'ffprobe', 'mediainfo', 'mediatrace', 'qctools']
+        self.tool_widgets = {}
+        
+        for tool in basic_tools:
+            tool_group = QGroupBox(tool)
+            tool_layout = QVBoxLayout()
+            check_cb = QCheckBox("check_tool")
+            run_cb = QCheckBox("run_tool")
+            self.tool_widgets[tool] = {'check': check_cb, 'run': run_cb}
+            tool_layout.addWidget(check_cb)
+            tool_layout.addWidget(run_cb)
+            tool_group.setLayout(tool_layout)
+            tools_layout.addWidget(tool_group)
+        
+        # MediaConch
+        mediaconch_group = QGroupBox("mediaconch")
+        mediaconch_layout = QVBoxLayout()
+        self.run_mediaconch_cb = QCheckBox("run_mediaconch")
+        
+        # Policy selection
+        policy_container = QWidget()
+        policy_layout = QVBoxLayout(policy_container)
+        self.policy_label = QLabel("Current policy: ")
+        self.policy_combo = QComboBox()
+        self.import_policy_btn = QPushButton("Import MediaConch Policy")
+        
+        policy_layout.addWidget(self.policy_label)
+        policy_layout.addWidget(QLabel("Available policies:"))
+        policy_layout.addWidget(self.policy_combo)
+        policy_layout.addWidget(self.import_policy_btn)
+        
+        mediaconch_layout.addWidget(self.run_mediaconch_cb)
+        mediaconch_layout.addWidget(policy_container)
+        mediaconch_group.setLayout(mediaconch_layout)
+        tools_layout.addWidget(mediaconch_group)
+        
+        # QCT Parse
+        qct_group = QGroupBox("qct_parse")
+        qct_layout = QVBoxLayout()
+        
+        self.bars_detection_cb = QCheckBox("barsDetection")
+        self.evaluate_bars_cb = QCheckBox("evaluateBars")
+        self.thumb_export_cb = QCheckBox("thumbExport")
+        
+        # Content Filter combo
+        content_filter_label = QLabel("contentFilter")
+        self.content_filter_combo = QComboBox()
+        self.content_filter_combo.addItem("Select options...")
+        self.content_filter_combo.addItems(["allBlack", "static"])
+        
+        # Profile combo
+        profile_label = QLabel("profile")
+        self.profile_combo = QComboBox()
+        self.profile_combo.addItem("Select options...")
+        self.profile_combo.addItems(["default", "highTolerance", "midTolerance", "lowTolerance"])
+        
+        # Tagname
+        tagname_label = QLabel("tagname")
+        self.tagname_input = QLineEdit()
+        self.tagname_input.setPlaceholderText("None")
+        
+        qct_layout.addWidget(self.bars_detection_cb)
+        qct_layout.addWidget(self.evaluate_bars_cb)
+        qct_layout.addWidget(self.thumb_export_cb)
+        qct_layout.addWidget(content_filter_label)
+        qct_layout.addWidget(self.content_filter_combo)
+        qct_layout.addWidget(profile_label)
+        qct_layout.addWidget(self.profile_combo)
+        qct_layout.addWidget(tagname_label)
+        qct_layout.addWidget(self.tagname_input)
+        
+        qct_group.setLayout(qct_layout)
+        tools_layout.addWidget(qct_group)
+        
+        tools_group.setLayout(tools_layout)
+        
+        # Add all sections to main layout
+        main_layout.addWidget(outputs_group)
+        main_layout.addWidget(fixity_group)
+        main_layout.addWidget(tools_group)
+        main_layout.addStretch()
+        
+        # Connect signals
+        self.connect_signals()
 
-        for key, value in items.items():
-            current_path = path + [key]
+    def connect_signals(self):
+        """Connect all widget signals to their handlers"""
+        # Outputs section
+        self.access_file_cb.stateChanged.connect(
+            lambda state: self.on_checkbox_changed(state, ['outputs', 'access_file'])
+        )
+        self.report_cb.stateChanged.connect(
+            lambda state: self.on_checkbox_changed(state, ['outputs', 'report'])
+        )
+        self.qctools_ext_input.textChanged.connect(
+            lambda text: self.on_text_changed(['outputs', 'qctools_ext'], text)
+        )
+        
+        # Fixity section
+        fixity_checkboxes = {
+            self.check_fixity_cb: 'check_fixity',
+            self.validate_stream_cb: 'validate_stream_fixity',
+            self.embed_stream_cb: 'embed_stream_fixity',
+            self.output_fixity_cb: 'output_fixity',
+            self.overwrite_stream_cb: 'overwrite_stream_fixity'
+        }
+        
+        for checkbox, field in fixity_checkboxes.items():
+            checkbox.stateChanged.connect(
+                lambda state, f=field: self.on_checkbox_changed(state, ['fixity', f])
+            )
+        
+        # Tools section
+        for tool, widgets in self.tool_widgets.items():
+            widgets['check'].stateChanged.connect(
+                lambda state, t=tool: self.on_checkbox_changed(state, ['tools', t, 'check_tool'])
+            )
+            widgets['run'].stateChanged.connect(
+                lambda state, t=tool: self.on_checkbox_changed(state, ['tools', t, 'run_tool'])
+            )
+        
+        # MediaConch
+        self.run_mediaconch_cb.stateChanged.connect(
+            lambda state: self.on_checkbox_changed(state, ['tools', 'mediaconch', 'run_mediaconch'])
+        )
+        self.policy_combo.currentTextChanged.connect(self.on_mediaconch_policy_selected)
+        self.import_policy_btn.clicked.connect(self.open_policy_file_dialog)
+        
+        # QCT Parse
+        self.bars_detection_cb.stateChanged.connect(
+            lambda state: self.on_boolean_changed(state, ['tools', 'qct_parse', 'barsDetection'])
+        )
+        self.evaluate_bars_cb.stateChanged.connect(
+            lambda state: self.on_boolean_changed(state, ['tools', 'qct_parse', 'evaluateBars'])
+        )
+        self.thumb_export_cb.stateChanged.connect(
+            lambda state: self.on_boolean_changed(state, ['tools', 'qct_parse', 'thumbExport'])
+        )
+        self.content_filter_combo.currentTextChanged.connect(
+            lambda text: self.on_qct_combo_changed(text, 'contentFilter')
+        )
+        self.profile_combo.currentTextChanged.connect(
+            lambda text: self.on_qct_combo_changed(text, 'profile')
+        )
+        self.tagname_input.textChanged.connect(
+            lambda text: self.on_tagname_changed(text)
+        )
+
+    def load_config_values(self):
+        """Load current config values into UI elements"""
+        # Outputs
+        self.access_file_cb.setChecked(self.checks_config.outputs.access_file.lower() == 'yes')
+        self.report_cb.setChecked(self.checks_config.outputs.report.lower() == 'yes')
+        self.qctools_ext_input.setText(self.checks_config.outputs.qctools_ext)
+        
+        # Fixity
+        self.check_fixity_cb.setChecked(self.checks_config.fixity.check_fixity.lower() == 'yes')
+        self.validate_stream_cb.setChecked(self.checks_config.fixity.validate_stream_fixity.lower() == 'yes')
+        self.embed_stream_cb.setChecked(self.checks_config.fixity.embed_stream_fixity.lower() == 'yes')
+        self.output_fixity_cb.setChecked(self.checks_config.fixity.output_fixity.lower() == 'yes')
+        self.overwrite_stream_cb.setChecked(self.checks_config.fixity.overwrite_stream_fixity.lower() == 'yes')
+        
+        # Tools
+        for tool, widgets in self.tool_widgets.items():
+            tool_config = getattr(self.checks_config.tools, tool)
+            widgets['check'].setChecked(tool_config.check_tool.lower() == 'yes')
+            widgets['run'].setChecked(tool_config.run_tool.lower() == 'yes')
+        
+        # MediaConch
+        mediaconch = self.checks_config.tools.mediaconch
+        self.run_mediaconch_cb.setChecked(mediaconch.run_mediaconch.lower() == 'yes')
+        
+        # Load available policies
+        policies_dir = os.path.join(self.config_mgr.project_root, 'config', 'mediaconch_policies')
+        if os.path.exists(policies_dir):
+            available_policies = [f for f in os.listdir(policies_dir) if f.endswith('.xml')]
+            self.policy_combo.clear()
+            self.policy_combo.addItems(available_policies)
+            if mediaconch.mediaconch_policy in available_policies:
+                self.policy_combo.setCurrentText(mediaconch.mediaconch_policy)
+        
+        # QCT Parse
+        qct = self.checks_config.tools.qct_parse
+        self.bars_detection_cb.setChecked(qct.barsDetection)
+        self.evaluate_bars_cb.setChecked(qct.evaluateBars)
+        self.thumb_export_cb.setChecked(qct.thumbExport)
+        
+        if qct.contentFilter:
+            self.content_filter_combo.setCurrentText(qct.contentFilter[0])
+        if qct.profile:
+            self.profile_combo.setCurrentText(qct.profile[0])
+        if qct.tagname is not None:
+            self.tagname_input.setText(qct.tagname)
+
+    def on_checkbox_changed(self, state, path):
+        """Handle changes in yes/no checkboxes"""
+        new_value = 'yes' if Qt.CheckState(state) == Qt.CheckState.Checked else 'no'
+        
+        if path[0] == "tools" and len(path) > 2:
+            tool_name = path[1]
+            field = path[2]
+            updates = {'tools': {tool_name: {field: new_value}}}
+        else:
+            section = path[0]
+            field = path[1]
+            updates = {section: {field: new_value}}
             
-            if isinstance(value, dict):  # Nested dictionary
-                sub_section = self.create_section(key, value, current_path)
-                layout.addWidget(sub_section)
-                
-            elif is_qct_parse and key in ["contentFilter", "profile"]:
-                # Get available options based on the field
-                if key == "contentFilter":
-                    options = ["allBlack", "static"]
-                else:  # profile
-                    options = ["default", "highTolerance", "midTolerance", "lowTolerance"]
-                    
-                # Create multi-select combo box
-                label = QLabel(key)
-                combo = QComboBox()
-                combo.setObjectName(f"qct_parse_{key}_combo")
-                combo.setStyleSheet("QComboBox { min-width: 150px; }")
-                
-                # Add placeholder item
-                combo.addItem("Select options...")
-                
-                # Add actual options
-                for option in options:
-                    combo.addItem(option)
-                
-                # Set current selection based on existing value
-                if isinstance(value, list) and value:
-                    index = combo.findText(value[0])
-                    if index >= 0:
-                        combo.setCurrentIndex(index)
-                
-                # Connect signal
-                combo.currentTextChanged.connect(
-                    lambda text, p=current_path, k=key: self.on_combo_changed(text, p, k)
-                )
-                
-                layout.addWidget(label)
-                layout.addWidget(combo)
-                
-            elif isinstance(value, str):
-                if value.lower() in ("yes", "no"):  # Checkbox for yes/no values
-                    if key == "output_fixity":
-                        checkbox = QCheckBox(f"{key} (to .txt and .md5 files)")
-                    else:
-                        checkbox = QCheckBox(key)
-                    checkbox.setChecked(value.lower() == "yes")
-                    checkbox.stateChanged.connect(
-                        lambda state, p=current_path: self.on_checkbox_changed(state, p)
-                    )
-                    layout.addWidget(checkbox)
-                elif key == "mediaconch_policy":
-                    # Create container widget for policy file selection
-                    policy_container = QWidget()
-                    policy_layout = QVBoxLayout(policy_container)
-                    
-                    # Display current policy filename
-                    filename_label = QLabel(f"Current policy: {value}")
-                    policy_layout.addWidget(filename_label)
+        self.config_mgr.update_config('checks', updates)
 
-                    # Get available policy files
-                    policies_dir = os.path.join(self.config_mgr.project_root, 'config', 'mediaconch_policies')
-                    available_policies = []
-                    if os.path.exists(policies_dir):
-                        available_policies = [f for f in os.listdir(policies_dir) if f.endswith('.xml')]
+    def on_boolean_changed(self, state, path):
+        """Handle changes in boolean checkboxes"""
+        new_value = Qt.CheckState(state) == Qt.CheckState.Checked
+        
+        if path[0] == "tools" and path[1] == "qct_parse":
+            updates = {'tools': {'qct_parse': {path[2]: new_value}}}
+            self.config_mgr.update_config('checks', updates)
 
-                    # Create and populate dropdown
-                    policy_combo = QComboBox()
-                    policy_combo.addItems(available_policies)
-                    
-                    # Set current policy in dropdown
-                    if value in available_policies:
-                        policy_combo.setCurrentText(value)
-                    
-                    # Connect dropdown change event
-                    policy_combo.currentTextChanged.connect(self.on_mediaconch_policy_selected)
-                    
-                    # Add dropdown to layout
-                    policy_layout.addWidget(QLabel("Available policies:"))
-                    policy_layout.addWidget(policy_combo)
-                    
-                    # Add import button
-                    import_button = QPushButton("Import MediaConch Policy")
-                    import_button.clicked.connect(self.open_policy_file_dialog)
-                    policy_layout.addWidget(import_button)
-                    
-                    layout.addWidget(policy_container)
-                    continue  # Skip the rest of the loop iteration
-                else:  # QLineEdit for text fields
-                    label = QLabel(key)
-                    text_field = QLineEdit(value)
-                    layout.addWidget(label)
-                    layout.addWidget(text_field)
-                    
-            elif isinstance(value, bool):  # Checkbox for True/False values
-                checkbox = QCheckBox(key)
-                checkbox.setChecked(value)
-                checkbox.stateChanged.connect(
-                    lambda state, p=current_path: self.on_checkbox_changed(state, p)
-                )
-                layout.addWidget(checkbox)
+    def on_text_changed(self, path, text):
+        """Handle changes in text inputs"""
+        updates = {path[0]: {path[1]: text}}
+        self.config_mgr.update_config('checks', updates)
+
+    def on_qct_combo_changed(self, text, field):
+        """Handle changes in QCT Parse combo boxes"""
+        value = [text] if text != "Select options..." else []
+        updates = {'tools': {'qct_parse': {field: value}}}
+        self.config_mgr.update_config('checks', updates)
+
+    def on_tagname_changed(self, text):
+        """Handle changes in tagname field"""
+        updates = {'tools': {'qct_parse': {'tagname': text if text else None}}}
+        self.config_mgr.update_config('checks', updates)
+
+    def on_mediaconch_policy_selected(self, policy_name):
+        """Handle selection of MediaConch policy"""
+        if not policy_name:
+            return
             
-            # Add handling for None/null values and empty lists
-            elif value is None or (isinstance(value, list) and not value):
-                if is_qct_parse:
-                    # For qct-parse section, preserve None and empty list values
-                    if isinstance(value, list):
-                        # Handle empty lists (contentFilter and profile)
-                        continue  # Already handled above in the special case
-                    else:
-                        # Handle null values (tagname)
-                        label = QLabel(key)
-                        text_field = QLineEdit("")
-                        text_field.setPlaceholderText("None")
-                        layout.addWidget(label)
-                        layout.addWidget(text_field)
-
-        group_box.setLayout(layout)
-        return group_box
+        # Simply update the mediaconch policy while preserving other settings
+        self.config_mgr.update_config('checks', {
+            'tools': {
+                'mediaconch': {
+                    'mediaconch_policy': policy_name
+                }
+            }
+        })
+        logger.info(f"Updated config to use policy file: {policy_name}")
 
     def open_policy_file_dialog(self):
         """Open file dialog for selecting MediaConch policy file"""
@@ -217,7 +373,7 @@ class ConfigWindow(QWidget):
                 new_policy_name = setup_mediaconch_policy(policy_path)
                 if new_policy_name:
                     # Refresh the UI to show the new policy file
-                    self.refresh_checkboxes()
+                    self.load_config_values()
                 else:
                     # Show error message if policy setup failed
                     QMessageBox.critical(
@@ -225,106 +381,6 @@ class ConfigWindow(QWidget):
                         "Error",
                         "Failed to import MediaConch policy file. Check logs for details."
                     )
-
-    def on_mediaconch_policy_selected(self, policy_name: str):
-        """Handle selection of policy from dropdown"""
-        if not policy_name:
-            return
-            
-        # Get current config to preserve run_mediaconch value
-        current_config = self.config_mgr.get_config('checks', ChecksConfig)
-        run_mediaconch = current_config.tools['mediaconch']['run_mediaconch']
-        
-        # Update config to use selected policy file
-        self.config_mgr.update_config('checks', {
-            'tools': {
-                'mediaconch': {
-                    'mediaconch_policy': policy_name,
-                    'run_mediaconch': run_mediaconch
-                }
-            }
-        })
-        logger.info(f"Updated config to use policy file: {policy_name}")
-        self.refresh_checkboxes()
-
-       
-    def refresh_checkboxes(self):
-        """Reload config and rebuild UI while preserving empty values"""
-        # Get fresh config
-        self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
-        
-        # Clear existing layout
-        if hasattr(self, 'main_layout'):
-            while self.main_layout.count():
-                item = self.main_layout.takeAt(0)
-                if item.widget():
-                    item.widget().deleteLater()
-        else:
-            self.main_layout = QVBoxLayout(self)
-            self.setLayout(self.main_layout)
-
-        # Convert to dict while preserving empty values
-        config_dict = asdict(self.checks_config)
-        
-        # Ensure qct-parse empty values are preserved
-        if "tools" in config_dict and "qct-parse" in config_dict["tools"]:
-            qct_parse = config_dict["tools"]["qct-parse"]
-            # Ensure these fields exist even if empty
-            if "contentFilter" not in qct_parse:
-                qct_parse["contentFilter"] = []
-            if "profile" not in qct_parse:
-                qct_parse["profile"] = []
-            if "tagname" not in qct_parse:
-                qct_parse["tagname"] = None
-
-        # Rebuild UI with preserved empty values
-        for section, items in config_dict.items():
-            section_box = self.create_section(section, items, [section])
-            self.main_layout.addWidget(section_box)
-        self.main_layout.addStretch()
-
-    def on_combo_changed(self, text, path, key):
-        """Handle changes in the combo boxes"""
-        if text == "Select options...":
-            value = []
-        else:
-            value = [text]
-            
-        # Update the config manager
-        current_config = self.config_mgr.get_config('checks', ChecksConfig)
-        
-        # Navigate to the qct-parse section and update the specific field
-        qct_parse = current_config.tools["qct-parse"]
-        if key == "contentFilter":
-            qct_parse["contentFilter"] = value
-        elif key == "profile":
-            qct_parse["profile"] = value
-        
-        # Update the config without refreshing the GUI
-        self.config_mgr.set_config('checks', current_config)
-
-    def on_checkbox_changed(self, value, path):
-        updates = {}
-        current = updates
-        for i, key in enumerate(path[:-1]):
-            current[key] = {}
-            current = current[key]
-        
-        new_value = 'yes' if Qt.CheckState(value) == Qt.CheckState.Checked else 'no'
-        current[path[-1]] = new_value
-        
-        if len(path) >= 2:
-            if path[0] == "tools":
-                tool_name = path[1]
-                tool_config = self.checks_config.tools[tool_name]
-                tool_config[path[-1]] = new_value
-            elif path[0] == "outputs":
-                self.checks_config.outputs[path[-1]] = new_value
-            elif path[0] == "fixity":
-                setattr(self.checks_config.fixity, path[-1], new_value)
-                
-        # Update and save the config
-        self.config_mgr.update_config('checks', updates)
 
 
 class MainWindow(QMainWindow):
@@ -408,9 +464,9 @@ class MainWindow(QMainWindow):
         self.command_profile_dropdown.addItem("step2")
         self.command_profile_dropdown.addItem("allOff")
         # Set dropdown based on condition
-        if self.checks_config.tools["exiftool"]["run_tool"] == "yes":
+        if self.checks_config.tools.exiftool.run_tool == "yes":
             self.command_profile_dropdown.setCurrentText("step1")
-        elif self.checks_config.tools["exiftool"]["run_tool"] == "no":
+        elif self.checks_config.tools.exiftool.run_tool == "no":
             self.command_profile_dropdown.setCurrentText("step2")
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
         vertical_layout.addWidget(command_profile_label)
@@ -659,9 +715,10 @@ class MainWindow(QMainWindow):
             edit_config.apply_profile(profile)
             logger.debug(f"Profile '{selected_profile}' applied successfully.")
             self.config_mgr.save_last_used_config('checks')
-            self.config_widget.refresh_checkboxes()
         except ValueError as e:
             logger.critical(f"Error: {e}")
+
+        self.config_widget.load_config_values()
 
 
     def on_filename_profile_changed(self, index):
