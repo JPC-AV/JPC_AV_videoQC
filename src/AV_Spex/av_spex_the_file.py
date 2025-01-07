@@ -110,10 +110,10 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         help="Select processing profile or turn checks off")
     parser.add_argument("-t", "--tool", choices=AVAILABLE_TOOLS, 
                         action='append', help="Select individual tools to enable")
-    parser.add_argument("--on", choices=AVAILABLE_TOOLS, 
-                        action='append', help="Select specific tools to turn on")
-    parser.add_argument("--off", choices=AVAILABLE_TOOLS, 
-                        action='append', help="Select specific tools to turn off")
+    parser.add_argument("--on", 
+                        action='append', help="Turns on specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
+    parser.add_argument("--off", 
+                        action='append', help="Turns off specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
     parser.add_argument("-sn","--signalflow", choices=['JPC_AV_SVHS', 'BVH3100'],
                     help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
@@ -412,6 +412,7 @@ def run_avspex(source_directories):
     overall_end_time = time.time()
 
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
+
 
 def main_gui():
     app = QApplication(sys.argv)  # Create the QApplication instance once
