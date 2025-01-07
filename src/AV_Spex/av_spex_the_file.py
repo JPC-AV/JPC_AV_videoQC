@@ -140,10 +140,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
 
     args = parser.parse_args()
 
-    if not args.dryrun and not args.paths and not args.gui:
-        parser.error("the following arguments are required: paths")
-
-    input_paths = [] if args.dryrun else args.paths
+    input_paths = args.paths if args.paths else []
     source_directories = dir_setup.validate_input_paths(input_paths, args.file)
 
     selected_profile = edit_config.resolve_config(args.profile, PROFILE_MAPPING)
@@ -347,9 +344,7 @@ def run_cli_mode(args):
 
     # Update checks config
     if args.selected_profile:
-        print("DEBUGGING selected_profile arg recognized")
-        edit_config.apply_profile(args.selected_profile)
-        config_mgr.save_last_used_config('checks')
+        config_mgr.update_config('checks', args.selected_profile)
     if args.tool_names:
         edit_config.apply_by_name(args.tool_names)
         config_mgr.save_last_used_config('checks')
@@ -440,7 +435,8 @@ def main_cli():
        main_gui()
     else:
         run_cli_mode(args)
-        run_avspex(args.source_directories)
+        if args.source_directories:
+            run_avspex(args.source_directories)
 
 
 def main():
