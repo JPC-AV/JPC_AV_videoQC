@@ -233,12 +233,15 @@ class ConfigWindow(QWidget):
             )
         
         # MediaConch
+        mediaconch = self.checks_config.tools.mediaconch
+        self.run_mediaconch_cb.setChecked(mediaconch.run_mediaconch.lower() == 'yes')
+        
         self.run_mediaconch_cb.stateChanged.connect(
             lambda state: self.on_checkbox_changed(state, ['tools', 'mediaconch', 'run_mediaconch'])
         )
-        self.policy_combo.currentTextChanged.connect(self.on_mediaconch_policy_selected)
+        self.policy_combo.currentTextChanged.connect(self.on_mediaconch_policy_changed)
         self.import_policy_btn.clicked.connect(self.open_policy_file_dialog)
-        
+                    
         # QCT Parse
         self.bars_detection_cb.stateChanged.connect(
             lambda state: self.on_boolean_changed(state, ['tools', 'qct_parse', 'barsDetection'])
@@ -261,6 +264,9 @@ class ConfigWindow(QWidget):
 
     def load_config_values(self):
         """Load current config values into UI elements"""
+        # Set loading flag to True
+        self.is_loading = True
+
         # Outputs
         self.access_file_cb.setChecked(self.checks_config.outputs.access_file.lower() == 'yes')
         self.report_cb.setChecked(self.checks_config.outputs.report.lower() == 'yes')
@@ -289,8 +295,12 @@ class ConfigWindow(QWidget):
             available_policies = [f for f in os.listdir(policies_dir) if f.endswith('.xml')]
             self.policy_combo.clear()
             self.policy_combo.addItems(available_policies)
+            
+            # Temporarily block signals while setting the current text
+            self.policy_combo.blockSignals(True)
             if mediaconch.mediaconch_policy in available_policies:
                 self.policy_combo.setCurrentText(mediaconch.mediaconch_policy)
+            self.policy_combo.blockSignals(False)
         
         # QCT Parse
         qct = self.checks_config.tools.qct_parse
@@ -304,6 +314,9 @@ class ConfigWindow(QWidget):
             self.profile_combo.setCurrentText(qct.profile[0])
         if qct.tagname is not None:
             self.tagname_input.setText(qct.tagname)
+
+        # Set loading flag back to False after everything is loaded
+        self.is_loading = False
 
     def on_checkbox_changed(self, state, path):
         """Handle changes in yes/no checkboxes"""
@@ -344,20 +357,17 @@ class ConfigWindow(QWidget):
         updates = {'tools': {'qct_parse': {'tagname': text if text else None}}}
         self.config_mgr.update_config('checks', updates)
 
-    def on_mediaconch_policy_selected(self, policy_name):
+    def on_mediaconch_policy_changed(self, policy_name):
         """Handle selection of MediaConch policy"""
-        if not policy_name:
-            return
-            
-        # Simply update the mediaconch policy while preserving other settings
-        self.config_mgr.update_config('checks', {
-            'tools': {
-                'mediaconch': {
-                    'mediaconch_policy': policy_name
+        if not self.is_loading and policy_name:
+            self.config_mgr.update_config('checks', {
+                'tools': {
+                    'mediaconch': {
+                        'mediaconch_policy': policy_name
+                    }
                 }
-            }
-        })
-        logger.info(f"Updated config to use policy file: {policy_name}")
+            })
+            logger.info(f"Updated config to use policy file: {policy_name}")
 
     def open_policy_file_dialog(self):
         """Open file dialog for selecting MediaConch policy file"""
