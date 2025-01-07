@@ -37,7 +37,6 @@ config_mgr = ConfigManager()
 class ParsedArguments:
     source_directories: List[str]
     selected_profile: Optional[Any]
-    tool_names: List[str]
     sn_config_changes: Optional[Any]
     fn_config_changes: Optional[Any]
     print_config_profile: Optional[str]
@@ -49,9 +48,6 @@ class ParsedArguments:
     export_file: Optional[str] 
     import_config: Optional[str]
     mediaconch_policy: Optional[str]
-
-
-AVAILABLE_TOOLS = ["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"]
 
 
 PROFILE_MAPPING = {
@@ -108,8 +104,6 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
     parser.add_argument("--profile", choices=list(PROFILE_MAPPING.keys()), 
                         help="Select processing profile or turn checks off")
-    parser.add_argument("-t", "--tool", choices=AVAILABLE_TOOLS, 
-                        action='append', help="Select individual tools to enable")
     parser.add_argument("--on", 
                         action='append', help="Turns on specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
     parser.add_argument("--off", 
@@ -118,7 +112,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
                         help="Select file name config type (jpc or bowser)")
-    parser.add_argument("-pp", "--printprofile", type=str, nargs='?', const='all', default='all', 
+    parser.add_argument("-pp", "--printprofile", type=str, nargs='?', const='all', default=None, 
                         help="Show config profile(s) and optional subsection. Format: 'config[,subsection]'. Examples: 'all', 'spex', 'checks', 'checks,tools', 'spex,filename_values'")
     parser.add_argument("-d","--directory", action="store_true", 
                         help="Flag to indicate input is a directory")
@@ -150,7 +144,6 @@ The scripts will confirm that the digital files conform to predetermined specifi
     return ParsedArguments(
         source_directories=source_directories,
         selected_profile=selected_profile,
-        tool_names=args.tool or [],
         sn_config_changes=sn_config_changes,
         fn_config_changes=fn_config_changes,
         print_config_profile=args.printprofile,
@@ -345,9 +338,6 @@ def run_cli_mode(args):
     # Update checks config
     if args.selected_profile:
         config_mgr.update_config('checks', args.selected_profile)
-    if args.tool_names:
-        edit_config.apply_by_name(args.tool_names)
-        config_mgr.save_last_used_config('checks')
     if args.tools_on_names:
         edit_config.toggle_on(args.tools_on_names)
         config_mgr.save_last_used_config('checks')
