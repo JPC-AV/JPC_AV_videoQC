@@ -347,13 +347,18 @@ def run_cli_mode(args):
 
     # Update checks config
     if args.selected_profile:
+        print("DEBUGGING selected_profile arg recognized")
         edit_config.apply_profile(args.selected_profile)
+        config_mgr.save_last_used_config('checks')
     if args.tool_names:
         edit_config.apply_by_name(args.tool_names)
+        config_mgr.save_last_used_config('checks')
     if args.tools_on_names:
         edit_config.toggle_on(args.tools_on_names)
+        config_mgr.save_last_used_config('checks')
     if args.tools_off_names:
         edit_config.toggle_off(args.tools_off_names)
+        config_mgr.save_last_used_config('checks')
 
     if args.mediaconch_policy:
         processing_mgmt.setup_mediaconch_policy(args.mediaconch_policy)

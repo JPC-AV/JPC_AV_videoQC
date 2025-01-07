@@ -60,6 +60,7 @@ def apply_profile(selected_profile):
     checks_config = config_mgr.get_config('checks', ChecksConfig)
     
     if 'outputs' in selected_profile:
+        print(f"DEBUGGING outputs found in selected profile")
         for key, value in selected_profile["outputs"].items():
             setattr(checks_config.outputs, key, value)
 

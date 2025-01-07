@@ -177,7 +177,7 @@ class ConfigManager:
 
         # Perform the update
         update_recursively(current_config, updates)
-        logger.debug(f"Updated {config_name} config")
+        # logger.debug(f"Updated {config_name} config")
         
         # Save the updated config
         self.save_last_used_config(config_name)
