@@ -79,9 +79,10 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     
 
     # Run QCTools command
-    run_tools.run_command('qcli -i', video_path, '-o', qctools_output_path)
-    logger.debug('')  # Add new line for cleaner terminal output
-    results['qctools_output_path'] = qctools_output_path
+    if checks_config.tools.qctools.run_tool == 'yes':
+        run_tools.run_command('qcli -i', video_path, '-o', qctools_output_path)
+        logger.debug('')  # Add new line for cleaner terminal output
+        results['qctools_output_path'] = qctools_output_path
 
     # Check QCTools output if configured
     if checks_config.tools.qctools.check_tool == 'yes':
