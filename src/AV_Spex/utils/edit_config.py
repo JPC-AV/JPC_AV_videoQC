@@ -31,20 +31,87 @@ def format_config_value(value, indent=0, is_nested=False):
     return str(value)
 
 
-def print_config(config_type='all'):
-    """Print config state for specified config type(s)."""
+def print_config(config_spec='all'):
+    """
+    Print config state for specified config type(s) and optional subsections.
+    
+    Args:
+        config_spec (str): Specification of what to print. Can be:
+            - 'all': Print all configs
+            - 'checks' or 'spex': Print entire specified config
+            - 'checks,tools' or 'spex,filename_values': Print specific subsection
+    """
+    if not validate_config_spec(config_spec):
+        logger.error(f"Invalid config specification: {config_spec}.")
+        logger.error(f"Format should be 'config[,subsection]' where config is one of: all, spex, checks - subsection (optional) is a valid section of the specified config\n")
+    
     configs = {}
+    
+    # Parse the config specification
+    parts = [p.strip() for p in config_spec.split(',')]
+    config_type = parts[0]
+    subsection = parts[1] if len(parts) > 1 else None
+    
+    # Load the requested config(s)
     if config_type in ['all', 'checks']:
         configs['Checks Config'] = config_mgr.get_config('checks', ChecksConfig)
     if config_type in ['all', 'spex']:
         configs['Spex Config'] = config_mgr.get_config('spex', SpexConfig)
-        
+    
+    # Print the configs
     for config_name, config in configs.items():
         print(f"\n{config_name}:")
         config_dict = asdict(config)
-        for key, value in config_dict.items():
-            print(f"{key}:")
-            print(format_config_value(value, indent=2))
+        
+        if subsection:
+            # Print only the specified subsection if it exists
+            if subsection in config_dict:
+                print(f"{subsection}:")
+                print(format_config_value(config_dict[subsection], indent=2))
+            else:
+                print(f"Subsection '{subsection}' not found in {config_name}")
+        else:
+            # Print entire config
+            for key, value in config_dict.items():
+                print(f"{key}:")
+                print(format_config_value(value, indent=2))
+
+
+def validate_config_spec(config_spec: str) -> bool:
+    """
+    Validate the config specification format.
+    
+    Args:
+        config_spec: String specification of config to print
+        
+    Returns:
+        bool: True if valid, False if invalid
+    """
+    if not config_spec:
+        return False
+        
+    parts = [p.strip() for p in config_spec.split(',')]
+    
+    # Check base config type
+    if parts[0] not in ['all', 'spex', 'checks']:
+        return False
+        
+    # If subsection specified, validate against known subsections
+    if len(parts) > 1:
+        config_type = parts[0]
+        subsection = parts[1]
+        
+        valid_subsections = {
+            'spex': ['filename_values', 'mediainfo_values', 'exiftool_values', 
+                    'ffmpeg_values', 'mediatrace_values', 'qct_parse_values'],
+            'checks': ['outputs', 'fixity', 'tools']
+        }
+        
+        # Only check subsection validity for specific configs (not 'all')
+        if config_type != 'all':
+            return subsection in valid_subsections[config_type]
+            
+    return True
 
 
 def resolve_config(args, config_mapping):

@@ -40,7 +40,7 @@ class ParsedArguments:
     tool_names: List[str]
     sn_config_changes: Optional[Any]
     fn_config_changes: Optional[Any]
-    print_config_profile: bool
+    print_config_profile: Optional[str]
     dry_run_only: bool
     tools_on_names: List[str]
     tools_off_names: List[str]
@@ -115,11 +115,11 @@ The scripts will confirm that the digital files conform to predetermined specifi
     parser.add_argument("--off", 
                         action='append', help="Turns off specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
     parser.add_argument("-sn","--signalflow", choices=['JPC_AV_SVHS', 'BVH3100'],
-                    help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
+                        help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
-                   help="Select file name config type (jpc or bowser)")
-    parser.add_argument("-pp","--printprofile", choices=['all', 'spex', 'checks'], nargs='?', const='all',
-                        help="Show config profile(s). Default: all")
+                        help="Select file name config type (jpc or bowser)")
+    parser.add_argument("-pp", "--printprofile", type=str, nargs='?', const='all', default='all', 
+                        help="Show config profile(s) and optional subsection. Format: 'config[,subsection]'. Examples: 'all', 'spex', 'checks', 'checks,tools', 'spex,filename_values'")
     parser.add_argument("-d","--directory", action="store_true", 
                         help="Flag to indicate input is a directory")
     parser.add_argument("-f","--file", action="store_true", 
