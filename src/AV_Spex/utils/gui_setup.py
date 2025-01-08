@@ -638,3 +638,5 @@ class MainWindow(QMainWindow):
         if self.worker_thread and self.worker_thread.isRunning():
             self.cancel_processing()
         event.accept()
+
+

@@ -307,7 +307,7 @@ def process_single_directory(source_directory, cancel_event=None):
             display_processing_banner(video_id)
 
         except Exception as e:
-            logger.critical(f"Error processing directory {source_directory}: {e}")
+            logger.critical(f"\nError processing directory {source_directory}: {e}")
             return None
         finally:
             # Optional brief pause between directory processing
