@@ -229,24 +229,6 @@ class ConfigManager:
         with open(json_path, 'w') as f:
             json.dump(asdict(config), f, indent=2)
 
-    def get_default_config(self, config_name: str, config_class: Type[T]) -> T:
-        """
-        Get default config only, ignoring any last used config.
-        Similar to get_config but forces loading of default values.
-        
-        Args:
-            config_name: Name of the config to load
-            config_class: Type of the config class to instantiate
-            
-        Returns:
-            An instance of config_class populated with default values
-        """
-        # Load default config only
-        default_config = self._load_json_config(config_name, last_used=False)
-        
-        # Create dataclass instance directly from default config
-        return self._create_dataclass_instance(config_class, default_config)
-
     def save_last_used_config(self, config_name: str) -> None:
         """Save current config state as last used settings"""
         config = self._configs.get(config_name)
