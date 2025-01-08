@@ -164,27 +164,6 @@ def apply_profile(selected_profile):
     config_mgr.set_config('checks', checks_config)
 
 
-def apply_by_name(tool_names):
-    # Get config instance
-    checks_config = config_mgr.get_config('checks', ChecksConfig)
-    
-    # Turn all tools off first
-    for tool in checks_config.tools:
-        if hasattr(checks_config.tools[tool], 'run_tool'):
-            checks_config.tools[tool].run_tool = 'no'
-            checks_config.tools[tool].check_tool = 'no'
-
-    # Enable specified tools
-    for tool in tool_names:
-        if tool in checks_config.tools:
-            if hasattr(checks_config.tools[tool], 'run_tool'):
-                checks_config.tools[tool].run_tool = 'yes'
-                checks_config.tools[tool].check_tool = 'yes'
-            logger.debug(f"{tool} set to 'on'")
-
-    config_mgr.set_config('checks', checks_config)
-
-
 def update_tool_setting(tool_names: List[str], value: str):
     """
     Update specific tool settings using config_mgr.update_config

@@ -48,6 +48,7 @@ class ParsedArguments:
     export_file: Optional[str] 
     import_config: Optional[str]
     mediaconch_policy: Optional[str]
+    use_default_config: bool
 
 
 PROFILE_MAPPING = {
@@ -120,6 +121,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
                         help="Flag to indicate input is a video file")
     parser.add_argument('--gui', action='store_true', 
                         help='Force launch in GUI mode')
+    parser.add_argument("--use-default-config", action="store_true",
+                       help="Reset to default config by removing any saved configurations")
     
     # Config export/import arguments
     parser.add_argument('--export-config', 
@@ -141,6 +144,19 @@ The scripts will confirm that the digital files conform to predetermined specifi
     sn_config_changes = edit_config.resolve_config(args.signalflow, SIGNALFLOW_MAPPING)
     fn_config_changes = edit_config.resolve_config(args.filename, FILENAME_MAPPING)
 
+    if args.use_default_config:
+        try:
+            # Get the project root and construct config paths
+            config_path = os.path.join(config_mgr.project_root, "config")
+            os.remove(os.path.join(config_path, "last_used_checks_config.json"))
+            os.remove(os.path.join(config_path, "last_used_spex_config.json"))
+            print("Reset to default configuration")
+        except FileNotFoundError:
+            # It's okay if the files don't exist
+            print("Already using default configuration")
+        except Exception as e:
+            print(f"Warning: Could not fully reset config: {e}")
+
     return ParsedArguments(
         source_directories=source_directories,
         selected_profile=selected_profile,
@@ -154,7 +170,8 @@ The scripts will confirm that the digital files conform to predetermined specifi
         export_config=args.export_config,
         export_file=args.export_file,
         import_config=args.import_config,
-        mediaconch_policy=args.mediaconch_policy
+        mediaconch_policy=args.mediaconch_policy,
+        use_default_config=args.use_default_config
     )
 
 
@@ -405,6 +422,9 @@ def run_avspex(source_directories):
 
 
 def main_gui():
+    # need to run parse_arguments in case of the --use-default-config flag
+    args = parse_arguments()
+
     app = QApplication(sys.argv)  # Create the QApplication instance once
     while True:
         window = MainWindow()
@@ -431,7 +451,6 @@ def main_cli():
 
 
 def main():
-    # Default behavior based on command-line arguments
     args = parse_arguments()
 
     if args.gui or (args.source_directories is None and not sys.argv[1:]):
