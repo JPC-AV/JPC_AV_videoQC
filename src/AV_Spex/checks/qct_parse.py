@@ -25,13 +25,13 @@ from ..utils.find_config import config_path, command_config
 # Dictionary to map the string to the corresponding operator function
 operator_mapping = {
     'lt': operator.lt,
-    'gt': operator.gt,
+    'gt': operator.gt,  
 }
 
 # init variable for config list of QCTools tags
 fullTagList = config_path.config_dict['qct-parse']['fullTagList']
 
-def parse_frame_data(startObj, pkt):
+def parse_frame_data(startObj, pkt, cancel_event=None):
     '''
     Parses the XML file and extracts frame data into a list of dictionaries.
 
@@ -49,6 +49,8 @@ def parse_frame_data(startObj, pkt):
 
     with gzip.open(startObj) as xml:
         for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
+            if cancel_event and cancel_event.is_set():
+                return
             if elem.attrib['media_type'] == "video":
                 frame_pkt_dts_time = elem.attrib[pkt]
                 frameDict = {}  # start an empty dict for the new frame
@@ -807,7 +809,7 @@ def save_failures_to_csv(failureInfo, failure_csv_path):
                 writer.writerow({'Timestamp': timestamp, 'Tag': info['tag'], 'Tag Value': info['tagValue'], 'Threshold': info['over']})
 
 
-def run_qctparse(video_path, qctools_output_path, report_directory):
+def run_qctparse(video_path, qctools_output_path, report_directory, cancel_event=None):
     """
     Executes the qct-parse analysis on a given video file, exporting relevant data and thumbnails based on specified thresholds and profiles.
 
@@ -823,6 +825,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     qct_parse = command_config.command_dict['tools']['qct-parse']
 
     qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+
+    if cancel_event and cancel_event.is_set():
+            return
 
     if qctools_ext.lower().endswith('mkv'):
 
@@ -884,6 +889,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     durationStart = 0
     durationEnd = 99999999
 
+    if cancel_event and cancel_event.is_set():
+            return
+
     # set the path for the thumbnail export
     thumbPath = os.path.join(report_directory, "ThumbExports")
     if qct_parse['thumbExport']:
@@ -910,8 +918,11 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                     pkt = match.group()
                     break
 
+    if cancel_event and cancel_event.is_set():
+            return
+
     # create framesList
-    framesList = parse_frame_data(startObj, pkt)
+    framesList = parse_frame_data(startObj, pkt, cancel_event)
 
     ######## Iterate Through the XML for content detection ########
     if qct_parse['contentFilter']:

@@ -1,4 +1,6 @@
 import os
+import subprocess
+import time
 
 from ..processing import run_tools
 from ..utils import dir_setup
@@ -54,63 +56,103 @@ def process_fixity(source_directory, video_path, video_id, cancel_event=None):
         check_fixity(source_directory, video_id, cancel_event, actual_checksum=md5_checksum)
         if cancel_event and cancel_event.is_set():
             return
-
-
-def process_qctools_output(video_path, source_directory, destination_directory, video_id, command_config, report_directory=None):
-    """
-    Process QCTools output, including running QCTools and optional parsing.
-    
-    Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
-        report_directory (str, optional): Directory to save reports
         
-    Returns:
-        dict: Processing results and paths
+def run_command_with_monitor(command, input_path, output_type, output_path, cancel_event=None, monitor=None):
+    '''
+    Run a shell command with support for cancellation and progress monitoring
+    '''
+    env = os.environ.copy()
+    env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
+
+    full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
+    logger.debug(f'Running command: {full_command}\n')
+    
+    process = subprocess.Popen(full_command, shell=True, env=env)
+    
+    if monitor:
+        monitor.set_process(process)
+    
+    try:
+        while process.poll() is None:  # While process is still running
+            if cancel_event and cancel_event.is_set():
+                process.terminate()  # Try gentle termination first
+                try:
+                    process.wait(timeout=3)  # Wait for up to 3 seconds
+                except subprocess.TimeoutExpired:
+                    process.kill()  # Force kill if it doesn't terminate
+                if monitor:
+                    monitor.clear_process()
+                return False
+            time.sleep(0.1)  # Small sleep to prevent CPU hogging
+        
+        if monitor:
+            monitor.clear_process()
+        
+        return process.returncode == 0
+        
+    except Exception as e:
+        logger.error(f"Error in command execution: {e}")
+        if monitor:
+            monitor.clear_process()
+        return False
+
+
+def process_qctools_output(video_path, source_directory, destination_directory, video_id, command_config, cancel_event=None, report_directory=None, monitor=None):
+    """
+    Process QCTools output with progress monitoring
     """
     results = {
         'qctools_output_path': None,
         'qctools_check_output': None
     }
 
-    # Check if QCTools should be run
     if command_config.command_dict['tools']['qctools']['run_qctools'] != 'yes':
         return results
 
-    # Prepare QCTools output path
     qctools_ext = command_config.command_dict['outputs']['qctools_ext']
     qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
+
+    if cancel_event and cancel_event.is_set():
+        return results
     
     try:
-        # Run QCTools command
-        run_tools.run_command('qcli -i', video_path, '-o', qctools_output_path)
-        logger.debug('')  # Add new line for cleaner terminal output
+        if monitor:
+            monitor.start_operation("qctools_processing")
+        
+        # Run QCTools command with monitor
+        success = run_command_with_monitor('qcli -i', video_path, '-o', qctools_output_path, 
+                                         cancel_event=cancel_event, monitor=monitor)
+        
         results['qctools_output_path'] = qctools_output_path
 
-        # Check QCTools output if configured
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
-            # Ensure report directory exists
             if not report_directory:
                 report_directory = dir_setup.make_report_dir(source_directory, video_id)
 
-            # Verify QCTools output file exists
             if not os.path.isfile(qctools_output_path):
                 logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
                 return results
+            
+            if cancel_event and cancel_event.is_set():
+                return results
 
-            # Run QCTools parsing
-            run_qctparse(video_path, qctools_output_path, report_directory)
-            # currently not using results['qctools_check_output']
+            # Run QCTools parsing with monitor
+            if monitor:
+                monitor.start_operation("qctools_parsing")
+            run_qctparse(video_path, qctools_output_path, report_directory, cancel_event)
+            if monitor:
+                monitor.end_operation()
 
     except Exception as e:
         logger.critical(f"Error processing QCTools output: {e}")
+    finally:
+        if monitor:
+            monitor.end_operation()
 
     return results
 
 
-def process_video_outputs(video_path, source_directory, destination_directory, video_id, command_config, metadata_differences):
+def process_video_outputs(video_path, source_directory, destination_directory, video_id, command_config, metadata_differences, cancel_event=None, monitor=None):
     """
     Coordinate the entire output processing workflow.
     
@@ -145,17 +187,24 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
     else:
          processing_results['metadata_diff_report'] =  None
 
+    if cancel_event and cancel_event.is_set():
+        return processing_results
     # Process QCTools output
-    process_qctools_output(
-        video_path, source_directory, destination_directory, video_id, command_config, report_directory
+    qctools_results = process_qctools_output(
+        video_path, source_directory, destination_directory, video_id, command_config, cancel_event=cancel_event, report_directory=report_directory, monitor=monitor
     )
+    processing_results.update(qctools_results)
 
+    if cancel_event and cancel_event.is_set():
+        return processing_results
     # Generate access file
     processing_results['access_file'] = process_access_file(
         video_path, source_directory, video_id, command_config
     )
 
     # Generate final HTML report
+    if cancel_event and cancel_event.is_set():
+        return processing_results
     processing_results['html_report'] = generate_final_report(
         video_id, source_directory, report_directory, destination_directory, command_config
     )

@@ -1,23 +1,34 @@
 import os
 import csv
 import subprocess
+import time
 from ..utils.log_setup import logger
 from ..utils.find_config import config_path, command_config
 
 
-def run_command(command, input_path, output_type, output_path):
+def run_command(command, input_path, output_type, output_path, cancel_event=None):
     '''
-    Run a shell command with 4 variables: command name, path to the input file, output type (often '>'), path to the output file
+    Run a shell command with support for cancellation
     '''
-
-    # Get the current PATH environment variable
     env = os.environ.copy()
     env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
 
     full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
-
     logger.debug(f'Running command: {full_command}\n')
-    subprocess.run(full_command, shell=True, env=env)
+    
+    process = subprocess.Popen(full_command, shell=True, env=env)
+    
+    while process.poll() is None:  # While process is still running
+        if cancel_event and cancel_event.is_set():
+            process.terminate()  # Try gentle termination first
+            try:
+                process.wait(timeout=3)  # Wait for up to 3 seconds
+            except subprocess.TimeoutExpired:
+                process.kill()  # Force kill if it doesn't terminate
+            return False
+        time.sleep(0.1)  # Small sleep to prevent CPU hogging
+    
+    return process.returncode == 0
 
 
 def run_tool_command(tool_name, video_path, destination_directory, video_id, command_config):

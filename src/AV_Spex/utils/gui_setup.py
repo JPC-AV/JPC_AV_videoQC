@@ -14,29 +14,135 @@ from ..utils.log_setup import logger
 from ..utils import yaml_profiles
 
 
+class ProcessingState:
+    """Enum-like class to track processing states"""
+    IDLE = 0
+    RUNNING = 1
+    COMPLETED = 2
+    CANCELLED = 3
+
+class ProcessingMonitor:
+    """
+    Monitors the overall processing state across multiple operations
+    """
+    def __init__(self):
+        self.is_processing = False
+        self.current_process = None
+        self.current_operation = ""
+
+    def start_operation(self, operation_name):
+        """Mark the start of a new operation"""
+        self.is_processing = True
+        self.current_operation = operation_name
+
+    def end_operation(self):
+        """Mark the end of the current operation"""
+        self.current_operation = ""
+        if not self.current_process:
+            self.is_processing = False
+
+    def set_process(self, process):
+        """Set the current subprocess being monitored"""
+        self.current_process = process
+        self.is_processing = True
+
+    def clear_process(self):
+        """Clear the current subprocess"""
+        self.current_process = None
+        if not self.current_operation:
+            self.is_processing = False
+
+    def is_active(self):
+        """Check if any processing is still active"""
+        return self.is_processing
+
 class WorkerThread(QThread):
     process_complete = pyqtSignal()
     process_cancelled = pyqtSignal()
-
+    status_update = pyqtSignal(str)
+    
     def __init__(self, source_directories, avspex_runner):
         super().__init__()
         self.source_directories = source_directories
         self.avspex_runner = avspex_runner
         self.cancel_event = threading.Event()
+        self.processing_state = ProcessingState.IDLE
+        self.monitor = ProcessingMonitor()
+        self._is_running = True
 
     def run(self):
         try:
-            self.avspex_runner(self.source_directories, self.cancel_event)
-            if not self.cancel_event.is_set():
-                self.process_complete.emit()
-            else:
+            self.processing_state = ProcessingState.RUNNING
+            self.status_update.emit("Processing...")
+            
+            for directory in self.source_directories:
+                if not self._is_running or self.cancel_event.is_set():
+                    break
+                
+                result = self.avspex_runner(
+                    [directory], 
+                    self.cancel_event, 
+                    self.monitor
+                )
+                
+                if not result or self.cancel_event.is_set():
+                    break
+
+            while self._is_running and self.monitor.is_active():
+                if self.cancel_event.is_set():
+                    break
+                self.msleep(100)
+
+            if self.cancel_event.is_set():
+                self.processing_state = ProcessingState.CANCELLED
                 self.process_cancelled.emit()
+            elif self._is_running:
+                self.processing_state = ProcessingState.COMPLETED
+                self.process_complete.emit()
+                
         except Exception as e:
             print(f"Error in WorkerThread: {e}")
+            self.processing_state = ProcessingState.CANCELLED
             self.process_cancelled.emit()
+        finally:
+            self._is_running = False
 
-    def cancel(self):
+    def stop(self):
+        """Safely stop the thread"""
+        self._is_running = False
         self.cancel_event.set()
+        self.wait()
+
+    def cleanup(self):
+        """Clean up resources before thread destruction"""
+        self.stop()
+        if self.monitor:
+            self.monitor.clear_process()
+
+class ProcessingDialog(QProgressDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Processing Files")
+        self.setLabelText("Processing...")
+        self.setWindowModality(Qt.WindowModality.ApplicationModal)
+        self.setMinimumDuration(0)
+        self.setAutoClose(False)
+        self.setAutoReset(False)
+        
+        # Hide the progress bar
+        self.setMinimum(0)
+        self.setMaximum(0)  # This makes it show an infinite busy indicator
+        
+        # Style and size settings
+        self.setMinimumWidth(300)
+        self.setStyleSheet("""
+            QProgressDialog {
+                background-color: #f5f5f5;
+            }
+        """)
+
+    def update_status(self, message):
+        self.setLabelText(message)
 
 
 class DirectoryListWidget(QListWidget):
@@ -598,45 +704,58 @@ class MainWindow(QMainWindow):
         self.check_spex_clicked = False  # Ensure the flag is reset
         self.close()  # Close the GUI
 
-
     def start_processing(self, source_directories):
-        """Start the AVSpex process in a separate thread."""
-        self.progress_dialog = QProgressDialog("Processing files...", "Cancel", 0, 0, self)
-        self.progress_dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        """Start the AVSpex process in a separate thread with progress tracking."""
+        if self.worker_thread and self.worker_thread.isRunning():
+            self.worker_thread.cleanup()
+            self.worker_thread.wait()
 
-        # Connect cancel button
+        # Create and configure progress dialog
+        self.progress_dialog = ProcessingDialog(self)
         self.progress_dialog.canceled.connect(self.cancel_processing)
-        self.progress_dialog.show()
-
+        
+        # Create and configure worker thread
         self.worker_thread = WorkerThread(source_directories, self.avspex_runner)
         self.worker_thread.process_complete.connect(self.on_processing_complete)
         self.worker_thread.process_cancelled.connect(self.on_processing_cancelled)
+        self.worker_thread.status_update.connect(self.progress_dialog.update_status)
+        
+        # Start processing
+        self.progress_dialog.show()
         self.worker_thread.start()
 
     def cancel_processing(self):
-        """Cancel the ongoing processing."""
+        """Handle user-initiated cancellation of processing."""
         if self.worker_thread and self.worker_thread.isRunning():
-            self.worker_thread.cancel()
-            self.worker_thread.wait()  # Ensure the thread stops before continuing
-
-    def on_processing_cancelled(self):
-        """Handle cancellation of the background process."""
-        if self.progress_dialog:
-            self.progress_dialog.close()
-        self.worker_thread = None
-        QMessageBox.information(self, "AVSpex", "Processing cancelled!")
+            self.worker_thread.stop()  # Use the new stop method
+            self.progress_dialog.setLabelText("Cancelling... Please wait...")
+            self.progress_dialog.setCancelButton(None)
 
     def on_processing_complete(self):
-        """Handle completion of the background process."""
+        """Handle successful completion of processing."""
+        if self.worker_thread:
+            self.worker_thread.cleanup()  # Clean up thread resources
+            self.worker_thread.wait()
+            self.worker_thread = None
         if self.progress_dialog:
             self.progress_dialog.close()
-        self.worker_thread = None
         QMessageBox.information(self, "AVSpex", "Processing complete!")
+
+    def on_processing_cancelled(self):
+        """Handle cancellation or failure of processing."""
+        if self.worker_thread:
+            self.worker_thread.cleanup()  # Clean up thread resources
+            self.worker_thread.wait()
+            self.worker_thread = None
+        if self.progress_dialog:
+            self.progress_dialog.close()
+        QMessageBox.information(self, "AVSpex", "Processing cancelled!")
 
     def closeEvent(self, event):
         """Handle window close event."""
         if self.worker_thread and self.worker_thread.isRunning():
-            self.cancel_processing()
+            self.worker_thread.cleanup()  # Clean up thread resources
+            self.worker_thread.wait()
         event.accept()
 
 
