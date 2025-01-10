@@ -258,17 +258,6 @@ class MainWindow(QMainWindow):
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
 
-        # Prep AV Spex log for bottom row
-        avspex_logo_file = os.path.join(logo_dir, "av_spex_the_logo.png")
-        avspex_logo_label = QLabel()
-        pixmap = QPixmap(avspex_logo_file)
-        scaled_pixmap = pixmap.scaled(150, 150, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-        avspex_logo_label.setPixmap(scaled_pixmap)
-
-        # Add logo to center
-        bottom_row.addWidget(avspex_logo_label)
-        bottom_row.addStretch()
-
         check_spex_button = QPushButton("Check Spex!")
         check_spex_button.clicked.connect(self.on_check_spex_clicked)
         bottom_row.addWidget(check_spex_button)
