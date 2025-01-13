@@ -298,7 +298,8 @@ def process_single_directory(source_directory, cancel_event=None):
                 destination_directory,
                 video_id,
                 command_config,
-                metadata_differences
+                metadata_differences,
+                cancel_event=cancel_event
             )
 
             logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
