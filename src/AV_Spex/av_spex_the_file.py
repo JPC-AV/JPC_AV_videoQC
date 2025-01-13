@@ -240,17 +240,17 @@ def display_processing_banner(video_id=None):
         logger.warning(f'Processing complete:{ascii_video_id}\n')
 
 
-def process_directories(source_directories, cancel_event=None, monitor=None):
+def process_directories(source_directories, cancel_event=None):
     
     for source_directory in source_directories:
         if cancel_event and cancel_event.is_set():
             return
         # sanitize user input directory path
         source_directory = os.path.normpath(source_directory)
-        process_single_directory(source_directory, cancel_event=cancel_event, monitor=monitor)
+        process_single_directory(source_directory, cancel_event)
 
 
-def process_single_directory(source_directory, cancel_event=None, monitor=None):
+def process_single_directory(source_directory, cancel_event=None):
 
     # Display initial processing banner
     display_processing_banner()
@@ -298,9 +298,7 @@ def process_single_directory(source_directory, cancel_event=None, monitor=None):
                 destination_directory,
                 video_id,
                 command_config,
-                metadata_differences,
-                cancel_event=cancel_event,
-                monitor=monitor
+                metadata_differences
             )
 
             logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
@@ -354,50 +352,34 @@ def run_cli_mode(args):
         sys.exit(1)
 
 
-def run_avspex(source_directories, cancel_event=None, monitor=None):
+def run_avspex(source_directories, cancel_event=None):
     '''
     av-spex takes 1 input file or directory as an argument, like this:
     av-spex <input_directory> (or -f <input_file.mkv>)
     it confirms the file is valid, generates metadata on the file, then checks it against expected values.
     '''
     try:
-        if monitor:
-            monitor.start_operation("initialization")
         check_py_version()
         for command in required_commands:
             if cancel_event and cancel_event.is_set():
-                return False
+                print("Processing cancelled.")
+                return
             if not check_external_dependency(command):
                 print(f"Error: {command} not found. Please install it.")
-                return False
+                return
 
         config_path.reload()
         command_config.reload()
-
-        if monitor:
-            monitor.end_operation()
-            monitor.start_operation("main_processing")
-
         if cancel_event and cancel_event.is_set():
-            return False
-            
-        process_directories(source_directories, cancel_event, monitor)
-        
+            return
+        process_directories(source_directories, cancel_event)
         if cancel_event and cancel_event.is_set():
-            return False
-            
+            return
         print_nmaahc_logo()
-
-        if monitor:
-            monitor.end_operation()
-
-        return True
-        
     except Exception as e:
         print(f"Error in run_avspex: {e}")
-        if monitor:
-            monitor.end_operation()
-        return False
+        raise
+    
 
 def main_gui():
     app = QApplication(sys.argv)
