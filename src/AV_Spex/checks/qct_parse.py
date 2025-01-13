@@ -807,7 +807,7 @@ def save_failures_to_csv(failureInfo, failure_csv_path):
                 writer.writerow({'Timestamp': timestamp, 'Tag': info['tag'], 'Tag Value': info['tagValue'], 'Threshold': info['over']})
 
 
-def run_qctparse(video_path, qctools_output_path, report_directory):
+def run_qctparse(video_path, qctools_output_path, report_directory, cancel_event=None):
     """
     Executes the qct-parse analysis on a given video file, exporting relevant data and thumbnails based on specified thresholds and profiles.
 
@@ -910,8 +910,14 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                     pkt = match.group()
                     break
 
+    if cancel_event and cancel_event.is_set():
+        return
+
     # create framesList
     framesList = parse_frame_data(startObj, pkt)
+
+    if cancel_event and cancel_event.is_set():
+        return
 
     ######## Iterate Through the XML for content detection ########
     if qct_parse['contentFilter']:
@@ -1007,6 +1013,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                 logger.debug(f"qct-parse bars evaluation complete. qct-parse summary written to {qctools_bars_eval_check_output}\n")
         else:
             logger.critical("Cannot run color bars evaluation without running Bars Detection.")
+
+    if cancel_event and cancel_event.is_set():
+        return
 
     logger.info(f"qct-parse finished processing file: {os.path.basename(startObj)} \n")
 

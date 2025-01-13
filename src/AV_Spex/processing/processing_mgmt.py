@@ -139,9 +139,12 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
             if not os.path.isfile(qctools_output_path):
                 logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
                 return results
+            
+            if cancel_event and cancel_event.is_set():
+                return
 
             # Run QCTools parsing
-            run_qctparse(video_path, qctools_output_path, report_directory)
+            run_qctparse(video_path, qctools_output_path, report_directory, cancel_event=cancel_event)
             # currently not using results['qctools_check_output']
 
     except Exception as e:
