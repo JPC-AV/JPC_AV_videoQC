@@ -1,4 +1,6 @@
 import os
+import time
+import subprocess
 
 from ..processing import run_tools
 from ..utils import dir_setup
@@ -54,9 +56,41 @@ def process_fixity(source_directory, video_path, video_id, cancel_event=None):
         check_fixity(source_directory, video_id, cancel_event, actual_checksum=md5_checksum)
         if cancel_event and cancel_event.is_set():
             return
+        
+        
+def run_qctools_command(command, input_path, output_type, output_path, cancel_event=None):
+    '''
+    Run a shell command with support for cancellation.
+    
+    Args:
+        command (str): Command name
+        input_path (str): Path to the input file
+        output_type (str): Output type (often '>')
+        output_path (str): Path to the output file
+        cancel_event (threading.Event, optional): Event to signal process cancellation
+    '''
+    env = os.environ.copy()
+    env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
+
+    full_command = f"{command} \"{input_path}\" {output_type} \"{output_path}\""
+    logger.debug(f'Running command: {full_command}\n')
+
+    process = subprocess.Popen(full_command, shell=True, env=env)
+    
+    if cancel_event:
+        while process.poll() is None:  # While process is still running
+            if cancel_event.is_set():
+                # On Windows, you might need to use process.kill()
+                process.terminate()  
+                process.wait()  # Wait for the process to actually terminate
+                logger.debug("\nProcess terminated by user request")
+                return False
+            time.sleep(0.1)  # Short sleep to prevent CPU overuse
+    
+    return 
 
 
-def process_qctools_output(video_path, source_directory, destination_directory, video_id, command_config, report_directory=None):
+def process_qctools_output(video_path, source_directory, destination_directory, video_id, command_config, cancel_event=None, report_directory=None):
     """
     Process QCTools output, including running QCTools and optional parsing.
     
@@ -78,6 +112,9 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     # Check if QCTools should be run
     if command_config.command_dict['tools']['qctools']['run_qctools'] != 'yes':
         return results
+    
+    if cancel_event and cancel_event.is_set():
+        return
 
     # Prepare QCTools output path
     qctools_ext = command_config.command_dict['outputs']['qctools_ext']
@@ -85,9 +122,12 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     
     try:
         # Run QCTools command
-        run_tools.run_command('qcli -i', video_path, '-o', qctools_output_path)
+        run_qctools_command('qcli -i', video_path, '-o', qctools_output_path, cancel_event=cancel_event)
         logger.debug('')  # Add new line for cleaner terminal output
         results['qctools_output_path'] = qctools_output_path
+
+        if cancel_event and cancel_event.is_set():
+            return
 
         # Check QCTools output if configured
         if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
@@ -110,7 +150,7 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     return results
 
 
-def process_video_outputs(video_path, source_directory, destination_directory, video_id, command_config, metadata_differences):
+def process_video_outputs(video_path, source_directory, destination_directory, video_id, command_config, metadata_differences, cancel_event=None):
     """
     Coordinate the entire output processing workflow.
     
@@ -145,15 +185,24 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
     else:
          processing_results['metadata_diff_report'] =  None
 
+    if cancel_event and cancel_event.is_set():
+                return
+
     # Process QCTools output
     process_qctools_output(
-        video_path, source_directory, destination_directory, video_id, command_config, report_directory
+        video_path, source_directory, destination_directory, video_id, command_config, cancel_event=cancel_event, report_directory=report_directory
     )
+
+    if cancel_event and cancel_event.is_set():
+                return
 
     # Generate access file
     processing_results['access_file'] = process_access_file(
         video_path, source_directory, video_id, command_config
     )
+
+    if cancel_event and cancel_event.is_set():
+                return
 
     # Generate final HTML report
     processing_results['html_report'] = generate_final_report(
