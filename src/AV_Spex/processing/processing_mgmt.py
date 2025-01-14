@@ -92,12 +92,12 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
                 logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
                 return results
 
-            # Run QCTools parsing
-            run_qctparse(video_path, qctools_output_path, report_directory)
-            # currently not using results['qctools_check_output']
-
     except Exception as e:
         logger.critical(f"Error processing QCTools output: {e}")
+
+    # Run QCTools parsing
+    run_qctparse(video_path, qctools_output_path, report_directory)
+    # currently not using results['qctools_check_output']
 
     return results
 
