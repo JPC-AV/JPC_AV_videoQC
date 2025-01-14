@@ -253,56 +253,56 @@ def process_single_directory(source_directory):
     display_processing_banner()
 
     # Use processing timer for tracking
-    with create_processing_timer() as timer:
-        try:
+   # with create_processing_timer() as timer:
+   #     try:
             # Call the new prep_directory function
-            init_dir_result = dir_setup.initialize_directory(source_directory)
-            if init_dir_result is None:
-                return  # Skip to the next source_directory if preparation failed
+    init_dir_result = dir_setup.initialize_directory(source_directory)
+    if init_dir_result is None:
+        return  # Skip to the next source_directory if preparation failed
 
-            # Unpack the returned values
-            video_path, video_id, destination_directory, access_file_found = init_dir_result
+    # Unpack the returned values
+    video_path, video_id, destination_directory, access_file_found = init_dir_result
 
-            processing_mgmt.process_fixity(source_directory, video_path, video_id)
+    processing_mgmt.process_fixity(source_directory, video_path, video_id)
 
-            mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
-            video_path, 
-            destination_directory, 
-            video_id, 
-            command_config, 
-            config_path
-            )
+    mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
+    video_path, 
+    destination_directory, 
+    video_id, 
+    command_config, 
+    config_path
+    )
 
-            metadata_differences = processing_mgmt.process_video_metadata(
-                video_path, 
-                destination_directory, 
-                video_id, 
-                command_config
-                )
+    metadata_differences = processing_mgmt.process_video_metadata(
+        video_path, 
+        destination_directory, 
+        video_id, 
+        command_config
+        )
 
-            processing_results = processing_mgmt.process_video_outputs(
-                video_path,
-                source_directory,
-                destination_directory,
-                video_id,
-                command_config,
-                metadata_differences
-            )
+    processing_results = processing_mgmt.process_video_outputs(
+        video_path,
+        source_directory,
+        destination_directory,
+        video_id,
+        command_config,
+        metadata_differences
+    )
 
-            logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
+    logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
 
-            # Display final processing banner
-            display_processing_banner(video_id)
+    # Display final processing banner
+    display_processing_banner(video_id)
 
-        except Exception as e:
-            logger.critical(f"Error processing directory {source_directory}: {e}")
-            return None
-        finally:
+     #   except Exception as e:
+     #       logger.critical(f"Error processing directory {source_directory}: {e}")
+      #      return None
+      #  finally:
             # Optional brief pause between directory processing
-            time.sleep(1)
+       #     time.sleep(1)
 
     # Log processing time
-    timer.log_time_details(video_id)
+   # timer.log_time_details(video_id)
 
 
 def print_av_spex_logo():
