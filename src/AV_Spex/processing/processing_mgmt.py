@@ -99,7 +99,6 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         run_qctparse(video_path, qctools_output_path, report_directory)
         # currently not using results['qctools_check_output']
 
-
     return results
 
 

@@ -423,6 +423,10 @@ class MainWindow(QMainWindow):
         self.config_mgr = ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
+        # Get the screen geometry
+        screen = QApplication.primaryScreen().geometry()
+        # Set window height to screen height, but keep a reasonable width
+        self.resize(800, screen.height())
         
          # Initialize settings
         self.settings = QSettings('NMAAHC', 'AVSpex')
@@ -453,7 +457,7 @@ class MainWindow(QMainWindow):
         logo_dir = os.path.join(root_dir, 'logo_image_files')
 
         # Add images at the top of the GUI
-        self.add_images_to_top(logo_dir)
+        self.add_image_to_top(logo_dir)
 
         # Create a QTabWidget for tabs
         self.tabs = QTabWidget()
@@ -526,6 +530,7 @@ class MainWindow(QMainWindow):
         # Bottom row with "Check Spex!" button
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
+
         check_spex_button = QPushButton("Check Spex!")
         check_spex_button.clicked.connect(self.on_check_spex_clicked)
         bottom_row.addWidget(check_spex_button)
@@ -625,21 +630,22 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(qct_toggle_button)
 
 
-    def add_images_to_top(self, logo_dir):
-        """Add three images to the top of the main layout."""
+    def add_image_to_top(self, logo_dir):
+        """Add image to the top of the main layout."""
         image_layout = QHBoxLayout()
-        image_files = [
-            (os.path.join(logo_dir, "jpc_logo_purple.png")),
-            (os.path.join(logo_dir, "av_spex_the_logo.png")),
-            (os.path.join(logo_dir, "nmaahc_vert_purple.png"))
-        ]
-
-        for image_file in image_files:
-            pixmap = QPixmap(image_file).scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            label = QLabel()
-            label.setPixmap(pixmap)
-            image_layout.addWidget(label)
-
+        
+        image_file = os.path.join(logo_dir, "JPCA_H_Branding_011025.png")
+        pixmap = QPixmap(image_file)
+        
+        label = QLabel()
+        label.setMinimumHeight(100)  # Set minimum height to prevent image from disappearing
+        
+        # Scale pixmap to window width while keeping aspect ratio
+        scaled_pixmap = pixmap.scaledToWidth(self.width(), Qt.TransformationMode.SmoothTransformation)
+        label.setPixmap(scaled_pixmap)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        image_layout.addWidget(label)
         self.main_layout.addLayout(image_layout)
 
 

@@ -16,6 +16,7 @@ import shutil
 import sys
 import re
 import operator
+import collections      # for circular buffer
 import csv
 import datetime as dt
 from dataclasses import dataclass, asdict, field
@@ -37,51 +38,6 @@ operator_mapping = {
 
 # init variable for config list of QCTools tags
 fullTagList = asdict(spex_config.qct_parse_values.fullTagList)
-
-def parse_frame_data(startObj, pkt):
-    '''
-    Parses the XML file and extracts frame data into a list of dictionaries.
-
-    Parameters:
-    startObj (qctools.xml.gz): A gzip-compressed XML file containing frame attributes.
-    pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
-
-    Returns:
-    framesList (list): List of frameDict dictionaries to store the extracted frame data.
-    '''
-
-    framesList = []
-
-    logger.debug("analyzing qctools XML frame data\n")
-
-    with gzip.open(startObj) as xml:
-        for event, elem in etree.iterparse(xml, events=('end',), tag='frame'):
-            if elem.attrib['media_type'] == "video":
-                frame_pkt_dts_time = elem.attrib[pkt]
-                frameDict = {}  # start an empty dict for the new frame
-                frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
-                for t in list(elem):
-                    if elem.attrib['media_type'] == "audio":
-                        keySplit = t.attrib['key'].replace('lavfi.astats.', '')  # split the names
-                        if '.' in keySplit:
-                            # Split the string at the period and join with an underscore
-                            audio_keyParts = keySplit.split('.')
-                            keyName = '_'.join(audio_keyParts)
-                            frameDict[keyName] = t.attrib['value']    
-                        else:
-                            # Use the cleaned line as the keyName if no period is present
-                            keyName = keySplit
-                    elif elem.attrib['media_type'] == "video":
-                        keySplit = t.attrib['key'].split(".")       # split the names by dots
-                        keyName = str(keySplit[-1])                 # get just the last word for the key name
-                        if len(keyName) == 1:                       # if it's psnr or mse, keyName is gonna be a single char
-                            keyName = '.'.join(keySplit[-2:])       # full attribute made by combining last 2 parts of split with a period in btw
-                        frameDict[keyName] = t.attrib['value']
-                framesList.append(frameDict)
-            elem.clear()
-
-    return framesList  # Return the updated framesList
-
 
 # Creates timestamp for pkt_dts_time
 def dts2ts(frame_pkt_dts_time):
@@ -118,7 +74,7 @@ def dts2ts(frame_pkt_dts_time):
 
 
 # finds stuff over/under threshold
-def threshFinder(qct_parse, video_path, inFrame, startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo):
+def threshFinder(qct_parse, video_path, inFrame, startObj, pkt, tag, over, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo, adhoc_tag):
     """
     Compares tagValue in frameDict (from qctools.xml.gz) with threshold from config
 
@@ -144,8 +100,23 @@ def threshFinder(qct_parse, video_path, inFrame, startObj, pkt, tag, over, comp_
     tagValue = float(inFrame[tag])
     frame_pkt_dts_time = inFrame[pkt]
 
-    # Perform the comparison
-    if comp_op(float(tagValue), float(over)):
+    if adhoc_tag:
+        operator_string = None
+        for tag_list in qct_parse['tagname']:
+            if tag == tag_list[0]:
+                operator_string = tag_list[1]
+                break
+        if operator_string == "gt":
+            comparision = operator.gt
+        elif operator_string == "lt":
+            comparision = operator.lt
+    else:
+        if "MIN" in tag or "LOW" in tag:
+            comparision = operator.lt
+        else:
+            comparision = operator.gt
+	
+    if comparision(float(tagValue), float(over)): # if the attribute is over usr set threshold
         timeStampString = dts2ts(frame_pkt_dts_time)
         # Store failure information in the dictionary (update the existing dictionary, not create a new one)
         if timeStampString not in failureInfo:  # If timestamp not in dict, initialize an empty list
@@ -201,45 +172,85 @@ def printThumb(video_path, tag, profile_name, startObj, thumbPath, tagValue, tim
 
 
 # detect bars    
-def detectBars(pkt, durationStart, durationEnd, framesList):
+def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize,bit_depth_10):
     """
-    Uses specific luminance patterns (defined by YMAX, YMIN, and YDIF attributes) to detect the
-    presence of color bars. If bars are detected, it logs the start and end times. The function is designed to
-    check every 25th frame.
+    Detects color bars in a video by analyzing frames within a buffered window and logging the start and end times of the bars.
 
-    Parameters:
-        pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
-        durationStart (float): Initial timestamp marking the potential start of detected bars.
-        durationEnd (float): Timestamp marking the end of detected bars.
-        framesList (list): List of frameDict dictionaries
+    This function iterates through the frames in a QCTools report, parses each frame, 
+    and analyzes specific tags (YMAX, YMIN, YDIF) to detect the presence of color bars. 
+    The detection checks a frame each time the buffer reaches the specified size (`buffSize`) and ends when the frame tags no longer match the expected bar values.
+
+    Args:
+    args (argparse.Namespace): Parsed command-line arguments.
+    startObj (str): Path to the QCTools report file (.qctools.xml.gz)
+    pkt (str): Key used to identify the packet timestamp (pkt_*ts_time) in the XML frames.
+    durationStart (str): The timestamp when the bars start, initially an empty string.
+    durationEnd (str): The timestamp when the bars end, initially an empty string.
+    framesList (list): List of dictionaries storing the parsed frame data.
+    buffSize (int): The size of the frame buffer to hold frames for analysis.
 
     Returns:
-        tuple: Returns float number for durationStart and durationStop, as well as timestamp strings for start and end of color bars
-    """
+    tuple:
+    float: The timestamp (`durationStart`) when the bars were first detected.
+    float: The timestamp (`durationEnd`) when the bars were last detected.
 
-    frame_count = 0
+    Behavior:
+    - Parses the input XML file frame by frame.
+    - Each frame's timestamp (`pkt_*ts_time`) and key-value pairs are stored in a dictionary (`frameDict`).
+    - Once the buffer reaches the specified size (`buffSize`), it checks the middle frame's attributes:
+    - Color bars are detected if `YMAX > 210`, `YMIN < 10`, and `YDIF < 3.0`.
+    - Logs the start and end times of the bars and stops detection once the bars end.
+    - Clears the memory of parsed elements to avoid excessive memory usage during parsing.
+
+    Example log outputs:
+    - "Bars start at [timestamp] ([formatted timestamp])"
+    - "Bars ended at [timestamp] ([formatted timestamp])"
+    """
+    if bit_depth_10:
+        YMAX_thresh = 800
+        YMIN_thresh = 10
+        YDIF_thresh = 10
+    else:
+        YMAX_thresh = 210
+        YMIN_thresh = 10
+        YDIF_thresh = 3.0
+
     barsStartString = None
     barsEndString = None
 
-    for frameDict in framesList:
-        frame_count += 1
-        if frame_count % 25 == 0:
-            if float(frameDict['YMAX']) > 800 and float(frameDict['YMIN']) < 10 and float(frameDict['YDIF']) < 7:
-                if durationStart == "":
-                    durationStart = float(frameDict[pkt])
-                    logger.info("Bars start at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")")
-                    barsStartString = str(dts2ts(frameDict[pkt]))
-                durationEnd = float(frameDict[pkt])
-            else:
-                if durationStart != "" and durationEnd != "" and durationEnd - durationStart > 2:
-                    logger.info("Bars ended at " + str(frameDict[pkt]) + " (" + dts2ts(frameDict[pkt]) + ")\n")
-                    barsEndString = str(dts2ts(frameDict[pkt]))
-                    break
-
+    with gzip.open(startObj) as xml:
+        for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): #iterparse the xml doc
+            if elem.attrib['media_type'] == "video": #get just the video frames
+                frame_pkt_dts_time = elem.attrib[pkt] #get the timestamps for the current frame we're looking at
+                frameDict = {}  #start an empty dict for the new frame
+                frameDict[pkt] = frame_pkt_dts_time  #give the dict the timestamp, which we have now
+                for t in list(elem):    #iterating through each attribute for each element
+                    keySplit = t.attrib['key'].split(".")   #split the names by dots 
+                    keyName = str(keySplit[-1])             #get just the last word for the key name
+                    frameDict[keyName] = t.attrib['value']	#add each attribute to the frame dictionary
+                framesList.append(frameDict)
+                middleFrame = int(round(float(len(framesList))/2))	# i hate this calculation, but it gets us the middle index of the list as an integer
+                if len(framesList) == buffSize:	# wait till the buffer is full to start detecting bars
+                ## This is where the bars detection magic actually happens
+                    # Check conditions
+                    if (float(framesList[middleFrame]['YMAX']) > YMAX_thresh and 
+                        float(framesList[middleFrame]['YMIN']) < YMIN_thresh and 
+                        float(framesList[middleFrame]['YDIF']) < YDIF_thresh):
+                        if durationStart == "":
+                            durationStart = float(framesList[middleFrame][pkt])
+                            barsStartString = dts2ts(framesList[middleFrame][pkt])
+                            logger.debug("Bars start at " + str(framesList[middleFrame][pkt]) + " (" + dts2ts(framesList[middleFrame][pkt]) + ")")							
+                        durationEnd = float(framesList[middleFrame][pkt])
+                    else:
+                        if durationStart != "" and durationEnd != "" and durationEnd - durationStart > 2:
+                            logger.debug("Bars ended at " + str(framesList[middleFrame][pkt]) + " (" + dts2ts(framesList[middleFrame][pkt]) + ")\n")
+                            barsEndString = dts2ts(framesList[middleFrame][pkt])
+                            break
+            elem.clear() # we're done with that element so let's get it outta memory
     return durationStart, durationEnd, barsStartString, barsEndString
 
 
-def evalBars(pkt,durationStart,durationEnd,framesList):
+def evalBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
     """
     Find maximum or minimum values for specific QCTools keys inside the duration of the color bars. 
 
@@ -264,27 +275,38 @@ def evalBars(pkt,durationStart,durationEnd,framesList):
             maxBarsDict[key_being_checked] = 0
         elif "MIN" in key_being_checked:
             maxBarsDict[key_being_checked] = 1023
-
-    for frameDict in framesList:
-        if frameDict[pkt] >= str(durationStart):     # only work on frames that are after the start time
-            if float(frameDict[pkt]) > durationEnd:        # only work on frames that are before the end time
-                logger.debug(f"qct-parse bars detection complete\n")
-                break
-        for colorbar_key in keys_to_check:
-            if colorbar_key in frameDict:
-                if "MAX" in colorbar_key:
-                    # Convert the value to float and compare it with the current highest value
-                    value = float(frameDict[colorbar_key])
-                    if value > maxBarsDict[colorbar_key]:
-                        maxBarsDict[colorbar_key] = value
-                elif "MIN" in colorbar_key:
-                    # Convert the value to float and compare it with the current highest value
-                    value = float(frameDict[colorbar_key])
-                    if value < maxBarsDict[colorbar_key]:
-                        maxBarsDict[colorbar_key] = value
-                # Convert highest values to integer
-                maxBarsDict = {colorbar_key: int(value) for colorbar_key, value in maxBarsDict.items()}
-
+	
+    with gzip.open(startObj) as xml:
+        for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
+            if elem.attrib['media_type'] == "video": # get just the video frames
+                frame_pkt_dts_time = elem.attrib[pkt] # get the timestamps for the current frame we're looking at
+                if frame_pkt_dts_time >= str(durationStart): 	# only work on frames that are after the start time   # only work on frames that are after the start time
+                    if float(frame_pkt_dts_time) > durationEnd:        # only work on frames that are before the end time
+                        break
+                    frameDict = {}  # start an empty dict for the new frame
+                    frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
+                    for t in list(elem):    # iterating through each attribute for each element
+                        keySplit = t.attrib['key'].split(".")   # split the names by dots 
+                        keyName = str(keySplit[-1])             # get just the last word for the key name
+                        frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
+                    framesList.append(frameDict)
+                    if len(framesList) == buffSize:	# wait till the buffer is full to start detecting bars
+                        ## This is where the bars detection magic actually happens
+                        for colorbar_key in keys_to_check:
+                            if colorbar_key in frameDict:
+                                if "MAX" in colorbar_key:
+                                    # Convert the value to float and compare it with the current highest value
+                                    value = float(frameDict[colorbar_key])
+                                    if value > maxBarsDict[colorbar_key]:
+                                        maxBarsDict[colorbar_key] = value
+                                elif "MIN" in colorbar_key:
+                                    # Convert the value to float and compare it with the current highest value
+                                    value = float(frameDict[colorbar_key])
+                                    if value < maxBarsDict[colorbar_key]:
+                                        maxBarsDict[colorbar_key] = value
+                                # Convert highest values to integer
+                                maxBarsDict = {colorbar_key: int(value) for colorbar_key, value in maxBarsDict.items()}
+							
     return maxBarsDict
 
 
@@ -443,126 +465,81 @@ def getCompFromConfig(qct_parse, profile, tag):
    raise ValueError(f"No matching comparison operator found for profile and tag: {profile}, {tag}")
 
 
-def assign_comparison(qct_parse, profile, frameDict):
+def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False):
     """
-    splits different profile formats (depending on 'ad hoc' tags or other profile)
+    Analyzes video frames from the QCTools report to detect threshold exceedances for specified tags or profiles and logs frame failures.
+
+    This function iteratively parses video frames from a QCTools report (`.qctools.xml.gz`) and checks whether the frame attributes exceed user-defined thresholds 
+    (either single tags or profiles). Threshold exceedances are logged, and frames can be flagged for further analysis. Optionally, thumbnails of failing frames can be generated.
 
     Args:
-        qct_parse (dict): qct-parse commands from command_config.yaml.
-        profile (dict): Profile data.
-        frameDict (dict): Stored data on frame being processed
+        args (argparse.Namespace): Parsed command-line arguments, including tag thresholds and options for profile, thumbnail export, etc.
+        profile (dict): A dictionary of key-value pairs of tag names and their corresponding threshold values.
+        startObj (str): Path to the QCTools report file (.qctools.xml.gz)
+        pkt (str): Key used to identify the pkt_*ts_time in the XML frames.
+        durationStart (float): The starting time for analyzing frames (in seconds).
+        durationEnd (float): The ending time for analyzing frames (in seconds). Can be `None` to process until the end.
+        thumbPath (str): Path to save the thumbnail images of frames exceeding thresholds.
+        thumbDelay (int): Delay counter between consecutive thumbnail generations to prevent spamming.
+        framesList (list): A circular buffer to hold dictionaries of parsed frame attributes.
+        frameCount (int, optional): The total number of frames analyzed (defaults to 0).
+        overallFrameFail (int, optional): A count of how many frames failed threshold checks across all tags (defaults to 0).
 
     Returns:
-        tuple: tag (string), comp_op (operator.lt, operator.gt), over (float)
+        tuple: 
+            - kbeyond (dict): A dictionary where each tag is associated with a count of how many times its threshold was exceeded.
+            - frameCount (int): The total number of frames analyzed.
+            - overallFrameFail (int): The total number of frames that exceeded thresholds across all tags.
+
+    Behavior:
+        - Iteratively parses the input XML file and analyzes frames after `durationStart` and before `durationEnd`.
+        - Frames are stored in a circular buffer (`framesList`), and attributes (tags) are extracted into dictionaries.
+        - For each frame, checks whether specified tags exceed user-defined thresholds (from `args.o`, `args.u`, or `profile`).
+        - Logs threshold exceedances and updates the count of failed frames.
+        - Optionally, generates thumbnails for frames that exceed thresholds, ensuring a delay between consecutive thumbnails.
+
+    Example usage:
+        - Analyzing frames using a single tag threshold: `analyzeIt(args, {}, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, framesList)`
+        - Analyzing frames using a profile: `analyzeIt(args, profile, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, framesList)`
     """
 
-    if profile == fullTagList:
-        for config_tag, config_op, config_value in qct_parse['tagname']:
-            if config_tag in frameDict:
-                over = float(config_value)
-                comp_op = operator_mapping[config_op]
-                tag = config_tag
-                yield tag, comp_op, over  # Yield values for each iteration
-    else:
-        for tag, v in profile.items():
-            if v is not None and tag in frameDict:
-                comp_op = getCompFromConfig(qct_parse, profile, tag)
-                over = float(v)
-                yield tag, comp_op, over  # Yield values for each iteration
-
-
-def parse_framesList(qct_parse, video_path, profile, profile_name, startObj, pkt, framesList, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, kbeyond, frameCount, overallFrameFail, failureInfo, fots):
-    """
-    Iterates through framesList and parses each frameDict
-
-    Parameters:
-        qct_parse (dict): qct-parse dictionary from command_config.yaml 
-        video_path (str): Path to the video file.
-        profile (dict): Profile data.
-        profile_name (str): The name of the profile being checked against, used in naming thumbnail images
-        startObj (qctools.xml.gz): A gzip-compressed XML file containing frame attributes.
-        pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
-        framesList: List of frameDict dictionaries
-        contentFilter_name (str): The name of the content filter configuration to apply.
-        contentFilter_dict (dict): Dictionary of content filter values from qct-parse[content] section of config.yaml 
-        qctools_check_output (str): The file path where segments meeting the content filter criteria are written.
-        durationStart (float): Initial timestamp marking the potential start of detected bars.
-        durationEnd (float): Timestamp marking the end of detected bars.
-        thumbPath (str): Path where thumbnails are saved.
-        thumbExportDelay (int): Required delay count between exporting thumbnails.
-        kbeyond (dict): Dictionary that stores how many frames have failed for a given key
-        frameCount (int): Total number of frames analyzed.
-        overallFrameFail (int): Total number of frames with at least one threshold exceedance.
-        failureInfo (dict): Dictionary that stores tag, tagValue and threshold value (over) for each failed timestamp
-        fots (str): acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count
-        
-    Returns:
-        updated values for: kbeyond, frameCount, overallFrameFail, failureInfo, fots
-    """
-    
-    for frameDict in framesList:
-        frameCount += 1
-        if frameDict[pkt] >= str(durationStart):
-            if durationEnd and float(frameDict[pkt]) > durationEnd:
-                logger.debug(f"qct-parse started at {str(durationStart)} seconds and stopped at {str(frameDict[pkt])} seconds {dts2ts(frameDict[pkt])}")
-                break
-
-            for tag, comp_op, over in assign_comparison(qct_parse, profile, frameDict):
-                frameOver, thumbDelay, failureInfo = threshFinder(qct_parse, video_path, frameDict, startObj, pkt, tag, over, comp_op, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo)
-                if frameOver:
-                    kbeyond[tag] += 1
-                    if frameDict[pkt] not in fots:
-                        overallFrameFail += 1
-                        fots = frameDict[pkt]
-                        thumbDelay += 1
-
-    return kbeyond, frameCount, overallFrameFail, failureInfo, fots
-
-
-def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0):
-    """
-    Initializes process of iterating through entire framesList. Creates kbeyond and failureInfo dictionaries.
-
-    Parameters:
-        qct_parse (dict): qct-parse dictionary from command_config.yaml 
-        video_path (str): Path to the video file.
-        profile (dict): Profile data.
-        profile_name (str): The name of the profile being checked against, used in naming thumbnail images
-        startObj (qctools.xml.gz): A gzip-compressed XML file containing frame attributes.
-        pkt (str): The attribute key used to extract timestamps from <frame> tag in qctools.xml.gz.
-        durationStart (float): Initial timestamp marking the potential start of detected bars.
-        durationEnd (float): Timestamp marking the end of detected bars.
-        thumbPath (str): Path where thumbnails are saved.
-        thumbExportDelay (int): Required delay count between exporting thumbnails.
-        framesList: List of frameDict dictionaries
-        frameCount (int): Total number of frames analyzed.
-        overallFrameFail (int): Total number of frames with at least one threshold exceedance.
-        failureInfo (dict): Dictionary that stores tag, tagValue and threshold value (over) for each failed timestamp
-
-    Returns:
-        tuple: A tuple containing:
-            - kbeyond (dict): Dictionary tracking how often each attribute exceeds its threshold.
-            - frameCount (int): Total number of frames analyzed.
-            - overallFrameFail (int): Total number of frames that failed any check.
-            - failureInfo (dict): Detailed information about frame failures.
-    """
-
-
-    kbeyond = {}  # init a dict for each key which we'll use to track how often a given key is over
+    kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
+    fots = "" # init frame over threshold to avoid counting the same frame more than once in the overallFrameFail count
     failureInfo = {}  # Initialize a new dictionary to store failure information
-    fots = ""  # acronym for Frame Over Threshold Setting, I think? Used to prevent duplication of overall frame fail count
-
-    # Initialize kbeyond based on profile
-    if profile == fullTagList:
-        for tag, _, _ in qct_parse['tagname']:
-            if tag not in profile:
-                logger.critical(f"The tag name {tag} retrieved from the command_config, is not listed in the fullTagList in config.yaml. Exiting qct-parse tag check!")
-                break
-            kbeyond[tag] = 0
-    else:
-        kbeyond = {k: 0 for k in profile}
-
-    kbeyond, frameCount, overallFrameFail, failureInfo, fots = parse_framesList(qct_parse, video_path, profile, profile_name, startObj, pkt, framesList, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, kbeyond, frameCount, overallFrameFail, failureInfo, fots)
+    for k,v in profile.items(): 
+        kbeyond[k] = 0
+    with gzip.open(startObj) as xml:	
+        for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): #iterparse the xml doc
+            if elem.attrib['media_type'] == "video": 	#get just the video frames
+                frameCount = frameCount + 1
+                frame_pkt_dts_time = elem.attrib[pkt] 	#get the timestamps for the current frame we're looking at
+                if frame_pkt_dts_time >= str(durationStart): 	#only work on frames that are after the start time
+                    if durationEnd:
+                        if float(frame_pkt_dts_time) > durationEnd:		#only work on frames that are before the end time
+                            print("started at " + str(durationStart) + " seconds and stopped at " + str(frame_pkt_dts_time) + " seconds (" + dts2ts(frame_pkt_dts_time) + ") or " + str(frameCount) + " frames!")
+                            break
+                    frameDict = {}  								#start an empty dict for the new frame
+                    frameDict[pkt] = frame_pkt_dts_time  			#make a key for the timestamp, which we have now
+                    for t in list(elem):    						#iterating through each attribute for each element
+                        keySplit = t.attrib['key'].split(".")   	#split the names by dots 
+                        keyName = str(keySplit[-1])             	#get just the last word for the key name
+                        if len(keyName) == 1:						#if it's psnr or mse, keyName is gonna be a single char
+                            keyName = '.'.join(keySplit[-2:])		#full attribute made by combining last 2 parts of split with a period in btw
+                        frameDict[keyName] = t.attrib['value']		#add each attribute to the frame dictionary
+                    framesList.append(frameDict)					#add this dict to our circular buffer
+                    # Now we can parse the frame data from the buffer!	
+                    for k,v in profile.items():
+                        tag = k
+                        over = float(v)
+                        # ACTUALLY DO THE THING ONCE FOR EACH TAG
+                        frameOver, thumbDelay, failureInfo = threshFinder(qct_parse, video_path, framesList[-1], startObj, pkt, tag, over, thumbPath, thumbDelay, thumbExportDelay, profile_name, failureInfo, adhoc_tag)
+                        if frameOver is True:
+                            kbeyond[k] = kbeyond[k] + 1 # note the over in the key over dict
+                            if not frame_pkt_dts_time in fots: # make sure that we only count each over frame once
+                                overallFrameFail = overallFrameFail + 1
+                                fots = frame_pkt_dts_time # set it again so we don't dupe
+                    thumbDelay = thumbDelay + 1				
+            elem.clear() #we're done with that element so let's get it outta memory
 
     return kbeyond, frameCount, overallFrameFail, failureInfo
 
@@ -814,6 +791,77 @@ def save_failures_to_csv(failureInfo, failure_csv_path):
             for info in info_list:
                 writer.writerow({'Timestamp': timestamp, 'Tag': info['tag'], 'Tag Value': info['tagValue'], 'Threshold': info['over']})
 
+def extract_report_mkv(startObj, qctools_output_path):
+    report_file_output = qctools_output_path.replace(".qctools.mkv", ".qctools.xml.gz")
+
+    if os.path.isfile(report_file_output):
+        while True:
+            user_input = input(f"The file {os.path.basename(report_file_output)} already exists. \nExtract xml.gz from {os.path.basename(qctools_output_path)} and overwrite existing file? \n(y/n):\n")
+            if user_input.lower() in ["yes", "y"]:
+                os.remove(report_file_output)
+                # Run ffmpeg command to extract xml.gz report
+                full_command = [
+                    'ffmpeg', 
+                    '-hide_banner', 
+                    '-loglevel', 'panic', 
+                    '-dump_attachment:t:0', report_file_output, 
+                    '-i', qctools_output_path
+                ]
+                logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
+                logger.debug(f'Running command: {" ".join(full_command)}\n')
+                subprocess.run(full_command)
+                break
+            elif user_input.lower() in ["no", "n"]:
+                logger.debug('Processing existing qctools report, not extracting file\n')
+                break
+            else:
+                print("Invalid input. Please enter yes/no.\n")
+    else:
+        # Run ffmpeg command to extract xml.gz report
+        full_command = [
+            'ffmpeg', 
+            '-hide_banner', 
+            '-loglevel', 'panic', 
+            '-dump_attachment:t:0', report_file_output, 
+            '-i', qctools_output_path
+        ]
+        logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
+        logger.debug(f'Running command: {" ".join(full_command)}\n')
+        subprocess.run(full_command)
+
+    if os.path.isfile(report_file_output):
+        startObj = report_file_output
+    else:
+        logger.critical(f'Unable to extract XML from QCTools mkv report file\n')
+        startObj = None
+    
+    return startObj
+    
+
+def detectBitdepth(startObj,pkt,framesList,buffSize):
+	bit_depth_10 = False
+	with gzip.open(startObj) as xml:
+		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
+			if elem.attrib['media_type'] == "video": # get just the video frames
+				frame_pkt_dts_time = elem.attrib[pkt] # get the timestamps for the current frame we're looking at
+				frameDict = {}  # start an empty dict for the new frame
+				frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
+				for t in list(elem):    # iterating through each attribute for each element
+					keySplit = t.attrib['key'].split(".")   # split the names by dots 
+					keyName = str(keySplit[-1])             # get just the last word for the key name
+					frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
+				framesList.append(frameDict)
+				middleFrame = int(round(float(len(framesList))/2))	# i hate this calculation, but it gets us the middle index of the list as an integer
+				if len(framesList) == buffSize:	# wait till the buffer is full to start detecting bars
+					## This is where the bars detection magic actually happens
+					bufferRange = list(range(0, buffSize))
+					if float(framesList[middleFrame]['YMAX']) > 250:
+						bit_depth_10 = True
+						break
+			elem.clear() # we're done with that element so let's get it outta memory
+
+	return bit_depth_10
+
 
 def run_qctparse(video_path, qctools_output_path, report_directory):
     """
@@ -833,52 +881,11 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     qctools_ext = checks_config.outputs.qctools_ext
 
     if qctools_ext.lower().endswith('mkv'):
+        startObj = extract_report_mkv(startObj, qctools_output_path)
 
-        report_file_output = qctools_output_path.replace(".qctools.mkv", ".qctools.xml.gz")
-
-        if os.path.isfile(report_file_output):
-            while True:
-                user_input = input(f"The file {os.path.basename(report_file_output)} already exists. \nExtract xml.gz from {os.path.basename(qctools_output_path)} and overwrite existing file? \n(y/n):\n")
-                if user_input.lower() in ["yes", "y"]:
-                    os.remove(report_file_output)
-                    # Run ffmpeg command to extract xml.gz report
-                    full_command = [
-                        'ffmpeg', 
-                        '-hide_banner', 
-                        '-loglevel', 'panic', 
-                        '-dump_attachment:t:0', report_file_output, 
-                        '-i', qctools_output_path
-                    ]
-                    logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
-                    logger.debug(f'Running command: {" ".join(full_command)}\n')
-                    subprocess.run(full_command)
-                    break
-                elif user_input.lower() in ["no", "n"]:
-                    logger.debug('Processing existing qctools report, not extracting file\n')
-                    break
-                else:
-                    print("Invalid input. Please enter yes/no.\n")
-        else:
-            # Run ffmpeg command to extract xml.gz report
-            full_command = [
-                'ffmpeg', 
-                '-hide_banner', 
-                '-loglevel', 'panic', 
-                '-dump_attachment:t:0', report_file_output, 
-                '-i', qctools_output_path
-            ]
-            logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
-            logger.debug(f'Running command: {" ".join(full_command)}\n')
-            subprocess.run(full_command)
-
-        if os.path.isfile(report_file_output):
-            startObj = report_file_output
-        else:
-            logger.critical(f'Unable to extract XML from QCTools mkv report file\n')
-            startObj = None
-            return
-    else:
-        startObj = qctools_output_path
+    # Initalize circular buffer for efficient xml parsing
+    buffSize = int(11)
+    framesList = collections.deque(maxlen=buffSize) # init framesList
 
     # Set parentDir and baseName
     parentDir = os.path.dirname(startObj)
@@ -918,8 +925,8 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                     pkt = match.group()
                     break
 
-    # create framesList
-    framesList = parse_frame_data(startObj, pkt)
+    # Determine if video values are 10 bit depth
+    bit_depth_10 = detectBitdepth(startObj,pkt,framesList,buffSize)
 
     ######## Iterate Through the XML for content detection ########
     if qct_parse['contentFilter']:
@@ -949,7 +956,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         # set profile_name
         profile_name = f"threshold_profile_{template}"
         # check xml against thresholds, return kbeyond (dictionary of tags: framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-        kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0)
+        kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False)
         profile_fails_csv_path = os.path.join(report_directory, "qct-parse_profile_failures.csv")
         if failureInfo:
             save_failures_to_csv(failureInfo, profile_fails_csv_path)
@@ -965,7 +972,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         # set profile_name
         profile_name = 'tag_check'
         # check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-        kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0)
+        kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag = True)
         tag_fails_csv_path = os.path.join(report_directory, "qct-parse_tags_failures.csv")
         if failureInfo:
             save_failures_to_csv(failureInfo, tag_fails_csv_path)
@@ -979,7 +986,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         durationEnd = ""                            # if bar detection is turned on then we have to calculate this
         logger.debug(f"Starting Bars Detection on {baseName}")
         qctools_colorbars_duration_output = os.path.join(report_directory, "qct-parse_colorbars_durations.csv")
-        durationStart, durationEnd, barsStartString, barsEndString = detectBars(pkt, durationStart, durationEnd, framesList)
+        durationStart, durationEnd, barsStartString, barsEndString = detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize,bit_depth_10)
         if durationStart == "" and durationEnd == "":
             logger.error("No color bars detected\n")
             print_bars_durations(qctools_colorbars_duration_output, barsStartString, barsEndString)
@@ -995,7 +1002,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         if qct_parse['barsDetection'] and durationStart == "" and durationEnd == "":
             logger.critical(f"Cannot run color bars evaluation - no color bars found.\n")
         elif qct_parse['barsDetection'] and durationStart != "" and durationEnd != "":
-            maxBarsDict = evalBars(pkt, durationStart, durationEnd, framesList)
+            maxBarsDict = evalBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize)
             if maxBarsDict is None:
                 logger.critical("Something went wrong - Cannot run evaluate color bars\n")
             else:
@@ -1011,7 +1018,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                 profile_name = 'color_bars_evaluation'
                 thumbExportDelay = 9000            
                 # check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-                kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0)
+                kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False)
                 colorbars_eval_fails_csv_path = os.path.join(report_directory, "qct-parse_colorbars_eval_failures.csv")
                 if failureInfo:
                     save_failures_to_csv(failureInfo, colorbars_eval_fails_csv_path)
