@@ -5,13 +5,19 @@ import re
 import csv
 import os
 import xml.etree.ElementTree as ET
+from dataclasses import dataclass, asdict, field
 
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
+
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+spex_config = config_mgr.get_config('spex', SpexConfig)
 
 
 def parse_mediatrace(xml_file):
-    expected_mediatrace = config_path.config_dict['mediatrace']
+    expected_mediatrace = asdict(spex_config.mediatrace_values)
 
     expected_mt_keys = expected_mediatrace.keys()
 

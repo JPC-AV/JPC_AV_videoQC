@@ -133,45 +133,63 @@ av-spex [path/to/directory]
 //     | |       |  /       ((___ / /    //         ((____      / /\  
 
 usage: av-spex [-h] [--version] [-dr] [--profile {step1,step2,off}]
-               [-t {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}]
-               [--on {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}]
-               [--off {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}] [-sn {JPC_AV_SVHS,BVH3100}]
-               [-fn {jpc,bowser}] [-sp {config,command}] [-pp] [-d] [-f] [--gui]
+               [--on {tool_name.run_tool, tool_name.run_check}]
+               [--off {tool_name.run_tool, tool_name.run_check}]
+               [-sn {JPC_AV_SVHS,BVH3100}] [-fn {jpc,bowser}]
+               [-pp [PRINTPROFILE]] [-d] [-f] [--gui] [--use-default-config]
+               [--export-config {all,spex,checks}] [--export-file EXPORT_FILE]
+               [--import-config IMPORT_CONFIG]
+               [--mediaconch-policy MEDIACONCH_POLICY]
                [paths ...]
 
-av-spex 0.5.0.1
+av-spex 0.6.0
 
 AV Spex is a python application designed to help process digital audio and video media created from analog sources.
 The scripts will confirm that the digital files conform to predetermined specifications.
 
 positional arguments:
-  paths                 Path to the input -f: video file(s) or -d: directory(ies)
+  paths                 Path to the input -f: video file(s) or -d:
+                        directory(ies)
 
 options:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  -dr, --dryrun         Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out
-                        processing video.
+  -dr, --dryrun         Flag to run av-spex w/out outputs or checks. Use to
+                        change config profiles w/out processing video.
   --profile {step1,step2,off}
                         Select processing profile or turn checks off
-  -t {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}, --tool {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}
-                        Select individual tools to enable
-  --on {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}
-                        Select specific tools to turn on
-  --off {exiftool,ffprobe,mediaconch,mediainfo,mediatrace,qctools}
-                        Select specific tools to turn off
+  --on {tool_name.run_tool, tool_name.run_check}
+                        Turns on specific tool run_ or check_ option (format
+                        tool.check_tool or tool.run_tool, e.g.
+                        meidiainfo.run_tool)
+  --off {tool_name.run_tool, tool_name.run_check}
+                        Turns off specific tool run_ or check_ option (format
+                        tool.check_tool or tool.run_tool, e.g.
+                        meidiainfo.run_tool)
   -sn {JPC_AV_SVHS,BVH3100}, --signalflow {JPC_AV_SVHS,BVH3100}
-                        Select signal flow config type (JPC_AV_SVHS or BVH3100
+                        Select signal flow config type (JPC_AV_SVHS or
+                        BVH3100)
   -fn {jpc,bowser}, --filename {jpc,bowser}
                         Select file name config type (jpc or bowser)
-  -sp {config,command}, --saveprofile {config,command}
-                        Flag to write current config.yaml or command_config.yaml settings to new a yaml file,
-                        for re-use or reference.
-  -pp, --printprofile   Show current config profile.
+  -pp [PRINTPROFILE], --printprofile [PRINTPROFILE]
+                        Show config profile(s) and optional subsection.
+                        Format: 'config[,subsection]'. Examples: 'all',
+                        'spex', 'checks', 'checks,tools',
+                        'spex,filename_values'
   -d, --directory       Flag to indicate input is a directory
   -f, --file            Flag to indicate input is a video file
   --gui                 Force launch in GUI mode
-  ```
+  --use-default-config  Reset to default config by removing any saved
+                        configurations
+  --export-config {all,spex,checks}
+                        Export current config(s) to JSON
+  --export-file EXPORT_FILE
+                        Specify export filename (default: auto-generated)
+  --import-config IMPORT_CONFIG
+                        Import configs from JSON file
+  --mediaconch-policy MEDIACONCH_POLICY
+                        Path to custom MediaConch policy XML file
+```
 
 <a name="options"></a> Options explained in detail [below](#options). 
 
@@ -202,11 +220,12 @@ Various metadata tools are run on the input video file(s), which can be enabled 
   - **[QCTools](https://bavc.org/programs/preservation/preservation-tools/)**: Creates audiovisual analytics reports as XML files.
 
 ### Configuration
-The 2 yaml files in the `/config/` directory control various settings and options. Both files can be modified manually, but it is preferable to edit the file using the command line [options](#options).   
+Configurable options are divided into 2 categories: Checks and Spex.    
+The Checks and Spex options can be edited using GUI or the command line [options](#options).   
 
-#### command_config.yaml:
-The command_config.yaml stores settings pertaining to which output, tools and checks will be run.   
-Each tool has a 'run' or 'check' option. **'run'** outputs a sidecar file. **'check'** compares the values in the sidecar file to the values stored in the config.yaml file
+#### Checks Config:
+The Checks Config stores settings pertaining to which output, tools and checks will be run.   
+Each tool has a 'run' or 'check' option. **'run'** outputs a sidecar file. **'check'** compares the values in the sidecar file to the values stored in the Spex Config.     
 
 - Outputs ('yes'/'no'):
    - access file
@@ -224,28 +243,39 @@ Each tool has a 'run' or 'check' option. **'run'** outputs a sidecar file. **'ch
    - qctools
    - qct-parse (more on [qct-parse](#qct-parse) below)
            
-#### config.yaml:
-Expected metadata output values are stored in `config/config.yaml`    
-- Values are organized by tool
-- Multiple acceptable values are written in a list:
-      
-      Format:
-         - FLAC
-         - PCM
+#### Spex Config:
+- Values are organized by the values they are checking against:
+   - filename_values
+   - mediainfo_values
+   - exiftool_values
+   - ffmpeg_values
+   - mediatrace_values
+   - qct_parse_values
+- Multiple acceptable values are allowed for all fields. 
+   - To add acceptable values to a JSON file wrap the list in brackets like this: 
+   - "codec_name": ["flac", "pcm_s24le"]
 
 #### Options    
 Edit the config files using command line options in order to maintain consistent formatting
 - `--profile`: Selects a predefined processing profile of particular tools outputs and checks    
-   - Options: `step1`, `step2`, `off`
-- `--tool/-t`: Enables only the specified tool(s) and disables all others. 
-   - List multiple tools in this format: `-t exiftool -t mediainfo -t ffprobe`
-- `--on`: Enables the specified tool without affecting others.
+   - Options: `step1`, `step2`, `off` 
+- `--on`: Enables the specified tool without affecting others. Use the suffix ".run_tool" to run the specified tool, or ".check_tool" to check the output.
+   - List multiple tools in this format: `--on exiftool.run_tool --on exiftool.check_tool --on mediainfo.run_tool --on mediainfo.check_tool --on ffprobe.run_tool --on ffprobe.check_tool`
 - `--off`: Disables the specified tool without affecting others.
+   - List multiple tools in this format: `--off exiftool.run_tool --off exiftool.check_tool --off mediainfo.run_tool --off mediainfo.check_tool --off ffprobe.run_tool --off ffprobe.check_tool`
 - `--signalflow/-sn`: Changes the expected values in the config.yaml file for the mkv tag `ENCODER_SETTINGS` according to NMAAHC custom metadata convention   
    - Options: `JPC_AV_SVHS`, `BVH3100`
 - `--filename/-fn`: Changes the expected values in the config.yaml for the input file naming convention
    - Options: `jpc`, `bowser`
-- To edit either fo the configs without running AV Spex on an input file use the `--dryrun/-dr` option
+- `--printprofile/-pp`: Prints the Checks and/or Spex profile. Print all Spex and Check with simply `-pp`, or specify a config, or config's subsection.
+   - Options: `'config[,subsection]'`. Examples: `'all', 'spex', 'checks', 'checks,tools', 'spex,filename_values'`
+- `--use-default-config`: Reset to default config by removing the last used reference file.
+- `--export-config`: Export current config(s) to JSON. Default output filename is: `av_spex_config_export_YYYYMMDD_HHmmSS.json`. Requires one of 3 options:
+   - Options: `{all,spex,checks}`
+- `--export-file`: Must be used in combination with `--export-config`. Allows you to specify the exported config json file name and file path.
+   - Example usage: `av-spex --export-config checks --export-config checks_config_output.json`
+- `--import-config`: Import configs from JSON file. Can be used with json files exported using the `--export-config` and `--export-file` options described above.
+- `--mediaconch-policy`: Import new mediaconch XML policy file and use this as the new policy. Once imported, the policy file will be available in the av-spex GUI.
 
 ### <a name="qct-parse"></a>qct-parse 
    To check the QCTools report, AV Spex incorporates code from the open source tool [qct-parse](https://github.com/amiaopensource/qct-parse). qct-parse can be used to check for individual tags, profiles, or specific content.   

@@ -2,7 +2,11 @@ import os
 import csv
 import subprocess
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path, command_config
+from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
+
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
 
 
 def run_command(command, input_path, output_type, output_path):
@@ -20,7 +24,7 @@ def run_command(command, input_path, output_type, output_path):
     subprocess.run(full_command, shell=True, env=env)
 
 
-def run_tool_command(tool_name, video_path, destination_directory, video_id, command_config):
+def run_tool_command(tool_name, video_path, destination_directory, video_id):
     """
     Run a specific metadata extraction tool and generate its output file.
     
@@ -29,50 +33,37 @@ def run_tool_command(tool_name, video_path, destination_directory, video_id, com
         video_path (str): Path to the input video file
         destination_directory (str): Directory to store output files
         video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
         
     Returns:
         str or None: Path to the output file, or None if tool is not run
     """
-    # Define tool-specific command configurations
+    # Define tool-specific commands
     tool_commands = {
-        'exiftool': {
-            'command': 'exiftool',
-            'config_key': 'run_exiftool'
-        },
-        'mediainfo': {
-            'command': 'mediainfo -f',
-            'config_key': 'run_mediainfo'
-        },
-        'mediatrace': {
-            'command': 'mediainfo --Details=1 --Output=XML',
-            'config_key': 'run_mediatrace'
-        },
-        'ffprobe': {
-            'command': 'ffprobe -v error -hide_banner -show_format -show_streams -print_format json',
-            'config_key': 'run_ffprobe'
-        }
+        'exiftool': 'exiftool',
+        'mediainfo': 'mediainfo -f',
+        'mediatrace': 'mediainfo --Details=1 --Output=XML',
+        'ffprobe': 'ffprobe -v error -hide_banner -show_format -show_streams -print_format json'
     }
 
-    # Check if the tool is configured to run
-    tool_config = tool_commands.get(tool_name)
-    if not tool_config:
+    # Check if the tool is configured
+    command = tool_commands.get(tool_name)
+    if not command:
         logger.error(f"tool command is not configured correctly: {tool_name}")
         return None
 
     # Construct output path
     output_path = os.path.join(destination_directory, f'{video_id}_{tool_name}_output.{_get_file_extension(tool_name)}')
     
-    # Check if tool should be run based on configuration
-    if command_config.command_dict['tools'][tool_name][tool_config['config_key']] == 'yes':
-        if tool_name == 'mediatrace':
-            logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
-        
-        # Run the tool command
-        run_command(tool_config['command'], video_path, '>', output_path)
+    if tool_name != "mediaconch":
+        # Check if tool should be run based on configuration
+        tool = getattr(checks_config.tools, tool_name)
+        if getattr(tool, 'run_tool') == 'yes':
+            if tool_name == 'mediatrace':
+                logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
+            run_command(command, video_path, '>', output_path)
         
     return output_path
-    
+
 
 def _get_file_extension(tool_name):
     """

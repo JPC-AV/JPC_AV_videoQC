@@ -1,9 +1,11 @@
 import os
+import shutil
 
 from ..processing import run_tools
 from ..utils import dir_setup
 from ..utils.log_setup import logger
-from ..utils.find_config import command_config
+from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
 from ..utils.generate_report import generate_final_report
 from ..checks.fixity_check import check_fixity, output_fixity
 from ..checks.mediainfo_check import parse_mediainfo
@@ -16,6 +18,11 @@ from ..checks.qct_parse import run_qctparse
 from ..checks.mediaconch_check import find_mediaconch_policy, run_mediaconch_command, parse_mediaconch_output
 
 
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+spex_config = config_mgr.get_config('spex', SpexConfig)
+
+
 def process_fixity(source_directory, video_path, video_id):
     """
     Orchestrates the entire fixity process, including embedded and file-level operations.
@@ -24,31 +31,31 @@ def process_fixity(source_directory, video_path, video_id):
         source_directory (str): Directory containing source files
         video_path (str): Path to the video file
         video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with fixity settings
     """
-    # Embed stream fixity if required
-    if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+    # Embed stream fixity if required  
+    if checks_config.fixity.embed_stream_fixity == 'yes':
         process_embedded_fixity(video_path)
 
     # Validate stream hashes if required
-    if command_config.command_dict['outputs']['fixity']['validate_stream_fixity'] == 'yes':
-        if command_config.command_dict['outputs']['fixity']['embed_stream_fixity'] == 'yes':
+    if checks_config.fixity.validate_stream_fixity == 'yes':
+        if checks_config.fixity.embed_stream_fixity == 'yes':
             logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
         else:
             validate_embedded_md5(video_path)
 
-    # Initialize md5_checksum variable, so it is 'None' if not assigned in output_fixity
+    # Initialize md5_checksum variable
     md5_checksum = None
+
     # Create checksum for video file and output results
-    if command_config.command_dict['outputs']['fixity']['output_fixity'] == 'yes':
+    if checks_config.fixity.output_fixity == 'yes':
         md5_checksum = output_fixity(source_directory, video_path)
 
-    # Verify stored checksum and write results
-    if command_config.command_dict['outputs']['fixity']['check_fixity'] == 'yes':
+    # Verify stored checksum and write results  
+    if checks_config.fixity.check_fixity == 'yes':
         check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
 
 
-def process_qctools_output(video_path, source_directory, destination_directory, video_id, command_config, report_directory=None):
+def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None):
     """
     Process QCTools output, including running QCTools and optional parsing.
     
@@ -56,7 +63,6 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         video_path (str): Path to the input video file
         destination_directory (str): Directory to store output files
         video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
         report_directory (str, optional): Directory to save reports
         
     Returns:
@@ -67,42 +73,36 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         'qctools_check_output': None
     }
 
-    # Check if QCTools should be run
-    if command_config.command_dict['tools']['qctools']['run_qctools'] != 'yes':
-        return results
-
     # Prepare QCTools output path
-    qctools_ext = command_config.command_dict['outputs']['qctools_ext']
+    qctools_ext = checks_config.outputs.qctools_ext
     qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
     
-    try:
-        # Run QCTools command
+
+    # Run QCTools command
+    if checks_config.tools.qctools.run_tool == 'yes':
         run_tools.run_command('qcli -i', video_path, '-o', qctools_output_path)
         logger.debug('')  # Add new line for cleaner terminal output
         results['qctools_output_path'] = qctools_output_path
 
-        # Check QCTools output if configured
-        if command_config.command_dict['tools']['qctools']['check_qctools'] == 'yes':
-            # Ensure report directory exists
-            if not report_directory:
-                report_directory = dir_setup.make_report_dir(source_directory, video_id)
+    # Check QCTools output if configured
+    if checks_config.tools.qctools.check_tool == 'yes':
+        # Ensure report directory exists
+        if not report_directory:
+            report_directory = dir_setup.make_report_dir(source_directory, video_id)
 
-            # Verify QCTools output file exists
-            if not os.path.isfile(qctools_output_path):
-                logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
-                return results
+        # Verify QCTools output file exists
+        if not os.path.isfile(qctools_output_path):
+            logger.critical(f"Unable to check qctools report. No file found at: {qctools_output_path}\n")
+            return results
 
-    except Exception as e:
-        logger.critical(f"Error processing QCTools output: {e}")
-
-    # Run QCTools parsing
-    run_qctparse(video_path, qctools_output_path, report_directory)
-    # currently not using results['qctools_check_output']
+        # Run QCTools parsing
+        run_qctparse(video_path, qctools_output_path, report_directory)
+        # currently not using results['qctools_check_output']
 
     return results
 
 
-def process_video_outputs(video_path, source_directory, destination_directory, video_id, command_config, metadata_differences):
+def process_video_outputs(video_path, source_directory, destination_directory, video_id, metadata_differences):
     """
     Coordinate the entire output processing workflow.
     
@@ -111,7 +111,6 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
         source_directory (str): Source directory for the video
         destination_directory (str): Destination directory for output files
         video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
         metadata_differences (dict): Differences found in metadata checks
         
     Returns:
@@ -128,7 +127,7 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
 
     # Create report directory if report is enabled
     report_directory = None
-    if command_config.command_dict['outputs']['report'] == 'yes':
+    if checks_config.outputs.report == 'yes':
         report_directory = dir_setup.make_report_dir(source_directory, video_id)
         # Process metadata differences report
         processing_results['metadata_diff_report'] = create_metadata_difference_report(
@@ -139,29 +138,29 @@ def process_video_outputs(video_path, source_directory, destination_directory, v
 
     # Process QCTools output
     process_qctools_output(
-        video_path, source_directory, destination_directory, video_id, command_config, report_directory
+        video_path, source_directory, destination_directory, video_id, report_directory
     )
 
     # Generate access file
     processing_results['access_file'] = process_access_file(
-        video_path, source_directory, video_id, command_config
+        video_path, source_directory, video_id
     )
 
     # Generate final HTML report
     processing_results['html_report'] = generate_final_report(
-        video_id, source_directory, report_directory, destination_directory, command_config
+        video_id, source_directory, report_directory, destination_directory
     )
 
     return processing_results
 
-def check_tool_metadata(tool_name, output_path, command_config):
+
+def check_tool_metadata(tool_name, output_path):
     """
     Check metadata for a specific tool if configured.
     
     Args:
         tool_name (str): Name of the tool
         output_path (str): Path to the tool's output file
-        command_config (object): Configuration object with tool settings
         
     Returns:
         dict or None: Differences found by parsing the tool's output, or None
@@ -175,7 +174,8 @@ def check_tool_metadata(tool_name, output_path, command_config):
     }
 
     # Check if tool metadata checking is enabled
-    if output_path and command_config.command_dict['tools'][tool_name][f'check_{tool_name}'] == 'yes':
+    tool = getattr(checks_config.tools, tool_name)
+    if output_path and tool.check_tool == 'yes':
         parse_function = parse_functions.get(tool_name)
         if parse_function:
             return parse_function(output_path)
@@ -183,7 +183,7 @@ def check_tool_metadata(tool_name, output_path, command_config):
     return None
 
 
-def process_video_metadata(video_path, destination_directory, video_id, command_config):
+def process_video_metadata(video_path, destination_directory, video_id):
     """
     Main function to process video metadata using multiple tools.
     
@@ -191,7 +191,6 @@ def process_video_metadata(video_path, destination_directory, video_id, command_
         video_path (str): Path to the input video file
         destination_directory (str): Directory to store output files
         video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
         
     Returns:
         dict: Dictionary of metadata differences from various tools
@@ -205,16 +204,17 @@ def process_video_metadata(video_path, destination_directory, video_id, command_
     # Process each tool
     for tool in tools:
         # Run tool and get output path
-        output_path = run_tools.run_tool_command(tool, video_path, destination_directory, video_id, command_config)
+        output_path = run_tools.run_tool_command(tool, video_path, destination_directory, video_id)
         
         # Check metadata and store differences
-        differences = check_tool_metadata(tool, output_path, command_config)
+        differences = check_tool_metadata(tool, output_path)
         if differences:
             metadata_differences[tool] = differences
     
     return metadata_differences
 
-def validate_video_with_mediaconch(video_path, destination_directory, video_id, command_config, config_path):
+
+def validate_video_with_mediaconch(video_path, destination_directory, video_id):
     """
     Coordinate the entire MediaConch validation process.
     
@@ -222,19 +222,18 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id, 
         video_path (str): Path to the input video file
         destination_directory (str): Directory to store output files
         video_id (str): Unique identifier for the video
-        command_config (object): Configuration object with tool settings
         config_path (object): Configuration path object
         
     Returns:
         dict: Validation results from MediaConch policy check
     """
     # Check if MediaConch should be run
-    if command_config.command_dict['tools']['mediaconch']['run_mediaconch'] != 'yes':
-        logger.info("MediaConch validation skipped")
+    if checks_config.tools.mediaconch.run_mediaconch != 'yes':
+        logger.info(f"MediaConch validation skipped\n")
         return {}
 
     # Find the policy file
-    policy_path = find_mediaconch_policy(command_config, config_path)
+    policy_path = find_mediaconch_policy()
     if not policy_path:
         return {}
 
@@ -255,3 +254,60 @@ def validate_video_with_mediaconch(video_path, destination_directory, video_id, 
     validation_results = parse_mediaconch_output(mediaconch_output_path)
 
     return validation_results
+
+
+def setup_mediaconch_policy(user_policy_path: str = None) -> str:
+    """
+    Set up MediaConch policy file, either using user-provided policy or default.
+    
+    Args:
+        user_policy_path (str, optional): Path to user-provided policy file
+        
+    Returns:
+        str: Name of the policy file that will be used
+    """
+    config_mgr = ConfigManager()
+    
+    if not user_policy_path:
+        # Return current policy file name from config
+        current_config = config_mgr.get_config('checks', ChecksConfig)
+        return current_config.tools.mediaconch.mediaconch_policy
+        
+    try:
+        # Verify user policy file exists
+        if not os.path.exists(user_policy_path):
+            logger.critical(f"User provided policy file not found: {user_policy_path}")
+            return None
+            
+        # Get policy file name and destination path
+        policy_filename = os.path.basename(user_policy_path)
+        policy_dest_dir = os.path.join(config_mgr.project_root, 'config', 'mediaconch_policies')
+        policy_dest_path = os.path.join(policy_dest_dir, policy_filename)
+        
+        # Create mediaconch_policies directory if it doesn't exist
+        os.makedirs(policy_dest_dir, exist_ok=True)
+        
+        # Copy policy file to config directory, overwriting if file exists
+        shutil.copy2(user_policy_path, policy_dest_path, follow_symlinks=False)
+        logger.info(f"Copied user policy file to config directory: {policy_filename}")
+        
+        # Get current config to preserve run_mediaconch value
+        current_config = config_mgr.get_config('checks', ChecksConfig)
+        run_mediaconch = current_config.tools.mediaconch.run_mediaconch
+        
+        # Update config to use new policy file while preserving run_mediaconch
+        config_mgr.update_config('checks', {
+            'tools': {
+                'mediaconch': {
+                    'mediaconch_policy': policy_filename,
+                    'run_mediaconch': run_mediaconch
+                }
+            }
+        })
+        logger.info(f"Updated config to use new policy file: {policy_filename}")
+        
+        return policy_filename
+        
+    except Exception as e:
+        logger.critical(f"Error setting up MediaConch policy: {e}")
+        return None

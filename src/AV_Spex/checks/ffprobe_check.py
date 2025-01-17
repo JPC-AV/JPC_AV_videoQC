@@ -6,18 +6,25 @@ import re
 import sys
 import logging
 import json
+from dataclasses import dataclass, asdict, field
+
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
+
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+spex_config = config_mgr.get_config('spex', SpexConfig)
 
 
 ## creates the function 'parse_exiftool' which takes the argument 'file_path' 
 # the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_ffprobe(file_path):
     # creates a dictionary of expected keys and values
-    expected_video_values = config_path.config_dict['ffmpeg_values']['video_stream']
-    expected_audio_values = config_path.config_dict['ffmpeg_values']['audio_stream']
-    expected_format_values = config_path.config_dict['ffmpeg_values']['format']
-    expected_settings_values = config_path.config_dict['ffmpeg_values']['format']['tags']['ENCODER_SETTINGS']
+    expected_video_values = spex_config.ffmpeg_values['video_stream']
+    expected_audio_values = spex_config.ffmpeg_values['audio_stream']
+    expected_format_values = spex_config.ffmpeg_values['format']
+    expected_settings_values = spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS']
 
     if not os.path.exists(file_path):
         logger.critical(f"Cannot perform ffprobe check!No such file: {file_path}")

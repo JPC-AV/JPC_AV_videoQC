@@ -5,37 +5,29 @@ import os
 import sys
 import csv
 import subprocess
+import shutil
+from pathlib import Path
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
 
-def find_mediaconch_policy(command_config, config_path):
-    """
-    Find and validate the MediaConch policy file.
-    
-    Args:
-        command_config (object): Configuration object with tool settings
-        config_path (object): Configuration path object
-        
-    Returns:
-        str or None: Full path to the policy file, or None if not found
-    """
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+
+def find_mediaconch_policy():
     try:
-        # Get policy filename from configuration
-        policy_file = command_config.command_dict['tools']['mediaconch']['mediaconch_policy']
-        policy_path = os.path.join(config_path.config_dir, policy_file)
-
-        if not os.path.exists(policy_path):
+        policy_file = checks_config.tools.mediaconch.mediaconch_policy
+        # Look in config/mediaconch_policies subdirectory
+        policy_path = config_mgr.find_file(policy_file, os.path.join('config', 'mediaconch_policies'))
+        
+        if not policy_path:
             logger.critical(f'Policy file not found: {policy_file}')
+            logger.critical('Make sure the file exists in the config/mediaconch_policies directory')
             return None
-
-        logger.debug(f'Using MediaConch policy {policy_file}')
+            
         return policy_path
-
-    except KeyError as e:
-        logger.critical(f'Configuration error: {e}')
-        return None
     except Exception as e:
-        logger.critical(f'Unexpected error finding MediaConch policy: {e}')
+        logger.critical(f'Error finding MediaConch policy: {e}')
         return None
 
 

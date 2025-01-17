@@ -3,8 +3,15 @@
 
 import os
 import sys
+from dataclasses import dataclass, asdict, field
+
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
+
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+spex_config = config_mgr.get_config('spex', SpexConfig)
 
 
 def parse_exiftool(file_path):
@@ -15,7 +22,7 @@ def parse_exiftool(file_path):
     '''
 
     # creates a dictionary of expected keys and values
-    expected_exif_values = config_path.config_dict['exiftool_values']
+    expected_exif_values = asdict(spex_config.exiftool_values)
 
     if not os.path.exists(file_path):
         logger.critical(f"Cannot perform exiftool check!No such file: {file_path}")
