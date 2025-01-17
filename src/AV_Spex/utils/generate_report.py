@@ -8,8 +8,11 @@ import csv
 import pandas as pd
 import plotly.graph_objs as go
 from base64 import b64encode
+from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 
+config_mgr = ConfigManager()
 
 # Read CSV files and convert them to HTML tables
 def csv_to_html_table(csv_file, style_mismatched=False, mismatch_color="#ff9999", match_color="#d2ffed", check_fail=False):
@@ -463,7 +466,7 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
     return content_summary_html
 
-def generate_final_report(video_id, source_directory, report_directory, destination_directory, command_config):
+def generate_final_report(video_id, source_directory, report_directory, destination_directory):
     """
     Generate final HTML report if configured.
     
@@ -477,8 +480,11 @@ def generate_final_report(video_id, source_directory, report_directory, destinat
     Returns:
         str or None: Path to the generated HTML report, or None
     """
+    
+    checks_config = config_mgr.get_config('checks', ChecksConfig)
+
     # Check if report should be generated
-    if command_config.command_dict['outputs']['report'] != 'yes':
+    if checks_config.outputs.report != 'yes':
         return None
 
     try:

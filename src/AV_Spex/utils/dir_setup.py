@@ -2,8 +2,15 @@ import os
 import sys
 import shutil
 import re
+from dataclasses import dataclass, asdict, field
+
 from ..utils.log_setup import logger
-from ..utils.find_config import config_path
+from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_manager import ConfigManager
+
+config_mgr = ConfigManager()
+checks_config = config_mgr.get_config('checks', ChecksConfig)
+spex_config = config_mgr.get_config('spex', SpexConfig)
 
 def validate_input_paths(input_paths, is_file_mode):
     source_directories = []
@@ -150,7 +157,7 @@ def is_valid_filename(video_filename):
     valid_filename = False
     
     # Reads filename_values from config.yaml into dictionary approved_values
-    approved_values = config_path.config_dict['filename_values']
+    approved_values = asdict(spex_config.filename_values)
 
     # Get only the base filename (not the full path)
     base_filename = os.path.basename(video_filename)
@@ -162,8 +169,8 @@ def is_valid_filename(video_filename):
         approved_values['ObjectID']  # ObjectID can contain a regex, so no escaping
     ]
     
-    # Check if 'DigitalGeneration' is part of the convention and include it in the pattern if present
-    if 'DigitalGeneration' in approved_values:
+    # Check if 'DigitalGeneration' exists and is not None
+    if 'DigitalGeneration' in approved_values and approved_values['DigitalGeneration'] is not None:
         pattern_parts.append(re.escape(approved_values['DigitalGeneration']))
     
     # Append the file extension

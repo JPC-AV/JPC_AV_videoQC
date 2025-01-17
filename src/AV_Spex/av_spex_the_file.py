@@ -22,61 +22,73 @@ from PyQt6.QtWidgets import (
 
 from .processing import processing_mgmt
 from .processing import run_tools
-from .utils import yaml_profiles
 from .utils import dir_setup
 from .utils import edit_config
 from .utils.log_setup import logger
 from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from .utils.find_config import config_path, command_config, yaml
+from .utils.setup_config import ChecksConfig, SpexConfig
+from .utils.config_manager import ConfigManager
+from .utils.config_io import ConfigIO
 from .utils.gui_setup import ConfigWindow, MainWindow
 
-
+config_mgr = ConfigManager()
 
 @dataclass
 class ParsedArguments:
     source_directories: List[str]
     selected_profile: Optional[Any]
-    tool_names: List[str]
     sn_config_changes: Optional[Any]
     fn_config_changes: Optional[Any]
-    print_config_profile: bool
+    print_config_profile: Optional[str]
     dry_run_only: bool
-    save_config_type: Optional[Any]
-    user_profile_config: Optional[str]
     tools_on_names: List[str]
     tools_off_names: List[str]
     gui: Optional[Any]
-
-
-AVAILABLE_TOOLS = ["exiftool", "ffprobe", "mediaconch", "mediainfo", "mediatrace", "qctools"]
+    export_config: Optional[str]
+    export_file: Optional[str] 
+    import_config: Optional[str]
+    mediaconch_policy: Optional[str]
+    use_default_config: bool
 
 
 PROFILE_MAPPING = {
-    "step1": yaml_profiles.profile_step1,
-    "step2": yaml_profiles.profile_step2,
-    "off": yaml_profiles.profile_allOff
+    "step1": edit_config.profile_step1,
+    "step2": edit_config.profile_step2,
+    "off": edit_config.profile_allOff
 }
 
 
 SIGNALFLOW_MAPPING = {
-    "JPC_AV_SVHS": yaml_profiles.JPC_AV_SVHS,
-    "BVH3100": yaml_profiles.BVH3100
+    "JPC_AV_SVHS": edit_config.JPC_AV_SVHS,
+    "BVH3100": edit_config.BVH3100
 }
 
 
 FILENAME_MAPPING = {
-    "jpc": yaml_profiles.JPCAV_filename,
-    "bowser": yaml_profiles.bowser_filename
+    "jpc": edit_config.JPCAV_filename,
+    "bowser": edit_config.bowser_filename
 }
 
 
+SIGNAL_FLOW_CONFIGS = {
+    "JPC_AV_SVHS": {
+        "format_tags": {"ENCODER_SETTINGS": edit_config.JPC_AV_SVHS},
+        "mediatrace": {"ENCODER_SETTINGS": edit_config.JPC_AV_SVHS}
+    },
+    "BVH3100": {
+        "format_tags": {"ENCODER_SETTINGS": edit_config.BVH3100}, 
+        "mediatrace": {"ENCODER_SETTINGS": edit_config.BVH3100}
+    }
+}
+
+
+
 def parse_arguments():
-    # Read version from pyproject.toml
-    pyproject_path = os.path.join(os.path.dirname(config_path.config_dir), 'pyproject.toml')
+    project_path = os.path.dirname(os.path.dirname(config_mgr.project_root))
+    pyproject_path = os.path.join(project_path, 'pyproject.toml')
     with open(pyproject_path, 'r') as f:
         version_string = toml.load(f)['project']['version']
 
-    # Create argument parser
     parser = argparse.ArgumentParser(
         description=f"""\
 %(prog)s {version_string}
@@ -87,83 +99,84 @@ The scripts will confirm that the digital files conform to predetermined specifi
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    # Add arguments (with AVAILABLE_TOOLS as choices)
     parser.add_argument('--version', action='version', version=f'%(prog)s {version_string}')
     parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
     parser.add_argument("-dr","--dryrun", action="store_true", 
                         help="Flag to run av-spex w/out outputs or checks. Use to change config profiles w/out processing video.")
     parser.add_argument("--profile", choices=list(PROFILE_MAPPING.keys()), 
                         help="Select processing profile or turn checks off")
-    parser.add_argument("-t", "--tool", choices=AVAILABLE_TOOLS, 
-                        action='append', help="Select individual tools to enable")
-    parser.add_argument("--on", choices=AVAILABLE_TOOLS, 
-                        action='append', help="Select specific tools to turn on")
-    parser.add_argument("--off", choices=AVAILABLE_TOOLS, 
-                        action='append', help="Select specific tools to turn off")
-    parser.add_argument("-sn","--signalflow", choices=SIGNALFLOW_MAPPING,
-                        help="Select signal flow config type (JPC_AV_SVHS or BVH3100")
-    parser.add_argument("-fn","--filename", choices=FILENAME_MAPPING, 
+    parser.add_argument("--on", 
+                        action='append', 
+                         metavar="{tool_name.run_tool, tool_name.check_tool}",
+                         help="Turns on specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
+    parser.add_argument("--off", 
+                        action='append', 
+                         metavar="{tool_name.run_tool, tool_name.check_tool}",
+                         help="Turns off specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
+    parser.add_argument("-sn","--signalflow", choices=['JPC_AV_SVHS', 'BVH3100'],
+                        help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
+    parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
                         help="Select file name config type (jpc or bowser)")
-    parser.add_argument("-sp","--saveprofile", choices=["config", "command"], 
-                        help="Flag to write current config.yaml or command_config.yaml settings to new a yaml file, for re-use or reference.")
-    parser.add_argument("-pp","--printprofile", action="store_true", 
-                        help="Show current config profile.")
+    parser.add_argument("-pp", "--printprofile", type=str, nargs='?', const='all', default=None, 
+                        help="Show config profile(s) and optional subsection. Format: 'config[,subsection]'. Examples: 'all', 'spex', 'checks', 'checks,tools', 'spex,filename_values'")
     parser.add_argument("-d","--directory", action="store_true", 
                         help="Flag to indicate input is a directory")
     parser.add_argument("-f","--file", action="store_true", 
                         help="Flag to indicate input is a video file")
     parser.add_argument('--gui', action='store_true', 
                         help='Force launch in GUI mode')
+    parser.add_argument("--use-default-config", action="store_true",
+                       help="Reset to default config by removing any saved configurations")
     
+    # Config export/import arguments
+    parser.add_argument('--export-config', 
+                    choices=['all', 'spex', 'checks'],
+                    help='Export current config(s) to JSON')
+    parser.add_argument('--export-file',
+                    help='Specify export filename (default: auto-generated)')
+    parser.add_argument('--import-config',
+                    help='Import configs from JSON file')
+    parser.add_argument("--mediaconch-policy",
+                    help="Path to custom MediaConch policy XML file")
 
-    # Parse arguments
     args = parser.parse_args()
 
-    # Validate and process arguments
-    if not args.dryrun and not args.paths and not args.gui:
-        parser.error("the following arguments are required: paths")
-
-    input_paths = [] if args.dryrun else args.paths
+    input_paths = args.paths if args.paths else []
     source_directories = dir_setup.validate_input_paths(input_paths, args.file)
 
-    # Determine save_config_type based on saveprofile
-    if args.saveprofile == 'config':
-        save_config_type = config_path
-    elif args.saveprofile == 'command':
-        save_config_type = command_config
-    else:
-        save_config_type = None
-
-    # Resolve configurations using mapping functions
     selected_profile = edit_config.resolve_config(args.profile, PROFILE_MAPPING)
     sn_config_changes = edit_config.resolve_config(args.signalflow, SIGNALFLOW_MAPPING)
     fn_config_changes = edit_config.resolve_config(args.filename, FILENAME_MAPPING)
 
-    # Return parsed arguments
+    if args.use_default_config:
+        try:
+            # Get the project root and construct config paths
+            config_path = os.path.join(config_mgr.project_root, "config")
+            os.remove(os.path.join(config_path, "last_used_checks_config.json"))
+            os.remove(os.path.join(config_path, "last_used_spex_config.json"))
+            print("Reset to default configuration")
+        except FileNotFoundError:
+            # It's okay if the files don't exist
+            print("Already using default configuration")
+        except Exception as e:
+            print(f"Warning: Could not fully reset config: {e}")
+
     return ParsedArguments(
         source_directories=source_directories,
         selected_profile=selected_profile,
-        tool_names=args.tool or [],
         sn_config_changes=sn_config_changes,
         fn_config_changes=fn_config_changes,
         print_config_profile=args.printprofile,
         dry_run_only=args.dryrun,
-        save_config_type=save_config_type,
-        user_profile_config=_generate_profile_filename(args.saveprofile),
         tools_on_names=args.on or [],
         tools_off_names=args.off or [],
-        gui=args.gui
+        gui=args.gui,
+        export_config=args.export_config,
+        export_file=args.export_file,
+        import_config=args.import_config,
+        mediaconch_policy=args.mediaconch_policy,
+        use_default_config=args.use_default_config
     )
-
-
-def _generate_profile_filename(saveprofile):
-    if not saveprofile:
-        return None
-    config_dir = (config_path.config_dir if saveprofile == 'config' 
-                  else command_config.config_dir)
-    profile_type = 'config' if saveprofile == 'config' else 'command'
-    return os.path.join(config_dir, 
-                        f"{profile_type}_profile_{datetime.today().strftime('%Y-%m-%d_%H-%M-%S')}.yaml")
 
 
 def create_processing_timer():
@@ -252,57 +265,41 @@ def process_single_directory(source_directory):
     # Display initial processing banner
     display_processing_banner()
 
-    # Use processing timer for tracking
-    with create_processing_timer() as timer:
-        try:
-            # Call the new prep_directory function
-            init_dir_result = dir_setup.initialize_directory(source_directory)
-            if init_dir_result is None:
-                return  # Skip to the next source_directory if preparation failed
+    # Call the new prep_directory function
+    init_dir_result = dir_setup.initialize_directory(source_directory)
+    if init_dir_result is None:
+        return  # Skip to the next source_directory if preparation failed
 
-            # Unpack the returned values
-            video_path, video_id, destination_directory, access_file_found = init_dir_result
+    # Unpack the returned values
+    video_path, video_id, destination_directory, access_file_found = init_dir_result
 
-            processing_mgmt.process_fixity(source_directory, video_path, video_id)
+    processing_mgmt.process_fixity(source_directory, video_path, video_id)
 
-            mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
-            video_path, 
-            destination_directory, 
-            video_id, 
-            command_config, 
-            config_path
-            )
+    mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
+    video_path, 
+    destination_directory, 
+    video_id
+    )
 
-            metadata_differences = processing_mgmt.process_video_metadata(
-                video_path, 
-                destination_directory, 
-                video_id, 
-                command_config
-                )
+    metadata_differences = processing_mgmt.process_video_metadata(
+        video_path, 
+        destination_directory, 
+        video_id, 
+        )
 
-            processing_results = processing_mgmt.process_video_outputs(
-                video_path,
-                source_directory,
-                destination_directory,
-                video_id,
-                command_config,
-                metadata_differences
-            )
+    processing_results = processing_mgmt.process_video_outputs(
+        video_path,
+        source_directory,
+        destination_directory,
+        video_id,
+        metadata_differences
+    )
 
-            logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
+    logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
 
-            # Display final processing banner
-            display_processing_banner(video_id)
+    # Display final processing banner
+    display_processing_banner(video_id)
 
-        except Exception as e:
-            logger.critical(f"Error processing directory {source_directory}: {e}")
-            return None
-        finally:
-            # Optional brief pause between directory processing
-            time.sleep(1)
-
-    # Log processing time
-    timer.log_time_details(video_id)
 
 
 def print_av_spex_logo():
@@ -324,16 +321,76 @@ def log_overall_time(overall_start_time, overall_end_time):
     return formatted_overall_time
 
 
+def update_spex_config(config_type: str, profile_name: str):
+    spex_config = config_mgr.get_config('spex', SpexConfig)
+    
+    if config_type == 'signalflow':
+        if not isinstance(profile_name, dict):
+            logger.critical(f"Invalid signalflow settings: {profile_name}")
+            return
+            
+        for key, value in profile_name.items():
+            setattr(spex_config.mediatrace_values.ENCODER_SETTINGS, key, value)
+            spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'][key] = value
+        config_mgr.set_config('spex', spex_config)
+            
+    elif config_type == 'filename':
+        if not isinstance(profile_name, dict):
+            logger.critical(f"Invalid filename settings: {profile_name}")
+            return
+            
+        updates = {
+            "filename_values": profile_name
+        }
+        # Update and save config
+        config_mgr.update_config('spex', updates)
+        
+    else:
+        logger.critical(f"Invalid configuration type: {config_type}")
+        return
+        
+    # Save the last used config
+    config_mgr.save_last_used_config('spex')
+
+
 def run_cli_mode(args):
     print_av_spex_logo()
 
-    # Update YAML configs
-    edit_config.update_yaml_configs(args.selected_profile, args.tool_names, args.tools_on_names, args.tools_off_names,
-                        args.sn_config_changes, args.fn_config_changes, args.save_config_type,
-                        args.user_profile_config)
+    # Update checks config
+    if args.selected_profile:
+        config_mgr.update_config('checks', args.selected_profile)
+    if args.tools_on_names:
+        edit_config.toggle_on(args.tools_on_names)
+        config_mgr.save_last_used_config('checks')
+    if args.tools_off_names:
+        edit_config.toggle_off(args.tools_off_names)
+        config_mgr.save_last_used_config('checks')
 
-    # Print config
-    edit_config.print_config(args.print_config_profile)
+    if args.mediaconch_policy:
+        processing_mgmt.setup_mediaconch_policy(args.mediaconch_policy)
+
+    # Update spex config
+    if args.sn_config_changes:
+        update_spex_config('signalflow', args.sn_config_changes)
+    if args.fn_config_changes:
+        update_spex_config('filename', args.fn_config_changes)
+
+    # Handle config I/O operations
+    if args.export_config:
+        config_types = ['spex', 'checks'] if args.export_config == 'all' else [args.export_config]
+        config_io = ConfigIO(config_mgr)
+        filename = config_io.save_configs(args.export_file, config_types)
+        print(f"Configs exported to: {filename}")
+        if args.dry_run_only:
+            sys.exit(0)
+    
+    if args.import_config:
+        config_io = ConfigIO(config_mgr)
+        config_io.import_configs(args.import_config)
+        print(f"Configs imported from: {args.import_config}")
+
+    if args.print_config_profile:
+        edit_config.print_config(args.print_config_profile)
 
     if args.dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
@@ -354,9 +411,8 @@ def run_avspex(source_directories):
             print(f"Error: {command} not found. Please install it.")
             sys.exit(1)
 
-    # Reload the dictionaries if the profile has been applied
-    config_path.reload()
-    command_config.reload()
+    checks_config = config_mgr.get_config('checks', ChecksConfig)
+    spex_config = config_mgr.get_config('spex', SpexConfig)
 
     overall_start_time = time.time()
 
@@ -368,10 +424,14 @@ def run_avspex(source_directories):
 
     formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
 
+
 def main_gui():
+    # need to run parse_arguments in case of the --use-default-config flag
+    args = parse_arguments()
+
     app = QApplication(sys.argv)  # Create the QApplication instance once
     while True:
-        window = MainWindow(command_config, command_config.command_dict, config_path)
+        window = MainWindow()
         window.show()
         app.exec()  # Blocks until the GUI window is closed
         source_directories = window.get_source_directories()
@@ -390,11 +450,11 @@ def main_cli():
        main_gui()
     else:
         run_cli_mode(args)
-        run_avspex(args.source_directories)
+        if args.source_directories:
+            run_avspex(args.source_directories)
 
 
 def main():
-    # Default behavior based on command-line arguments
     args = parse_arguments()
 
     if args.gui or (args.source_directories is None and not sys.argv[1:]):
