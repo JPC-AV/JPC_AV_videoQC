@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import (
 
 from .processing import processing_mgmt
 from .processing import run_tools
+from .processing.avspex_processor import AVSpexProcessor, display_processing_banner
 from .utils import dir_setup
 from .utils import edit_config
 from .utils.log_setup import logger
@@ -179,148 +180,6 @@ The scripts will confirm that the digital files conform to predetermined specifi
     )
 
 
-def create_processing_timer():
-    """
-    Create a context manager for tracking processing time.
-    
-    Returns:
-        ProcessingTimer: A context manager for timing operations
-    """
-    
-    class ProcessingTimer:
-        def __init__(self):
-            self.start_time = None
-            self.end_time = None
-            self.total_time = 0  # Initialize to 0 to avoid NoneType issues
-
-        def __enter__(self):
-            self.start_time = time.time()
-            return self
-
-        def __exit__(self, exc_type, exc_val, exc_tb):
-            self.end_time = time.time()
-            self.total_time = self.end_time - self.start_time
-
-        def get_formatted_time(self):
-            """
-            Get formatted time string for total processing duration.
-            
-            Returns:
-                str: Formatted time (HH:MM:SS)
-            """
-            # Ensure total_time is valid
-            if self.total_time is None:
-                return "00:00:00"
-            
-            hours, remainder = divmod(int(self.total_time), 3600)
-            minutes, seconds = divmod(remainder, 60)
-            return f"{hours:02}:{minutes:02}:{seconds:02}"
-
-        def log_time_details(self, video_id):
-            """
-            Log detailed time information.
-            
-            Args:
-                video_id (str): Identifier for the processed video
-            """
-            if self.start_time is None or self.end_time is None:
-                logger.error("Timer was not properly started or stopped.")
-                return
-            
-            logger.info(
-                f'Process time for {video_id}: '
-                f'time start: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.start_time))}; '
-                f'time end: {time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(self.end_time))}; '
-                f'total time: {self.get_formatted_time()}'
-            )
-
-    return ProcessingTimer()
-
-
-def display_processing_banner(video_id=None):
-    """
-    Display ASCII art banners before and after processing.
-    
-    Args:
-        video_id (str, optional): Video identifier for additional banner
-    """
-    tape_icon = art('cassette1')
-    banner = f'\n{tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}    {tape_icon}\n'
-    print(banner)
-
-    if video_id:
-        ascii_video_id = text2art(video_id, font='tarty2')
-        logger.warning(f'Processing complete:{ascii_video_id}\n')
-
-
-def process_directories(source_directories):
-    for source_directory in source_directories:
-        # sanitize user input directory path
-        source_directory = os.path.normpath(source_directory)
-        process_single_directory(source_directory)
-
-
-def process_single_directory(source_directory):
-
-    # Display initial processing banner
-    display_processing_banner()
-
-    # Call the new prep_directory function
-    init_dir_result = dir_setup.initialize_directory(source_directory)
-    if init_dir_result is None:
-        return  # Skip to the next source_directory if preparation failed
-
-    # Unpack the returned values
-    video_path, video_id, destination_directory, access_file_found = init_dir_result
-
-    processing_mgmt.process_fixity(source_directory, video_path, video_id)
-
-    mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
-    video_path, 
-    destination_directory, 
-    video_id
-    )
-
-    metadata_differences = processing_mgmt.process_video_metadata(
-        video_path, 
-        destination_directory, 
-        video_id, 
-        )
-
-    processing_results = processing_mgmt.process_video_outputs(
-        video_path,
-        source_directory,
-        destination_directory,
-        video_id,
-        metadata_differences
-    )
-
-    logger.debug(f'Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
-
-    # Display final processing banner
-    display_processing_banner(video_id)
-
-
-
-def print_av_spex_logo():
-    avspex_icon = text2art("A-V Spex", font='5lineoblique')
-    print(f'{avspex_icon}\n')
-
-
-def print_nmaahc_logo():
-    nmaahc_icon = text2art("nmaahc",font='tarty1')
-    print(f'{nmaahc_icon}\n')
-
-
-def log_overall_time(overall_start_time, overall_end_time):
-    logger.warning(f'All files processed!\n')
-    overall_total_time = overall_end_time - overall_start_time
-    formatted_overall_time = time.strftime("%H:%M:%S", time.gmtime(overall_total_time))
-    logger.info(f"Overall processing time for all directories: {formatted_overall_time}\n")
-
-    return formatted_overall_time
-
-
 def update_spex_config(config_type: str, profile_name: str):
     spex_config = config_mgr.get_config('spex', SpexConfig)
     
@@ -398,49 +257,21 @@ def run_cli_mode(args):
 
 
 def run_avspex(source_directories):
-    '''
-    av-spex takes 1 input file or directory as an argument, like this:
-    av-spex <input_directory> (or -f <input_file.mkv>)
-    it confirms the file is valid, generates metadata on the file, then checks it against expected values.
-    '''
-
-    check_py_version()
-
-    for command in required_commands:
-        if not check_external_dependency(command):
-            print(f"Error: {command} not found. Please install it.")
-            sys.exit(1)
-
-    checks_config = config_mgr.get_config('checks', ChecksConfig)
-    spex_config = config_mgr.get_config('spex', SpexConfig)
-
-    overall_start_time = time.time()
-
-    process_directories(source_directories)
-
-    print_nmaahc_logo()
-
-    overall_end_time = time.time()
-
-    formatted_overall_time = log_overall_time(overall_start_time, overall_end_time)
-
+    processor = AVSpexProcessor()
+    try:
+        processor.initialize()
+        formatted_time = processor.process_directories(source_directories)
+        return True
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        sys.exit(1)
 
 def main_gui():
-    # need to run parse_arguments in case of the --use-default-config flag
     args = parse_arguments()
-
-    app = QApplication(sys.argv)  # Create the QApplication instance once
-    while True:
-        window = MainWindow()
-        window.show()
-        app.exec()  # Blocks until the GUI window is closed
-        source_directories = window.get_source_directories()
-
-        if source_directories:
-            run_avspex(source_directories)
-        else:
-            # If no source directories were selected, exit the loop (quit the app)
-            break
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    return app.exec()
 
 
 def main_cli():

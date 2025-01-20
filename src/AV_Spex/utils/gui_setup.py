@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
-    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar
+    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar, QStatusBar, 
+    QProgressBar
 )
-from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir
+from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir, pyqtSignal, QObject
 from PyQt6.QtGui import QPixmap, QAction
 
 import os
@@ -16,6 +17,64 @@ from ..utils.log_setup import logger
 from ..utils import edit_config
 
 from ..processing.processing_mgmt import setup_mediaconch_policy
+
+from ..processing.avspex_processor import AVSpexProcessor
+from ..utils.signals import ProcessingSignals
+
+class ProcessingWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Processing Status")
+        self.resize(500, 200)
+        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
+        
+        # Central widget and layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+        
+        # Status label with larger font
+        self.status_label = QLabel("Initializing...")
+        font = self.status_label.font()
+        font.setPointSize(12)
+        self.status_label.setFont(font)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.status_label)
+        
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(0)  # Indeterminate progress
+        layout.addWidget(self.progress_bar)
+        
+        # Center the window on screen
+        self._center_on_screen()  # Changed to use the defined method
+        
+        # Force window to update
+        self.update()
+        self.repaint()
+
+    def _center_on_screen(self):
+        """Centers the window on the screen"""
+        screen = QApplication.primaryScreen().geometry()
+        window_size = self.geometry()
+        x = (screen.width() - window_size.width()) // 2
+        y = (screen.height() - window_size.height()) // 2
+        self.move(x, y)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        print("ProcessingWindow showEvent triggered")  # Debug
+        self.raise_()  # Bring window to front
+        self.activateWindow()  # Activate the window
+
+    def closeEvent(self, event):
+        print("ProcessingWindow close event triggered")  # Debug
+        super().closeEvent(event)
+        
+    def update_status(self, message):
+        self.status_label.setText(message)
 
 
 class DirectoryListWidget(QListWidget):
@@ -417,9 +476,32 @@ class ConfigWindow(QWidget):
                     )
 
 
+class ProcessingSignals(QObject):
+    started = pyqtSignal(str)  # Signal for when processing starts
+    completed = pyqtSignal(str)  # Signal for when processing completes
+    error = pyqtSignal(str)  # Signal for when an error occurs
+    status_update = pyqtSignal(str)  # Signal for status updates
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.processor = AVSpexProcessor()
+        self.signals = ProcessingSignals()
+        
+        # Connect signals to slots
+        self.signals.started.connect(self.on_processing_started)
+        self.signals.completed.connect(self.on_processing_completed)
+        self.signals.error.connect(self.on_error)
+        self.signals.status_update.connect(self.on_status_update)
+
+        # Init processing window
+        self.processing_window = None
+        
+        # Setup UI
+        self.setup_ui()
+        
+    def setup_ui(self):
+        # Move all UI initialization here
         self.config_mgr = ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
@@ -531,9 +613,9 @@ class MainWindow(QMainWindow):
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
 
-        check_spex_button = QPushButton("Check Spex!")
-        check_spex_button.clicked.connect(self.on_check_spex_clicked)
-        bottom_row.addWidget(check_spex_button)
+        self.check_spex_button = QPushButton("Check Spex!")
+        self.check_spex_button.clicked.connect(self.on_check_spex_clicked)
+        bottom_row.addWidget(self.check_spex_button)
 
         checks_layout.addLayout(bottom_row)
 
@@ -737,9 +819,26 @@ class MainWindow(QMainWindow):
 
     def on_check_spex_clicked(self):
         """Handle the Start button click."""
+        print("Check Spex button clicked")  # Debug line
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
-        self.close()  # Close the GUI if needed, signaling readiness
+        self.process_directories()
+
+    def process_directories(self):
+        try:
+            print("Starting process_directories")  # Debug line
+            self.signals.started.emit("Initializing...")  # This should trigger on_processing_started
+            print("Emitted started signal")  # Debug line
+            
+            self.processor.initialize()
+            
+            self.signals.status_update.emit("Processing directories...")
+            formatted_time = self.processor.process_directories(self.source_directories)
+            
+            self.signals.completed.emit(f"Processing completed in {formatted_time}!")
+        except Exception as e:
+            print(f"Error in process_directories: {str(e)}")  # Debug line
+            self.signals.error.emit(str(e))
 
 
     def on_profile_selected(self, index):
@@ -889,3 +988,34 @@ class MainWindow(QMainWindow):
         self.config_mgr.save_last_used_config('checks')
         self.config_mgr.save_last_used_config('spex')
         self.close()  # Close the GUI
+
+    # Slot methods
+    def on_processing_started(self, message):
+        print("Processing started with message:", message)
+        if self.processing_window is None:
+            self.processing_window = ProcessingWindow(self)
+        self.processing_window.update_status(message)
+        self.processing_window.show()
+        self.processing_window.raise_()
+        self.check_spex_button.setEnabled(False)
+        # Force event processing
+        QApplication.processEvents()
+        
+    def on_processing_completed(self, message):
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        # Re-enable the Check Spex button
+        self.check_spex_button.setEnabled(True)
+        QMessageBox.information(self, "Complete", message)
+        
+    def on_error(self, error_message):
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        self.check_spex_button.setEnabled(True)
+        QMessageBox.critical(self, "Error", error_message)
+        
+    def on_status_update(self, message):
+        if self.processing_window:
+            self.processing_window.update_status(message)
