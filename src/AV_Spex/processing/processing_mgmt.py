@@ -22,37 +22,192 @@ config_mgr = ConfigManager()
 checks_config = config_mgr.get_config('checks', ChecksConfig)
 spex_config = config_mgr.get_config('spex', SpexConfig)
 
+class ProcessingManager:
+    def __init__(self, signals=None):
+        self.signals = signals
 
-def process_fixity(source_directory, video_path, video_id):
-    """
-    Orchestrates the entire fixity process, including embedded and file-level operations.
+    def process_fixity(self, source_directory, video_path, video_id):
+        """
+        Orchestrates the entire fixity process, including embedded and file-level operations.
 
-    Args:
-        source_directory (str): Directory containing source files
-        video_path (str): Path to the video file
-        video_id (str): Unique identifier for the video
-    """
-    # Embed stream fixity if required  
-    if checks_config.fixity.embed_stream_fixity == 'yes':
-        process_embedded_fixity(video_path)
-
-    # Validate stream hashes if required
-    if checks_config.fixity.validate_stream_fixity == 'yes':
+        Args:
+            source_directory (str): Directory containing source files
+            video_path (str): Path to the video file
+            video_id (str): Unique identifier for the video
+        """
+        
+        # Embed stream fixity if required  
         if checks_config.fixity.embed_stream_fixity == 'yes':
-            logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
+            if self.signals:
+                self.signals.fixity_progress.emit("Embedding fixity...")
+            process_embedded_fixity(video_path)
+
+        # Validate stream hashes if required
+        if checks_config.fixity.validate_stream_fixity == 'yes':
+            if self.signals:
+                self.signals.fixity_progress.emit("Validating embedded fixity...")
+            if checks_config.fixity.embed_stream_fixity == 'yes':
+                logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
+            else:
+                validate_embedded_md5(video_path)
+
+        # Initialize md5_checksum variable
+        md5_checksum = None
+
+        # Create checksum for video file and output results
+        if checks_config.fixity.output_fixity == 'yes':
+            if self.signals:
+                self.signals.fixity_progress.emit("Outputting fixity...")
+            md5_checksum = output_fixity(source_directory, video_path)
+
+        # Verify stored checksum and write results  
+        if checks_config.fixity.check_fixity == 'yes':
+            if self.signals:
+                self.signals.fixity_progress.emit("Validating fixity...")
+            check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
+
+
+    def validate_video_with_mediaconch(self, video_path, destination_directory, video_id):
+        """
+        Coordinate the entire MediaConch validation process.
+        
+        Args:
+            video_path (str): Path to the input video file
+            destination_directory (str): Directory to store output files
+            video_id (str): Unique identifier for the video
+            config_path (object): Configuration path object
+            
+        Returns:
+            dict: Validation results from MediaConch policy check
+        """
+        # Check if MediaConch should be run
+        if checks_config.tools.mediaconch.run_mediaconch != 'yes':
+            logger.info(f"MediaConch validation skipped\n")
+            return {}
+        
+        if self.signals:
+            self.signals.mediaconch_progress.emit("Locating MediaConch policy...")
+
+        # Find the policy file
+        policy_path = find_mediaconch_policy()
+        if not policy_path:
+            return {}
+
+        # Prepare output path
+        mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
+
+        if self.signals:
+            self.signals.mediaconch_progress.emit("Running MediaConch...")
+
+        # Run MediaConch command
+        if not run_mediaconch_command(
+            'mediaconch -p', 
+            video_path, 
+            '-oc', 
+            mediaconch_output_path, 
+            policy_path
+        ):
+            return {}
+
+        # Parse and validate MediaConch output
+        validation_results = parse_mediaconch_output(mediaconch_output_path)
+
+        return validation_results
+    
+
+    def process_video_metadata(self, video_path, destination_directory, video_id):
+        """
+        Main function to process video metadata using multiple tools.
+        
+        Args:
+            video_path (str): Path to the input video file
+            destination_directory (str): Directory to store output files
+            video_id (str): Unique identifier for the video
+            
+        Returns:
+            dict: Dictionary of metadata differences from various tools
+        """
+        # List of tools to process
+        tools = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
+        
+        # Store differences for each tool
+        metadata_differences = {}
+
+        if self.signals:
+            self.signals.metadata_progress.emit("Running metadata tools...")
+        
+        # Process each tool
+        for tool in tools:
+            # Run tool and get output path
+            output_path = run_tools.run_tool_command(tool, video_path, destination_directory, video_id)
+            
+            # Check metadata and store differences
+            differences = check_tool_metadata(tool, output_path)
+            if differences:
+                metadata_differences[tool] = differences
+        
+        return metadata_differences
+    
+
+    def process_video_outputs(self, video_path, source_directory, destination_directory, video_id, metadata_differences):
+        """
+        Coordinate the entire output processing workflow.
+        
+        Args:
+            video_path (str): Path to the input video file
+            source_directory (str): Source directory for the video
+            destination_directory (str): Destination directory for output files
+            video_id (str): Unique identifier for the video
+            metadata_differences (dict): Differences found in metadata checks
+            
+        Returns:
+            dict: Processing results and file paths
+        """
+
+        # Collect processing results
+        processing_results = {
+            'metadata_diff_report': None,
+            'qctools_output': None,
+            'access_file': None,
+            'html_report': None
+        }
+
+        # Create report directory if report is enabled
+        report_directory = None
+        if checks_config.outputs.report == 'yes':
+            report_directory = dir_setup.make_report_dir(source_directory, video_id)
+            # Process metadata differences report
+            processing_results['metadata_diff_report'] = create_metadata_difference_report(
+                    metadata_differences, report_directory, video_id
+                )
         else:
-            validate_embedded_md5(video_path)
+            processing_results['metadata_diff_report'] =  None
+        
+        if self.signals:
+            self.signals.output_progress.emit("Running QCTools and qct-parse...")
 
-    # Initialize md5_checksum variable
-    md5_checksum = None
+        # Process QCTools output
+        process_qctools_output(
+            video_path, source_directory, destination_directory, video_id, report_directory
+        )
 
-    # Create checksum for video file and output results
-    if checks_config.fixity.output_fixity == 'yes':
-        md5_checksum = output_fixity(source_directory, video_path)
+        if self.signals:
+            self.signals.output_progress.emit("Creating access file...")
 
-    # Verify stored checksum and write results  
-    if checks_config.fixity.check_fixity == 'yes':
-        check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
+        # Generate access file
+        processing_results['access_file'] = process_access_file(
+            video_path, source_directory, video_id
+        )
+
+        if self.signals:
+            self.signals.output_progress.emit("Preparing report...")
+
+        # Generate final HTML report
+        processing_results['html_report'] = generate_final_report(
+            video_id, source_directory, report_directory, destination_directory
+        )
+
+        return processing_results
 
 
 def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None):
@@ -102,58 +257,6 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     return results
 
 
-def process_video_outputs(video_path, source_directory, destination_directory, video_id, metadata_differences):
-    """
-    Coordinate the entire output processing workflow.
-    
-    Args:
-        video_path (str): Path to the input video file
-        source_directory (str): Source directory for the video
-        destination_directory (str): Destination directory for output files
-        video_id (str): Unique identifier for the video
-        metadata_differences (dict): Differences found in metadata checks
-        
-    Returns:
-        dict: Processing results and file paths
-    """
-
-    # Collect processing results
-    processing_results = {
-        'metadata_diff_report': None,
-        'qctools_output': None,
-        'access_file': None,
-        'html_report': None
-    }
-
-    # Create report directory if report is enabled
-    report_directory = None
-    if checks_config.outputs.report == 'yes':
-        report_directory = dir_setup.make_report_dir(source_directory, video_id)
-        # Process metadata differences report
-        processing_results['metadata_diff_report'] = create_metadata_difference_report(
-                metadata_differences, report_directory, video_id
-            )
-    else:
-         processing_results['metadata_diff_report'] =  None
-
-    # Process QCTools output
-    process_qctools_output(
-        video_path, source_directory, destination_directory, video_id, report_directory
-    )
-
-    # Generate access file
-    processing_results['access_file'] = process_access_file(
-        video_path, source_directory, video_id
-    )
-
-    # Generate final HTML report
-    processing_results['html_report'] = generate_final_report(
-        video_id, source_directory, report_directory, destination_directory
-    )
-
-    return processing_results
-
-
 def check_tool_metadata(tool_name, output_path):
     """
     Check metadata for a specific tool if configured.
@@ -181,79 +284,6 @@ def check_tool_metadata(tool_name, output_path):
             return parse_function(output_path)
     
     return None
-
-
-def process_video_metadata(video_path, destination_directory, video_id):
-    """
-    Main function to process video metadata using multiple tools.
-    
-    Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        
-    Returns:
-        dict: Dictionary of metadata differences from various tools
-    """
-    # List of tools to process
-    tools = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
-    
-    # Store differences for each tool
-    metadata_differences = {}
-    
-    # Process each tool
-    for tool in tools:
-        # Run tool and get output path
-        output_path = run_tools.run_tool_command(tool, video_path, destination_directory, video_id)
-        
-        # Check metadata and store differences
-        differences = check_tool_metadata(tool, output_path)
-        if differences:
-            metadata_differences[tool] = differences
-    
-    return metadata_differences
-
-
-def validate_video_with_mediaconch(video_path, destination_directory, video_id):
-    """
-    Coordinate the entire MediaConch validation process.
-    
-    Args:
-        video_path (str): Path to the input video file
-        destination_directory (str): Directory to store output files
-        video_id (str): Unique identifier for the video
-        config_path (object): Configuration path object
-        
-    Returns:
-        dict: Validation results from MediaConch policy check
-    """
-    # Check if MediaConch should be run
-    if checks_config.tools.mediaconch.run_mediaconch != 'yes':
-        logger.info(f"MediaConch validation skipped\n")
-        return {}
-
-    # Find the policy file
-    policy_path = find_mediaconch_policy()
-    if not policy_path:
-        return {}
-
-    # Prepare output path
-    mediaconch_output_path = os.path.join(destination_directory, f'{video_id}_mediaconch_output.csv')
-
-    # Run MediaConch command
-    if not run_mediaconch_command(
-        'mediaconch -p', 
-        video_path, 
-        '-oc', 
-        mediaconch_output_path, 
-        policy_path
-    ):
-        return {}
-
-    # Parse and validate MediaConch output
-    validation_results = parse_mediaconch_output(mediaconch_output_path)
-
-    return validation_results
 
 
 def setup_mediaconch_policy(user_policy_path: str = None) -> str:

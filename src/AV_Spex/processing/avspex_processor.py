@@ -5,7 +5,7 @@ import os
 import time
 from art import art, text2art
 
-from ..processing import processing_mgmt
+from ..processing.processing_mgmt import ProcessingManager
 from ..processing import run_tools
 from ..utils import dir_setup
 from ..utils import edit_config
@@ -72,7 +72,7 @@ class AVSpexProcessor:
         total_commands = len(required_commands)
         for idx, command in enumerate(required_commands, 1):
             if self.signals:
-                self.signals.status_update.emit(f"Checking {command} ({idx}/{total_commands})...")
+                self.signals.status_update.emit(f"Finding {command} ({idx}/{total_commands})...")
                 self.signals.progress.emit(idx, total_commands)
                 
             if not check_external_dependency(command):
@@ -82,7 +82,7 @@ class AVSpexProcessor:
                 raise RuntimeError(error_msg)
         
         if self.signals:
-            self.signals.status_update.emit("All prerequisites checked successfully.")
+            self.signals.status_update.emit("All dependencies identified successfully.")
         
         return True
 
@@ -112,6 +112,8 @@ class AVSpexProcessor:
             return
 
         video_path, video_id, destination_directory, access_file_found = init_dir_result
+
+        processing_mgmt = ProcessingManager(signals=self.signals)
 
         if self.signals:
             self.signals.tool_started.emit("Processing fixity...")

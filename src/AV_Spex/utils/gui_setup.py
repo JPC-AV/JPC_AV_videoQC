@@ -60,6 +60,14 @@ class ProcessingWindow(QMainWindow):
         self.update()
         self.repaint()
 
+        self.detailed_status = QLabel("")
+        self.detailed_status.setWordWrap(True)
+        layout.addWidget(self.detailed_status)
+
+    def update_detailed_status(self, message):
+        self.detailed_status.setText(message)
+        QApplication.processEvents()
+
     def update_status(self, message):
         self.status_label.setText(message)
         self.details_text.append(message)
@@ -508,6 +516,10 @@ class MainWindow(QMainWindow):
         self.signals.progress.connect(self.on_progress_update)
         self.signals.tool_started.connect(self.on_tool_started)
         self.signals.tool_completed.connect(self.on_tool_completed)
+        self.signals.fixity_progress.connect(self.on_fixity_progress)
+        self.signals.mediaconch_progress.connect(self.on_mediaconch_progress)
+        self.signals.metadata_progress.connect(self.on_metadata_progress)
+        self.signals.output_progress.connect(self.on_output_progress)
 
         # Init processing window
         self.processing_window = None
@@ -533,6 +545,22 @@ class MainWindow(QMainWindow):
             self.processing_window.progress_bar.setValue(100)
             # Let UI update
             QApplication.processEvents()
+
+    def on_fixity_progress(self, message):
+        if self.processing_window:
+            self.processing_window.update_detailed_status(message)
+
+    def on_mediaconch_progress(self, message):
+        if self.processing_window:
+            self.processing_window.update_detailed_status(message)
+
+    def on_metadata_progress(self, message):
+        if self.processing_window:
+            self.processing_window.update_detailed_status(message)
+
+    def on_output_progress(self, message):
+        if self.processing_window:
+            self.processing_window.update_detailed_status(message)
         
     def setup_ui(self):
         # Move all UI initialization here

@@ -211,6 +211,10 @@ def update_spex_config(config_type: str, profile_name: str):
     # Save the last used config
     config_mgr.save_last_used_config('spex')
 
+def print_av_spex_logo():
+    avspex_icon = text2art("A-V Spex", font='5lineoblique')
+    print(f'{avspex_icon}\n')
+
 
 def run_cli_mode(args):
     print_av_spex_logo()
