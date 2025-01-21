@@ -52,58 +52,105 @@ def log_overall_time(overall_start_time, overall_end_time):
 
     return formatted_overall_time
 
+
 class AVSpexProcessor:
-    def __init__(self):
+    def __init__(self, signals=None):
+        self.signals = signals
         self.config_mgr = ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
-        
+
     def initialize(self):
         """Check all prerequisites before processing"""
+        if self.signals:
+            self.signals.status_update.emit("Checking Python version...")
         check_py_version()
         
-        for command in required_commands:
+        if self.signals:
+            self.signals.status_update.emit("Checking required dependencies...")
+        
+        total_commands = len(required_commands)
+        for idx, command in enumerate(required_commands, 1):
+            if self.signals:
+                self.signals.status_update.emit(f"Checking {command} ({idx}/{total_commands})...")
+                self.signals.progress.emit(idx, total_commands)
+                
             if not check_external_dependency(command):
-                raise RuntimeError(f"Error: {command} not found. Please install it.")
+                error_msg = f"Error: {command} not found. Please install it."
+                if self.signals:
+                    self.signals.error.emit(error_msg)
+                raise RuntimeError(error_msg)
+        
+        if self.signals:
+            self.signals.status_update.emit("All prerequisites checked successfully.")
         
         return True
-        
+
     def process_directories(self, source_directories):
-        """Main processing method"""
         overall_start_time = time.time()
-        
-        for source_directory in source_directories:
+        total_dirs = len(source_directories)
+
+        for idx, source_directory in enumerate(source_directories, 1):
+            if self.signals:
+                self.signals.progress.emit(idx, total_dirs)
+                self.signals.status_update.emit(f"Processing directory {idx}/{total_dirs}: {source_directory}")
+            
             source_directory = os.path.normpath(source_directory)
             self.process_single_directory(source_directory)
-            
-        print_nmaahc_logo()
-        
+
         overall_end_time = time.time()
         return log_overall_time(overall_start_time, overall_end_time)
 
     def process_single_directory(self, source_directory):
-        display_processing_banner()
-        
+        if self.signals:
+            self.signals.status_update.emit(f"Initializing directory: {source_directory}")
+
         init_dir_result = dir_setup.initialize_directory(source_directory)
         if init_dir_result is None:
+            if self.signals:
+                self.signals.error.emit(f"Failed to initialize directory: {source_directory}")
             return
 
         video_path, video_id, destination_directory, access_file_found = init_dir_result
-        
+
+        if self.signals:
+            self.signals.tool_started.emit("Processing fixity...")
+
         processing_mgmt.process_fixity(source_directory, video_path, video_id)
-        
+
+        if self.signals:
+            self.signals.tool_completed.emit("Fixity processing complete")
+
+        if self.signals:
+            self.signals.tool_started.emit("Validating with MediaConch...")
+
         mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
             video_path, destination_directory, video_id
         )
+
+        if self.signals:
+            self.signals.tool_completed.emit("MediaConch validation complete")
+
+        if self.signals:
+            self.signals.tool_started.emit("Running video metadata tools...")
         
         metadata_differences = processing_mgmt.process_video_metadata(
             video_path, destination_directory, video_id
         )
+
+        if self.signals:
+            self.signals.tool_completed.emit("Metadata tools complete")
+
+        if self.signals:
+            self.signals.tool_started.emit("Creating outputs...")
         
         processing_results = processing_mgmt.process_video_outputs(
             video_path, source_directory, destination_directory,
             video_id, metadata_differences
         )
+
+        if self.signals:
+            self.signals.tool_completed.emit("Outputs complete")
         
         logger.debug('Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
         

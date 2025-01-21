@@ -47,13 +47,35 @@ class ProcessingWindow(QMainWindow):
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)  # Indeterminate progress
         layout.addWidget(self.progress_bar)
-        
+
+        self.details_text = QTextEdit()
+        self.details_text.setReadOnly(True)
+        self.details_text.setMaximumHeight(100)
+        layout.addWidget(self.details_text)
+
         # Center the window on screen
         self._center_on_screen()  # Changed to use the defined method
         
         # Force window to update
         self.update()
         self.repaint()
+
+    def update_status(self, message):
+        self.status_label.setText(message)
+        self.details_text.append(message)
+        # Scroll to bottom
+        scrollbar = self.details_text.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    def update_progress(self, current, total):
+        if total > 0:  # Only show determinate progress when we have a total
+            self.progress_bar.setMaximum(total)
+            self.progress_bar.setValue(current)
+        else:
+            self.progress_bar.setMaximum(0)  # Show indeterminate progress
+        
+        # Force window to update
+        QApplication.processEvents()
 
     def _center_on_screen(self):
         """Centers the window on the screen"""
@@ -72,9 +94,6 @@ class ProcessingWindow(QMainWindow):
     def closeEvent(self, event):
         print("ProcessingWindow close event triggered")  # Debug
         super().closeEvent(event)
-        
-    def update_status(self, message):
-        self.status_label.setText(message)
 
 
 class DirectoryListWidget(QListWidget):
@@ -475,30 +494,45 @@ class ConfigWindow(QWidget):
                         "Failed to import MediaConch policy file. Check logs for details."
                     )
 
-
-class ProcessingSignals(QObject):
-    started = pyqtSignal(str)  # Signal for when processing starts
-    completed = pyqtSignal(str)  # Signal for when processing completes
-    error = pyqtSignal(str)  # Signal for when an error occurs
-    status_update = pyqtSignal(str)  # Signal for status updates
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.processor = AVSpexProcessor()
         self.signals = ProcessingSignals()
+        self.processor = AVSpexProcessor(signals=self.signals)
         
-        # Connect signals to slots
+        # Connect all signals
         self.signals.started.connect(self.on_processing_started)
         self.signals.completed.connect(self.on_processing_completed)
         self.signals.error.connect(self.on_error)
         self.signals.status_update.connect(self.on_status_update)
+        self.signals.progress.connect(self.on_progress_update)
+        self.signals.tool_started.connect(self.on_tool_started)
+        self.signals.tool_completed.connect(self.on_tool_completed)
 
         # Init processing window
         self.processing_window = None
         
         # Setup UI
         self.setup_ui()
+
+    def on_progress_update(self, current, total):
+        if self.processing_window:
+            self.processing_window.update_progress(current, total)
+
+    def on_tool_started(self, tool_name):
+        if self.processing_window:
+            self.processing_window.update_status(f"Starting {tool_name}")
+            # Reset progress bar for new tool
+            self.processing_window.progress_bar.setMaximum(0)  # Indeterminate progress
+        
+    def on_tool_completed(self, message):
+        if self.processing_window:
+            self.processing_window.update_status(message)
+            # Reset progress bar
+            self.processing_window.progress_bar.setMaximum(100)
+            self.processing_window.progress_bar.setValue(100)
+            # Let UI update
+            QApplication.processEvents()
         
     def setup_ui(self):
         # Move all UI initialization here
@@ -822,9 +856,9 @@ class MainWindow(QMainWindow):
         print("Check Spex button clicked")  # Debug line
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
-        self.process_directories()
+        self.call_process_directories()
 
-    def process_directories(self):
+    def call_process_directories(self):
         try:
             print("Starting process_directories")  # Debug line
             self.signals.started.emit("Initializing...")  # This should trigger on_processing_started
