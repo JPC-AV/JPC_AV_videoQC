@@ -270,6 +270,7 @@ def run_avspex(source_directories):
         print(f"Error: {str(e)}")
         sys.exit(1)
 
+
 def main_gui():
     args = parse_arguments()
     app = QApplication(sys.argv)
