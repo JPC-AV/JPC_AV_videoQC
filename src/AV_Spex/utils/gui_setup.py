@@ -96,12 +96,11 @@ class ProcessingWindow(QMainWindow):
 
     def showEvent(self, event):
         super().showEvent(event)
-        print("ProcessingWindow showEvent triggered")  # Debug
         self.raise_()  # Bring window to front
         self.activateWindow()  # Activate the window
 
     def closeEvent(self, event):
-        print("ProcessingWindow close event triggered")  # Debug
+        # logger.debug("ProcessingWindow close event triggered")  # Debug
         super().closeEvent(event)
 
 
@@ -552,7 +551,7 @@ class MainWindow(QMainWindow):
             self.worker.start()
             
         except Exception as e:
-            print(f"Error starting worker thread: {str(e)}")
+            # logger.debug(f"Error starting worker thread: {str(e)}")
             self.signals.error.emit(str(e))
 
     def on_worker_finished(self):
@@ -567,6 +566,26 @@ class MainWindow(QMainWindow):
             self.worker.deleteLater()
             self.worker = None
 
+        # Slot methods
+    def on_processing_started(self, message):
+        """Handle processing start"""
+        # logger.debug("Processing started with message:", message)
+        if self.processing_window is None:
+            self.processing_window = ProcessingWindow(self)
+        self.processing_window.update_status(message)
+        self.processing_window.show()
+        self.processing_window.raise_()
+        self.check_spex_button.setEnabled(False)
+        QApplication.processEvents()
+        
+    def on_processing_completed(self, message):
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        # Re-enable the Check Spex button
+        self.check_spex_button.setEnabled(True)
+        QMessageBox.information(self, "Complete", message)
+    
     def on_processing_time(self, formatted_time):
         """Handle processing time message from worker"""
         QMessageBox.information(self, "Complete", f"Processing completed in {formatted_time}!")
@@ -953,7 +972,7 @@ class MainWindow(QMainWindow):
 
     def on_check_spex_clicked(self):
         """Handle the Start button click."""
-        print("Check Spex button clicked")  # Debug line
+        # logger.debug("Check Spex button clicked")  # Debug line
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
         self.call_process_directories()
@@ -1106,24 +1125,4 @@ class MainWindow(QMainWindow):
         self.config_mgr.save_last_used_config('checks')
         self.config_mgr.save_last_used_config('spex')
         self.close()  # Close the GUI
-
-    # Slot methods
-    def on_processing_started(self, message):
-        """Handle processing start"""
-        print("Processing started with message:", message)
-        if self.processing_window is None:
-            self.processing_window = ProcessingWindow(self)
-        self.processing_window.update_status(message)
-        self.processing_window.show()
-        self.processing_window.raise_()
-        self.check_spex_button.setEnabled(False)
-        QApplication.processEvents()
-        
-    def on_processing_completed(self, message):
-        if self.processing_window:
-            self.processing_window.close()
-            self.processing_window = None
-        # Re-enable the Check Spex button
-        self.check_spex_button.setEnabled(True)
-        QMessageBox.information(self, "Complete", message)
         
