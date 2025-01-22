@@ -93,16 +93,16 @@ class ConfigWindow(QWidget):
         # Fixity Section
         fixity_group = QGroupBox("Fixity")
         fixity_layout = QVBoxLayout()
-        self.check_fixity_cb = QCheckBox("check_fixity")
-        self.validate_stream_cb = QCheckBox("validate_stream_fixity")
-        self.embed_stream_cb = QCheckBox("embed_stream_fixity")
-        self.output_fixity_cb = QCheckBox("output_fixity (to .txt and .md5 files)")
-        self.overwrite_stream_cb = QCheckBox("overwrite_stream_fixity")
+        self.output_fixity_cb = QCheckBox("Output fixity (to .txt and .md5 files)")
+        self.check_fixity_cb = QCheckBox("Validate fixity")
+        self.embed_stream_cb = QCheckBox("Embed Stream fixity")
+        self.validate_stream_cb = QCheckBox("Validate Stream fixity")
+        self.overwrite_stream_cb = QCheckBox("Overwrite Stream fixity")
         
-        fixity_layout.addWidget(self.check_fixity_cb)
-        fixity_layout.addWidget(self.validate_stream_cb)
-        fixity_layout.addWidget(self.embed_stream_cb)
         fixity_layout.addWidget(self.output_fixity_cb)
+        fixity_layout.addWidget(self.check_fixity_cb)
+        fixity_layout.addWidget(self.embed_stream_cb)
+        fixity_layout.addWidget(self.validate_stream_cb)
         fixity_layout.addWidget(self.overwrite_stream_cb)
         fixity_group.setLayout(fixity_layout)
         
@@ -117,8 +117,8 @@ class ConfigWindow(QWidget):
         for tool in basic_tools:
             tool_group = QGroupBox(tool)
             tool_layout = QVBoxLayout()
-            check_cb = QCheckBox("check_tool")
-            run_cb = QCheckBox("run_tool")
+            check_cb = QCheckBox("Check Tool")
+            run_cb = QCheckBox("Run Tool")
             self.tool_widgets[tool] = {'check': check_cb, 'run': run_cb}
             tool_layout.addWidget(check_cb)
             tool_layout.addWidget(run_cb)
@@ -126,9 +126,9 @@ class ConfigWindow(QWidget):
             tools_layout.addWidget(tool_group)
         
         # MediaConch
-        mediaconch_group = QGroupBox("mediaconch")
+        mediaconch_group = QGroupBox("Mediaconch")
         mediaconch_layout = QVBoxLayout()
-        self.run_mediaconch_cb = QCheckBox("run_mediaconch")
+        self.run_mediaconch_cb = QCheckBox("Run Mediaconch")
         
         # Policy selection
         policy_container = QWidget()
@@ -161,7 +161,7 @@ class ConfigWindow(QWidget):
         tools_layout.addWidget(mediaconch_group)
         
         # QCT Parse
-        qct_group = QGroupBox("qct_parse")
+        qct_group = QGroupBox("qct-parse")
         qct_layout = QVBoxLayout()
         
         self.bars_detection_cb = QCheckBox("barsDetection")
