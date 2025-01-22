@@ -46,7 +46,7 @@ class ProcessingWindow(QMainWindow):
         self.progress_bar = QProgressBar()
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setMinimum(0)
-        self.progress_bar.setMaximum(0)  # Indeterminate progress
+        self.progress_bar.setMaximum(0)  # This makes it into an "bouncing ball" progress bar
         layout.addWidget(self.progress_bar)
 
         self.details_text = QTextEdit()
@@ -75,16 +75,6 @@ class ProcessingWindow(QMainWindow):
         # Scroll to bottom
         scrollbar = self.details_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
-
-    def update_progress(self, current, total):
-        if total > 0:  # Only show determinate progress when we have a total
-            self.progress_bar.setMaximum(total)
-            self.progress_bar.setValue(current)
-        else:
-            self.progress_bar.setMaximum(0)  # Show indeterminate progress
-        
-        # Force window to update
-        QApplication.processEvents()
 
     def _center_on_screen(self):
         """Centers the window on the screen"""
@@ -525,7 +515,6 @@ class MainWindow(QMainWindow):
         self.signals.completed.connect(self.on_processing_completed)
         self.signals.error.connect(self.on_error)
         self.signals.status_update.connect(self.on_status_update)
-        self.signals.progress.connect(self.on_progress_update)
         
         # Tool-specific signals
         self.signals.tool_started.connect(self.on_tool_started)
@@ -618,22 +607,13 @@ class MainWindow(QMainWindow):
             self.worker.wait()
         super().closeEvent(event)
 
-    def on_progress_update(self, current, total):
-        if self.processing_window:
-            self.processing_window.update_progress(current, total)
-
     def on_tool_started(self, tool_name):
         if self.processing_window:
             self.processing_window.update_status(f"Starting {tool_name}")
-            # Reset progress bar for new tool
-            self.processing_window.progress_bar.setMaximum(0)  # Indeterminate progress
         
     def on_tool_completed(self, message):
         if self.processing_window:
             self.processing_window.update_status(message)
-            # Reset progress bar
-            self.processing_window.progress_bar.setMaximum(100)
-            self.processing_window.progress_bar.setValue(100)
             # Let UI update
             QApplication.processEvents()
 
