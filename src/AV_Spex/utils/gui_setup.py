@@ -17,6 +17,7 @@ from ..utils.log_setup import logger
 from ..utils import edit_config
 
 from ..processing.processing_mgmt import setup_mediaconch_policy
+from ..processing.worker_thread import ProcessingWorker
 
 from ..processing.avspex_processor import AVSpexProcessor
 from ..utils.signals import ProcessingSignals
@@ -506,14 +507,28 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.signals = ProcessingSignals()
-        self.processor = AVSpexProcessor(signals=self.signals)
-        
+        self.worker = None  # Initialize worker as None
+        self.processing_window = None
+
         # Connect all signals
+        self.setup_signal_connections()
+
+        # Init processing window
+        self.processing_window = None
+        
+        # Setup UI
+        self.setup_ui()
+
+    def setup_signal_connections(self):
+        """Setup all signal connections"""
+        # Processing window signals
         self.signals.started.connect(self.on_processing_started)
         self.signals.completed.connect(self.on_processing_completed)
         self.signals.error.connect(self.on_error)
         self.signals.status_update.connect(self.on_status_update)
         self.signals.progress.connect(self.on_progress_update)
+        
+        # Tool-specific signals
         self.signals.tool_started.connect(self.on_tool_started)
         self.signals.tool_completed.connect(self.on_tool_completed)
         self.signals.fixity_progress.connect(self.on_fixity_progress)
@@ -521,11 +536,68 @@ class MainWindow(QMainWindow):
         self.signals.metadata_progress.connect(self.on_metadata_progress)
         self.signals.output_progress.connect(self.on_output_progress)
 
-        # Init processing window
-        self.processing_window = None
+    def call_process_directories(self):
+        """Initialize and start the worker thread"""
+        try:
+            # Create and configure the worker
+            self.worker = ProcessingWorker(self.source_directories, self.signals)
+            
+            # Connect worker-specific signals
+            self.worker.started_processing.connect(self.on_processing_started)
+            self.worker.finished.connect(self.on_worker_finished)
+            self.worker.error.connect(self.on_error)
+            self.worker.processing_time.connect(self.on_processing_time)
+            
+            # Start the worker thread
+            self.worker.start()
+            
+        except Exception as e:
+            print(f"Error starting worker thread: {str(e)}")
+            self.signals.error.emit(str(e))
+
+    def on_worker_finished(self):
+        """Handle worker thread completion"""
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        self.check_spex_button.setEnabled(True)
         
-        # Setup UI
-        self.setup_ui()
+        # Clean up the worker
+        if self.worker:
+            self.worker.deleteLater()
+            self.worker = None
+
+    def on_processing_time(self, formatted_time):
+        """Handle processing time message from worker"""
+        QMessageBox.information(self, "Complete", f"Processing completed in {formatted_time}!")
+
+    def on_error(self, error_message):
+        """Handle errors"""
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        self.check_spex_button.setEnabled(True)
+        QMessageBox.critical(self, "Error", error_message)
+        
+        # Clean up worker if it exists
+        if self.worker:
+            self.worker.quit()
+            self.worker.wait()
+            self.worker.deleteLater()
+            self.worker = None
+
+    def on_status_update(self, message):
+        """Handle status updates"""
+        if self.processing_window:
+            self.processing_window.update_status(message)
+
+    def closeEvent(self, event):
+        """Handle application closing"""
+        # If worker is running, stop it properly
+        if self.worker and self.worker.isRunning():
+            self.worker.quit()
+            self.worker.wait()
+        super().closeEvent(event)
 
     def on_progress_update(self, current, total):
         if self.processing_window:
@@ -886,22 +958,6 @@ class MainWindow(QMainWindow):
         self.check_spex_clicked = True  # Mark that the button was clicked
         self.call_process_directories()
 
-    def call_process_directories(self):
-        try:
-            print("Starting process_directories")  # Debug line
-            self.signals.started.emit("Initializing...")  # This should trigger on_processing_started
-            print("Emitted started signal")  # Debug line
-            
-            self.processor.initialize()
-            
-            self.signals.status_update.emit("Processing directories...")
-            formatted_time = self.processor.process_directories(self.source_directories)
-            
-            self.signals.completed.emit(f"Processing completed in {formatted_time}!")
-        except Exception as e:
-            print(f"Error in process_directories: {str(e)}")  # Debug line
-            self.signals.error.emit(str(e))
-
 
     def on_profile_selected(self, index):
         selected_profile = self.command_profile_dropdown.currentText()
@@ -1053,6 +1109,7 @@ class MainWindow(QMainWindow):
 
     # Slot methods
     def on_processing_started(self, message):
+        """Handle processing start"""
         print("Processing started with message:", message)
         if self.processing_window is None:
             self.processing_window = ProcessingWindow(self)
@@ -1060,7 +1117,6 @@ class MainWindow(QMainWindow):
         self.processing_window.show()
         self.processing_window.raise_()
         self.check_spex_button.setEnabled(False)
-        # Force event processing
         QApplication.processEvents()
         
     def on_processing_completed(self, message):
@@ -1071,13 +1127,3 @@ class MainWindow(QMainWindow):
         self.check_spex_button.setEnabled(True)
         QMessageBox.information(self, "Complete", message)
         
-    def on_error(self, error_message):
-        if self.processing_window:
-            self.processing_window.close()
-            self.processing_window = None
-        self.check_spex_button.setEnabled(True)
-        QMessageBox.critical(self, "Error", error_message)
-        
-    def on_status_update(self, message):
-        if self.processing_window:
-            self.processing_window.update_status(message)
