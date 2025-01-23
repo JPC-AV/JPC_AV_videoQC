@@ -13,3 +13,4 @@ class ProcessingSignals(QObject):
     mediaconch_progress = pyqtSignal(str)  # For detailed mediaconch status
     metadata_progress = pyqtSignal(str)  # For detailed metadata status
     output_progress = pyqtSignal(str)  # For detailed output creation status
+    cancelled = pyqtSignal() # For cancel button

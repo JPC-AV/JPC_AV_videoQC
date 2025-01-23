@@ -46,13 +46,17 @@ class ProcessingWindow(QMainWindow):
         self.progress_bar = QProgressBar()
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setMinimum(0)
-        self.progress_bar.setMaximum(0)  # This makes it into an "bouncing ball" progress bar
+        self.progress_bar.setMaximum(0)  # This makes it into a "bouncing ball" progress bar
         layout.addWidget(self.progress_bar)
 
         self.details_text = QTextEdit()
         self.details_text.setReadOnly(True)
         self.details_text.setMaximumHeight(100)
         layout.addWidget(self.details_text)
+
+        # Add cancel button
+        self.cancel_button = QPushButton("Cancel")
+        layout.addWidget(self.cancel_button)
 
         # Center the window on screen
         self._center_on_screen()  # Changed to use the defined method
@@ -515,6 +519,7 @@ class MainWindow(QMainWindow):
         self.signals.completed.connect(self.on_processing_completed)
         self.signals.error.connect(self.on_error)
         self.signals.status_update.connect(self.on_status_update)
+        self.signals.cancelled.connect(self.on_processing_cancelled)
         
         # Tool-specific signals
         self.signals.tool_started.connect(self.on_tool_started)
@@ -561,6 +566,8 @@ class MainWindow(QMainWindow):
         # logger.debug("Processing started with message:", message)
         if self.processing_window is None:
             self.processing_window = ProcessingWindow(self)
+            self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
+            
         self.processing_window.update_status(message)
         self.processing_window.show()
         self.processing_window.raise_()
@@ -599,11 +606,22 @@ class MainWindow(QMainWindow):
         if self.processing_window:
             self.processing_window.update_status(message)
 
-    def closeEvent(self, event):
-        """Handle application closing"""
-        # If worker is running, stop it properly
+    def cancel_processing(self):
         if self.worker and self.worker.isRunning():
-            self.worker.quit()
+            self.worker.cancel()
+            self.processing_window.update_status("Cancelling processing...")
+            self.processing_window.cancel_button.setEnabled(False)
+
+    def on_processing_cancelled(self):
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        self.check_spex_button.setEnabled(True)
+        QMessageBox.information(self, "Cancelled", "Processing was cancelled.")
+
+    def closeEvent(self, event):
+        if self.worker and self.worker.isRunning():
+            self.worker.cancel()
             self.worker.wait()
         super().closeEvent(event)
 

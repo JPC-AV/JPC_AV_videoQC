@@ -260,8 +260,8 @@ def run_cli_mode(args):
         sys.exit(1)
 
 
-def run_avspex(source_directories):
-    processor = AVSpexProcessor()
+def run_avspex(source_directories, signals=None):
+    processor = AVSpexProcessor(signals=signals)
     try:
         processor.initialize()
         formatted_time = processor.process_directories(source_directories)
