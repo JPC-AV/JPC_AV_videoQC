@@ -23,8 +23,9 @@ checks_config = config_mgr.get_config('checks', ChecksConfig)
 spex_config = config_mgr.get_config('spex', SpexConfig)
 
 class ProcessingManager:
-    def __init__(self, signals=None):
+    def __init__(self, signals=None, check_cancelled_fn=None):
         self.signals = signals
+        self.check_cancelled = check_cancelled_fn or (lambda: False)
 
     def process_fixity(self, source_directory, video_path, video_id):
         """
@@ -40,7 +41,11 @@ class ProcessingManager:
         if checks_config.fixity.embed_stream_fixity == 'yes':
             if self.signals:
                 self.signals.fixity_progress.emit("Embedding fixity...")
+            if self.check_cancelled():
+                return False
             process_embedded_fixity(video_path)
+            if self.check_cancelled():
+                return False
 
         # Validate stream hashes if required
         if checks_config.fixity.validate_stream_fixity == 'yes':
@@ -58,7 +63,7 @@ class ProcessingManager:
         if checks_config.fixity.output_fixity == 'yes':
             if self.signals:
                 self.signals.fixity_progress.emit("Outputting fixity...")
-            md5_checksum = output_fixity(source_directory, video_path)
+            md5_checksum = output_fixity(source_directory, video_path, check_cancelled=self.check_cancelled)
 
         # Verify stored checksum and write results  
         if checks_config.fixity.check_fixity == 'yes':

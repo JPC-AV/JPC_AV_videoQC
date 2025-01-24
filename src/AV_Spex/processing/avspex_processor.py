@@ -140,7 +140,7 @@ class AVSpexProcessor:
             return False
 
         video_path, video_id, destination_directory, access_file_found = init_dir_result
-        processing_mgmt = ProcessingManager(signals=self.signals)
+        processing_mgmt = ProcessingManager(signals=self.signals, check_cancelled_fn=self.check_cancelled)
 
         if self.check_cancelled():
             return False
