@@ -288,14 +288,14 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
             return results
 
         # Run QCTools parsing
-        run_qctparse(video_path, qctools_output_path, report_directory)
+        run_qctparse(video_path, qctools_output_path, report_directory, check_cancelled=check_cancelled)
         # currently not using results['qctools_check_output']
 
     return results
 
 def run_qctools_command(command, input_path, output_type, output_path, check_cancelled=None):
     if check_cancelled():
-            return None
+        return None
     
     env = os.environ.copy()
     env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')

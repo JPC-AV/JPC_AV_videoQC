@@ -465,7 +465,7 @@ def getCompFromConfig(qct_parse, profile, tag):
    raise ValueError(f"No matching comparison operator found for profile and tag: {profile}, {tag}")
 
 
-def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False):
+def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False, check_cancelled=None):
     """
     Analyzes video frames from the QCTools report to detect threshold exceedances for specified tags or profiles and logs frame failures.
 
@@ -514,6 +514,8 @@ def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durat
                 frameCount = frameCount + 1
                 frame_pkt_dts_time = elem.attrib[pkt] 	#get the timestamps for the current frame we're looking at
                 if frame_pkt_dts_time >= str(durationStart): 	#only work on frames that are after the start time
+                    if check_cancelled():
+                        return kbeyond, frameCount, overallFrameFail, failureInfo
                     if durationEnd:
                         if float(frame_pkt_dts_time) > durationEnd:		#only work on frames that are before the end time
                             print("started at " + str(durationStart) + " seconds and stopped at " + str(frame_pkt_dts_time) + " seconds (" + dts2ts(frame_pkt_dts_time) + ") or " + str(frameCount) + " frames!")
@@ -863,7 +865,7 @@ def detectBitdepth(startObj,pkt,framesList,buffSize):
 	return bit_depth_10
 
 
-def run_qctparse(video_path, qctools_output_path, report_directory):
+def run_qctparse(video_path, qctools_output_path, report_directory, check_cancelled=None):
     """
     Executes the qct-parse analysis on a given video file, exporting relevant data and thumbnails based on specified thresholds and profiles.
 
@@ -930,6 +932,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
     # Determine if video values are 10 bit depth
     bit_depth_10 = detectBitdepth(startObj,pkt,framesList,buffSize)
 
+    if check_cancelled():
+        return None
+
     ######## Iterate Through the XML for content detection ########
     if qct_parse['contentFilter']:
         for filter_name in qct_parse['contentFilter']:
@@ -943,6 +948,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                 }
                 qctools_content_check_output = os.path.join(report_directory, f"qct-parse_contentFilter_{filter_name}_summary.csv")
                 detectContentFilter(startObj, pkt, filter_name, contentFilter_dict, qctools_content_check_output, framesList, qct_parse, thumbPath, video_path)
+
+    if check_cancelled():
+        return None
 
     ######## Iterate Through the XML for General Analysis ########
     if qct_parse['profile']:
@@ -958,13 +966,16 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         # set profile_name
         profile_name = f"threshold_profile_{template}"
         # check xml against thresholds, return kbeyond (dictionary of tags: framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-        kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False)
+        kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False, check_cancelled=check_cancelled)
         profile_fails_csv_path = os.path.join(report_directory, "qct-parse_profile_failures.csv")
         if failureInfo:
             save_failures_to_csv(failureInfo, profile_fails_csv_path)
         qctools_profile_check_output = os.path.join(report_directory, "qct-parse_profile_summary.csv")
         printresults(profile, kbeyond, frameCount, overallFrameFail, qctools_profile_check_output)
         logger.debug(f"qct-parse summary written to {qctools_profile_check_output}\n")
+
+    if check_cancelled():
+        return None
 
     if qct_parse['tagname']:
         logger.debug(f"Starting qct-parse analysis against user input tag thresholds on {baseName}\n")
@@ -974,13 +985,16 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
         # set profile_name
         profile_name = 'tag_check'
         # check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-        kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag = True)
+        kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag = True, check_cancelled=check_cancelled)
         tag_fails_csv_path = os.path.join(report_directory, "qct-parse_tags_failures.csv")
         if failureInfo:
             save_failures_to_csv(failureInfo, tag_fails_csv_path)
         qctools_tag_check_output = os.path.join(report_directory, "qct-parse_tags_summary.csv")
         printresults(profile, kbeyond, frameCount, overallFrameFail, qctools_tag_check_output)
         logger.debug(f"qct-parse summary written to {qctools_tag_check_output}\n")
+
+    if check_cancelled():
+        return None
 
     ######## Iterate Through the XML for Bars detection ########
     if qct_parse['barsDetection']:
@@ -997,6 +1011,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
             if qct_parse['thumbExport']:
                 barsStampString = dts2ts(durationStart)
                 printThumb(video_path, "bars_found", "color_bars_detection", startObj,thumbPath, "first_frame", barsStampString)
+
+    if check_cancelled():
+        return None
 
     ######## Iterate Through the XML for Bars Evaluation ########
     if qct_parse['evaluateBars']:
@@ -1020,7 +1037,7 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                 profile_name = 'color_bars_evaluation'
                 thumbExportDelay = 9000            
                 # check xml against thresholds, return kbeyond (dictionary of tags:framecount exceeding), frameCount (total # of frames), and overallFrameFail (total # of failed frames)
-                kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False)
+                kbeyond, frameCount, overallFrameFail, failureInfo = analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, thumbExportDelay, framesList, frameCount=0, overallFrameFail=0, adhoc_tag=False, check_cancelled=check_cancelled)
                 colorbars_eval_fails_csv_path = os.path.join(report_directory, "qct-parse_colorbars_eval_failures.csv")
                 if failureInfo:
                     save_failures_to_csv(failureInfo, colorbars_eval_fails_csv_path)
@@ -1029,6 +1046,9 @@ def run_qctparse(video_path, qctools_output_path, report_directory):
                 logger.debug(f"qct-parse bars evaluation complete. qct-parse summary written to {qctools_bars_eval_check_output}\n")
         else:
             logger.critical("Cannot run color bars evaluation without running Bars Detection.")
+
+    if check_cancelled():
+        return None
 
     logger.info(f"qct-parse finished processing file: {os.path.basename(startObj)} \n")
 
