@@ -106,14 +106,14 @@ class AVSpexProcessor:
 
     def process_directories(self, source_directories):
         if self.check_cancelled():
-            return None
+            return False
 
         overall_start_time = time.time()
         total_dirs = len(source_directories)
 
         for idx, source_directory in enumerate(source_directories, 1):
             if self.check_cancelled():
-                return None
+                return False
 
             if self.signals:
                 self.signals.progress.emit(idx, total_dirs)
@@ -121,7 +121,7 @@ class AVSpexProcessor:
             
             source_directory = os.path.normpath(source_directory)
             if not self.process_single_directory(source_directory):
-                return None
+                return False
 
         overall_end_time = time.time()
         return log_overall_time(overall_start_time, overall_end_time)

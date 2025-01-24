@@ -147,18 +147,13 @@ def hashlib_md5(filename, check_cancelled=None):
     with open(str(filename), 'rb') as file_object:
         while True:
             if check_cancelled():
+                logger.warning("Checksum calculation cancelled.")
                 return None
             buf = file_object.read(2**20)
             if not buf:
                 break
-            if check_cancelled():
-                logger.warning("Checksum calculation cancelled.")
-                return None
             read_size += len(buf)
             md5_object.update(buf)
-            if check_cancelled():
-                logger.warning("Checksum calculation cancelled.")
-                return None
             percent_done = 100 * read_size / total_size
             if percent_done > last_percent_done:
                 sys.stdout.write('[%d%%]\r' % percent_done)

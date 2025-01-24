@@ -567,7 +567,6 @@ class MainWindow(QMainWindow):
         if self.processing_window is None:
             self.processing_window = ProcessingWindow(self)
             self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
-            
         self.processing_window.update_status(message)
         self.processing_window.show()
         self.processing_window.raise_()

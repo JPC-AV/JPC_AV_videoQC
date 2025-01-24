@@ -37,13 +37,16 @@ class ProcessingManager:
             video_id (str): Unique identifier for the video
         """
         
+        if self.check_cancelled():
+            return None
+        
         # Embed stream fixity if required  
         if checks_config.fixity.embed_stream_fixity == 'yes':
             if self.signals:
                 self.signals.fixity_progress.emit("Embedding fixity...")
             if self.check_cancelled():
                 return False
-            process_embedded_fixity(video_path)
+            process_embedded_fixity(video_path, check_cancelled=self.check_cancelled)
             if self.check_cancelled():
                 return False
 
@@ -54,7 +57,7 @@ class ProcessingManager:
             if checks_config.fixity.embed_stream_fixity == 'yes':
                 logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
             else:
-                validate_embedded_md5(video_path)
+                validate_embedded_md5(video_path, check_cancelled=self.check_cancelled)
 
         # Initialize md5_checksum variable
         md5_checksum = None
