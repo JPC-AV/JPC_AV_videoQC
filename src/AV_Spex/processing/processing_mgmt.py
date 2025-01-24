@@ -1,5 +1,7 @@
 import os
 import shutil
+import subprocess
+import time
 
 from ..processing import run_tools
 from ..utils import dir_setup
@@ -98,8 +100,6 @@ class ProcessingManager:
         
         if self.signals:
             self.signals.mediaconch_progress.emit("Locating MediaConch policy...")
-
-        
         if self.check_cancelled():
             return None
         
@@ -218,7 +218,8 @@ class ProcessingManager:
 
         # Process QCTools output
         process_qctools_output(
-            video_path, source_directory, destination_directory, video_id, report_directory
+            video_path, source_directory, destination_directory, video_id, report_directory=report_directory,
+            check_cancelled=self.check_cancelled
         )
 
         if self.signals:
@@ -233,8 +234,8 @@ class ProcessingManager:
 
         if self.signals:
             self.signals.output_progress.emit("Preparing report...")
-            if self.check_cancelled():
-                return None
+        if self.check_cancelled():
+            return None
 
         # Generate final HTML report
         processing_results['html_report'] = generate_final_report(
@@ -244,7 +245,7 @@ class ProcessingManager:
         return processing_results
 
 
-def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None):
+def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None, check_cancelled=None):
     """
     Process QCTools output, including running QCTools and optional parsing.
     
@@ -265,11 +266,13 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
     # Prepare QCTools output path
     qctools_ext = checks_config.outputs.qctools_ext
     qctools_output_path = os.path.join(destination_directory, f'{video_id}.{qctools_ext}')
-    
+
+    if check_cancelled():
+            return None
 
     # Run QCTools command
     if checks_config.tools.qctools.run_tool == 'yes':
-        run_tools.run_command('qcli -i', video_path, '-o', qctools_output_path)
+        run_qctools_command('qcli -i', video_path, '-o', qctools_output_path, check_cancelled=check_cancelled)
         logger.debug('')  # Add new line for cleaner terminal output
         results['qctools_output_path'] = qctools_output_path
 
@@ -289,6 +292,30 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         # currently not using results['qctools_check_output']
 
     return results
+
+def run_qctools_command(command, input_path, output_type, output_path, check_cancelled=None):
+    if check_cancelled():
+            return None
+    
+    env = os.environ.copy()
+    env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
+
+    full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
+    logger.debug(f'Running command: {full_command}\n')
+    
+    process = subprocess.Popen(full_command, shell=True, env=env)
+    
+    while process.poll() is None:  # While process is running
+        if check_cancelled():
+            process.terminate()  # Send SIGTERM
+            try:
+                process.wait(timeout=5)  # Wait up to 5 seconds for graceful termination
+            except subprocess.TimeoutExpired:
+                process.kill()  # Force kill if process doesn't terminate
+            return None
+        time.sleep(1)  # Check cancel status every 0.5 seconds
+    
+    #return process.returncode
 
 
 def check_tool_metadata(tool_name, output_path):
