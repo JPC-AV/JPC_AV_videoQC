@@ -74,8 +74,11 @@ class ProcessingManager:
                 self.signals.fixity_progress.emit("Validating fixity...")
             check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
 
+        if self.check_cancelled():
+            return None
 
-    def validate_video_with_mediaconch(self, video_path, destination_directory, video_id):
+
+    def validate_video_with_mediaconch(self, video_path, destination_directory, video_id, ):
         """
         Coordinate the entire MediaConch validation process.
         
@@ -96,6 +99,10 @@ class ProcessingManager:
         if self.signals:
             self.signals.mediaconch_progress.emit("Locating MediaConch policy...")
 
+        
+        if self.check_cancelled():
+            return None
+        
         # Find the policy file
         policy_path = find_mediaconch_policy()
         if not policy_path:
@@ -106,6 +113,8 @@ class ProcessingManager:
 
         if self.signals:
             self.signals.mediaconch_progress.emit("Running MediaConch...")
+        if self.check_cancelled():
+            return None
 
         # Run MediaConch command
         if not run_mediaconch_command(
@@ -135,6 +144,9 @@ class ProcessingManager:
         Returns:
             dict: Dictionary of metadata differences from various tools
         """
+        if self.check_cancelled():
+            return None
+        
         # List of tools to process
         tools = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
         
@@ -146,6 +158,8 @@ class ProcessingManager:
         
         # Process each tool
         for tool in tools:
+            if self.check_cancelled():
+                return None
             # Run tool and get output path
             output_path = run_tools.run_tool_command(tool, video_path, destination_directory, video_id)
             
@@ -153,6 +167,9 @@ class ProcessingManager:
             differences = check_tool_metadata(tool, output_path)
             if differences:
                 metadata_differences[tool] = differences
+            
+            if self.check_cancelled():
+                return None
         
         return metadata_differences
     
@@ -180,6 +197,9 @@ class ProcessingManager:
             'html_report': None
         }
 
+        if self.check_cancelled():
+            return None
+       
         # Create report directory if report is enabled
         report_directory = None
         if checks_config.outputs.report == 'yes':
@@ -193,6 +213,8 @@ class ProcessingManager:
         
         if self.signals:
             self.signals.output_progress.emit("Running QCTools and qct-parse...")
+        if self.check_cancelled():
+            return None
 
         # Process QCTools output
         process_qctools_output(
@@ -201,6 +223,8 @@ class ProcessingManager:
 
         if self.signals:
             self.signals.output_progress.emit("Creating access file...")
+        if self.check_cancelled():
+            return None
 
         # Generate access file
         processing_results['access_file'] = process_access_file(
@@ -209,6 +233,8 @@ class ProcessingManager:
 
         if self.signals:
             self.signals.output_progress.emit("Preparing report...")
+            if self.check_cancelled():
+                return None
 
         # Generate final HTML report
         processing_results['html_report'] = generate_final_report(
