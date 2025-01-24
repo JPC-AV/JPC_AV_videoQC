@@ -185,7 +185,10 @@ def embed_fixity(video_path, check_cancelled=None):
 
     # Make md5 of video/audio stream
     logger.debug('Generating video and audio stream hashes. This may take a moment...')
-    video_hash, audio_hash = make_stream_hash(video_path, check_cancelled=check_cancelled)
+    hash_result = make_stream_hash(video_path, check_cancelled=check_cancelled)
+    if hash_result is None:
+        return None
+    video_hash, audio_hash = hash_result
     logger.debug('')  # add space after stream hash output
     logger.info(f'Video hash = {video_hash}\nAudio hash = {audio_hash}\n')
 

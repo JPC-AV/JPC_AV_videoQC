@@ -59,14 +59,16 @@ class AVSpexProcessor:
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
         self._cancelled = False
+        self._cancel_emitted = False 
 
     def cancel(self):
         self._cancelled = True
 
     def check_cancelled(self):
         """Check if processing was cancelled and emit signal if needed"""
-        if self._cancelled and self.signals:
+        if self._cancelled and self.signals and not self._cancel_emitted:
             self.signals.cancelled.emit()
+            self._cancel_emitted = True
         return self._cancelled
 
     def initialize(self):

@@ -19,20 +19,17 @@ class ProcessingWorker(QThread):
     def run(self):
         try:
             if self._is_cancelled:
-                self.cancelled.emit()
                 return
             
             # Emit started signal before beginning processing
             self.started_processing.emit("Initializing processing...")
             
             self.processor = AVSpexProcessor(signals=self.signals)
-
-            if self._is_cancelled:
-                self.cancelled.emit()
-                return
             
             # Initialize will trigger the progress window updates
-            self.processor.initialize()
+            # if initialize() returns false then setup has failed and return will end the thread
+            if not self.processor.initialize():
+                return
             
             # Process directories
             formatted_time = self.processor.process_directories(self.source_directories)
@@ -41,8 +38,7 @@ class ProcessingWorker(QThread):
             if not self._is_cancelled:
                 self.processing_time.emit(formatted_time)
                 self.finished.emit()
-            else:
-                self.cancelled.emit()
+
         except Exception as e:
             self.error.emit(str(e))
 
