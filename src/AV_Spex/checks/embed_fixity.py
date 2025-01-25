@@ -224,6 +224,9 @@ def embed_fixity(video_path, check_cancelled=None):
 
 def validate_embedded_md5(video_path, check_cancelled=None):
 
+    if check_cancelled():
+        return None
+
     logger.debug('Extracting existing video and audio stream hashes')
     existing_tags = extract_tags(video_path)
     if existing_tags:
@@ -242,12 +245,18 @@ def validate_embedded_md5(video_path, check_cancelled=None):
             embed_fixity(video_path, check_cancelled=check_cancelled)
             return
         logger.debug('Generating video and audio stream hashes. This may take a moment...')
-        video_hash, audio_hash = make_stream_hash(video_path, check_cancelled=check_cancelled)
+        hash_result = make_stream_hash(video_path, check_cancelled=check_cancelled)
+        if hash_result is None:
+            return None
+        video_hash, audio_hash = hash_result
         logger.debug(f"\n")
         logger.debug('Validating stream fixity\n')
         compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_hash)
     else:
-        logger.critical("mkvextract unable to extract MKV tags! Cannot validate stream hashes.\n")   
+        logger.critical("mkvextract unable to extract MKV tags! Cannot validate stream hashes.\n")
+
+    if check_cancelled():
+        return None
 
 
 def process_embedded_fixity(video_path, check_cancelled=None):
