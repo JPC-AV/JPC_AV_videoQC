@@ -148,7 +148,7 @@ class AVSpexProcessor:
             return False
 
         if self.signals:
-            self.signals.tool_started.emit("Processing fixity...")
+            self.signals.tool_started.emit("Fixity...")
 
         processing_mgmt.process_fixity(source_directory, video_path, video_id)
 
@@ -157,7 +157,7 @@ class AVSpexProcessor:
 
         if self.signals:
             self.signals.tool_completed.emit("Fixity processing complete")
-            self.signals.tool_started.emit("Validating with MediaConch...")
+            self.signals.tool_started.emit("MediaConch...")
 
         mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
             video_path, destination_directory, video_id
@@ -168,7 +168,7 @@ class AVSpexProcessor:
 
         if self.signals:
             self.signals.tool_completed.emit("MediaConch validation complete")
-            self.signals.tool_started.emit("Running video metadata tools...")
+            self.signals.tool_started.emit("video metadata tools...")
         
         metadata_differences = processing_mgmt.process_video_metadata(
             video_path, destination_directory, video_id
@@ -179,7 +179,7 @@ class AVSpexProcessor:
 
         if self.signals:
             self.signals.tool_completed.emit("Metadata tools complete")
-            self.signals.tool_started.emit("Creating outputs...")
+            self.signals.tool_started.emit("Output processing...")
         
         processing_results = processing_mgmt.process_video_outputs(
             video_path, source_directory, destination_directory,

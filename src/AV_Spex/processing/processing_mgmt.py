@@ -80,7 +80,7 @@ class ProcessingManager:
             return None
 
 
-    def validate_video_with_mediaconch(self, video_path, destination_directory, video_id, ):
+    def validate_video_with_mediaconch(self, video_path, destination_directory, video_id):
         """
         Coordinate the entire MediaConch validation process.
         
@@ -125,6 +125,9 @@ class ProcessingManager:
             policy_path
         ):
             return {}
+        
+        if self.check_cancelled():
+            return None
 
         # Parse and validate MediaConch output
         validation_results = parse_mediaconch_output(mediaconch_output_path)
@@ -229,7 +232,8 @@ class ProcessingManager:
 
         # Generate access file
         processing_results['access_file'] = process_access_file(
-            video_path, source_directory, video_id
+            video_path, source_directory, video_id, 
+            check_cancelled=self.check_cancelled
         )
 
         if self.signals:
@@ -239,7 +243,8 @@ class ProcessingManager:
 
         # Generate final HTML report
         processing_results['html_report'] = generate_final_report(
-            video_id, source_directory, report_directory, destination_directory
+            video_id, source_directory, report_directory, destination_directory,
+            check_cancelled=self.check_cancelled
         )
 
         return processing_results

@@ -316,7 +316,7 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
     return colorbars_html
 
 
-def make_profile_piecharts(qctools_profile_check_output, sorted_thumbs_dict, failureInfoSummary):
+def make_profile_piecharts(qctools_profile_check_output, sorted_thumbs_dict, failureInfoSummary, check_cancelled=None):
 
     # Read the profile summary CSV, skipping the first two metadata lines
     profile_summary_df = pd.read_csv(qctools_profile_check_output, skiprows=3)
@@ -333,6 +333,9 @@ def make_profile_piecharts(qctools_profile_check_output, sorted_thumbs_dict, fai
     # Create pie charts for the profile summary
     profile_summary_pie_charts = []
     for index, row in profile_summary_df.iterrows():
+        if check_cancelled():
+            logger.warning("HTML report cancelled.")
+            return profile_summary_html
         tag = row['Tag']
         failed_frames = int(row['Number of failed frames'])
         percentage = float(row['Percentage of failed frames'])
@@ -466,7 +469,7 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
     return content_summary_html
 
-def generate_final_report(video_id, source_directory, report_directory, destination_directory):
+def generate_final_report(video_id, source_directory, report_directory, destination_directory, check_cancelled=None):
     """
     Generate final HTML report if configured.
     
@@ -491,7 +494,7 @@ def generate_final_report(video_id, source_directory, report_directory, destinat
         html_report_path = os.path.join(source_directory, f'{video_id}_avspex_report.html')
         
         # Generate HTML report
-        write_html_report(video_id, report_directory, destination_directory, html_report_path)
+        write_html_report(video_id, report_directory, destination_directory, html_report_path, check_cancelled=check_cancelled)
         
         logger.info(f"HTML report generated: {html_report_path}\n")
         return html_report_path
@@ -501,11 +504,17 @@ def generate_final_report(video_id, source_directory, report_directory, destinat
         return None
 
 
-def write_html_report(video_id, report_directory, destination_directory, html_report_path):
+def write_html_report(video_id, report_directory, destination_directory, html_report_path, check_cancelled=None):
 
     qctools_colorbars_duration_output, qctools_bars_eval_check_output, colorbars_values_output, qctools_content_check_outputs, qctools_profile_check_output, profile_fails_csv, tags_check_output, tag_fails_csv, colorbars_eval_fails_csv, difference_csv = find_report_csvs(report_directory)
 
+    if check_cancelled():
+        return
+    
     exiftool_output_path, mediainfo_output_path, ffprobe_output_path, mediaconch_csv, fixity_sidecar = find_qc_metadata(destination_directory)
+
+    if check_cancelled():
+        return
 
     # Initialize and create html from 
     mc_csv_html, mediaconch_csv_filename = prepare_file_section(mediaconch_csv, lambda path: csv_to_html_table(path, style_mismatched=False, mismatch_color="#ffbaba", match_color="#d2ffed", check_fail=True))
@@ -536,9 +545,12 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
     else:
         failureInfoSummary_colorbars = None
 
+    if check_cancelled():
+        return
+
     # Create graphs for all existing csv files
     if qctools_bars_eval_check_output and failureInfoSummary_colorbars:
-        colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,thumbs_dict,failureInfoSummary_colorbars)
+        colorbars_eval_html = make_profile_piecharts(qctools_bars_eval_check_output,thumbs_dict,failureInfoSummary_colorbars,check_cancelled=check_cancelled)
     elif qctools_bars_eval_check_output and failureInfoSummary_colorbars is None:
        color_bars_segment = f"""
         <div style="display: flex; flex-direction: column; align-items: start; background-color: #f5e9e3; padding: 10px;"> 
@@ -559,7 +571,7 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
          colorbars_html = None
 
     if qctools_profile_check_output and failureInfoSummary_profile:
-        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,thumbs_dict,failureInfoSummary_profile)
+        profile_summary_html = make_profile_piecharts(qctools_profile_check_output,thumbs_dict,failureInfoSummary_profile,check_cancelled=check_cancelled)
     else:
         profile_summary_html = None
 
@@ -572,9 +584,12 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
         content_summary_html_list = None
 
     if tags_check_output and failureInfoSummary_tags:
-        tags_summary_html = make_profile_piecharts(tags_check_output,thumbs_dict,failureInfoSummary_tags)
+        tags_summary_html = make_profile_piecharts(tags_check_output,thumbs_dict,failureInfoSummary_tags,check_cancelled=check_cancelled)
     else:
         tags_summary_html = None
+
+    if check_cancelled():
+        return
 
     # Get the absolute path of the script file
     script_path = os.path.dirname(os.path.abspath(__file__))
@@ -648,6 +663,9 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
         <img src="{eq_image_path}" alt="AV Spex Graphic EQ Logo" style="width: 10%">
     """
 
+    if check_cancelled():
+        return
+
     if fixity_sidecar:
         html_template += f"""
         <pre>{fixity_file_content}</pre>
@@ -719,6 +737,9 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
         <h3>{ffprobe_file_filename}</h3>
         <pre>{ffprobe_file_content}</pre>
         """
+
+    if check_cancelled():
+        return
 
     html_template += """
     </body>
