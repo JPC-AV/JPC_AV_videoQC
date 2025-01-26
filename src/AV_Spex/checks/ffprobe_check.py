@@ -27,7 +27,7 @@ def parse_ffprobe(file_path):
     expected_settings_values = spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS']
 
     if not os.path.exists(file_path):
-        logger.critical(f"Cannot perform ffprobe check!No such file: {file_path}")
+        logger.critical(f"Cannot perform ffprobe check! No such file: {file_path}")
         return
 
     with open(file_path, 'r') as file:
@@ -77,37 +77,7 @@ def parse_ffprobe(file_path):
     if expected_format_values['format_long_name'] not in ffmpeg_output['format']['format_long_name']:
         ffprobe_differences["Encoder setting 'format_long_name'"] = [ffmpeg_output['format']['format_long_name'], expected_format_values['format_long_name']]
 
-    if 'ENCODER_SETTINGS' in ffmpeg_output['format']['tags']:
-        # initialize variables
-        encoder_settings_string = ffmpeg_output['format']['tags']['ENCODER_SETTINGS']
-        # split string into list using semicolons as separators. I find reg expression confusing. For reference:
-            # r: Indicates a raw string, where backslashes are treated literally (important for regular expressions).
-            # \s*: Matches zero or more whitespace characters (spaces, tabs, newlines, etc.).
-            # ;: Matches a semicolon character.
-            # \s*: Again, matches zero or more whitespace characters.
-        encoder_settings_list = re.split(r'\s*;\s*', encoder_settings_string)
-        sn_strings = ["SN ", "SN-", "SN##"]
-        encoder_settings_dict = {}
-        for encoder_settings_device in encoder_settings_list:
-            # splits the string into a list based on either colons or commas, ignoring any surrounding whitespace
-                # r: Indicates a raw string literal, where backslashes are treated as literal characters.
-                # \s*: Matches zero or more whitespace characters (space, tab, newline, etc.).
-                # :: Matches a colon character.
-                # |: Represents an "OR" condition, meaning either the pattern to the left or the pattern to the right can match.
-                # ,: Matches a comma character.
-            device_field_name, *device_subfields_w_values = re.split(r'\s*:\s*|\s*,\s*', encoder_settings_device)
-            # The first element of the resulting list is assigned to device_field_name
-            # The remaining elements of the list (if any) are packed into the list device_subfields_w_values
-            encoder_settings_dict[device_field_name] = device_subfields_w_values
-        for expected_key, expected_value in expected_settings_values.items():
-        # defines variables "expected_key" and "expected_value" to the dictionary "expected_settings_values"
-                if expected_key not in encoder_settings_dict:
-                    # append this string to the list "ffprobe_differences"
-                    ffprobe_differences[f"Encoder setting field {expected_key}"] = ['metadata field not found', '']
-                elif set(encoder_settings_dict[expected_key]) != set(expected_value):
-                # if the number of items in the "device" field do not match the number in the config, then: 
-                    ffprobe_differences[expected_key] = [encoder_settings_dict[expected_key], expected_value]
-    else:
+    if 'ENCODER_SETTINGS' not in ffmpeg_output['format']['tags']:
         ffprobe_differences["Encoder Settings"] = ['No Encoder Settings found, No Signal Flow data embedded', '']
 
     if not ffprobe_differences:
