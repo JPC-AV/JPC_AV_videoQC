@@ -74,7 +74,7 @@ class ProcessingManager:
         if checks_config.fixity.check_fixity == 'yes':
             if self.signals:
                 self.signals.fixity_progress.emit("Validating fixity...")
-            check_fixity(source_directory, video_id, actual_checksum=md5_checksum)
+            check_fixity(source_directory, video_id, actual_checksum=md5_checksum, check_cancelled=self.check_cancelled)
 
         if self.check_cancelled():
             return None

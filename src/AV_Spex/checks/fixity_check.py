@@ -6,7 +6,10 @@ from datetime import datetime
 from ..utils.log_setup import logger
 
 
-def check_fixity(directory, video_id, actual_checksum=None):
+def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None):
+    if check_cancelled():
+        return None
+    
     fixity_result_file = os.path.join(directory, f'{video_id}_qc_metadata', f'{video_id}_{datetime.now().strftime("%Y_%m_%d_%H_%M")}_fixity_check.txt')
 
     # Store paths to checksum files
@@ -33,7 +36,7 @@ def check_fixity(directory, video_id, actual_checksum=None):
                 
                 except (ValueError, IndexError):
                     logger.warning(f"Skipping checksum file with invalid date format: {file}")
-    
+
     # Sort checksum files by date (descending)
     checksum_files.sort(key=lambda x: x[1], reverse=True)
 
@@ -41,16 +44,19 @@ def check_fixity(directory, video_id, actual_checksum=None):
         logger.error("Unable to validate fixity against previous md5 checksum. No file ending in '_checksums.md5' or '_fixity.txt' found.\n")
 
     video_file_path = os.path.join(directory, f'{video_id}.mkv')
+
+    if check_cancelled():
+        return None
     
     # If video file exists, then:
-    if os.path.exists(video_file_path):   
+    if os.path.exists(video_file_path):
         # If checksum has not yet been calculated, then:
         if not checksum_files and actual_checksum is None:
-            output_fixity(directory, video_file_path)
+            output_fixity(directory, video_file_path, check_cancelled=check_cancelled)
             return
         elif checksum_files and actual_checksum is None:
             # Calculate the MD5 checksum of the video file
-            actual_checksum = hashlib_md5(video_file_path)
+            actual_checksum = hashlib_md5(video_file_path, check_cancelled=check_cancelled)
     else:
         logger.critical(f'Video file not found: {video_file_path}')
         return
@@ -98,7 +104,7 @@ def output_fixity(source_directory, video_path, check_cancelled=None):
         return None
     
     # Calculate the MD5 checksum of the video file
-    md5_checksum = hashlib_md5(video_path, check_cancelled)
+    md5_checksum = hashlib_md5(video_path, check_cancelled=check_cancelled)
     if md5_checksum is None:  # Handle cancelled case
         return None
     
