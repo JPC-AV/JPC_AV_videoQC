@@ -35,7 +35,8 @@ class ProcessingWorker(QThread):
             formatted_time = self.processor.process_directories(self.source_directories)
             
             # Emit results
-            if not self._is_cancelled:
+            # Only emit processing_time if we got a valid string result
+            if not self._is_cancelled and isinstance(formatted_time, str):
                 self.processing_time.emit(formatted_time)
                 self.finished.emit()
 

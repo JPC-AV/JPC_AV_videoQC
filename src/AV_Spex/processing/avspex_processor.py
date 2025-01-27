@@ -122,8 +122,7 @@ class AVSpexProcessor:
                 self.signals.status_update.emit(f"Processing directory {idx}/{total_dirs}: {source_directory}")
             
             source_directory = os.path.normpath(source_directory)
-            if not self.process_single_directory(source_directory):
-                return False
+            self.process_single_directory(source_directory)
 
         overall_end_time = time.time()
         return log_overall_time(overall_start_time, overall_end_time)
