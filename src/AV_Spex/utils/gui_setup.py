@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
-    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar
+    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar, QStatusBar, 
+    QProgressBar
 )
-from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir
+from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir, pyqtSignal, QObject
 from PyQt6.QtGui import QPixmap, QAction
 
 import os
@@ -16,6 +17,85 @@ from ..utils.log_setup import logger
 from ..utils import edit_config
 
 from ..processing.processing_mgmt import setup_mediaconch_policy
+from ..processing.worker_thread import ProcessingWorker
+
+from ..processing.avspex_processor import AVSpexProcessor
+from ..utils.signals import ProcessingSignals
+
+class ProcessingWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Processing Status")
+        self.resize(500, 200)
+        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
+        
+        # Central widget and layout
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        layout = QVBoxLayout(central_widget)
+        
+        # Status label with larger font
+        self.status_label = QLabel("Initializing...")
+        font = self.status_label.font()
+        font.setPointSize(12)
+        self.status_label.setFont(font)
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.status_label)
+        
+        # Progress bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(0)  # This makes it into a "bouncing ball" progress bar
+        layout.addWidget(self.progress_bar)
+
+        self.details_text = QTextEdit()
+        self.details_text.setReadOnly(True)
+        self.details_text.setMaximumHeight(100)
+        layout.addWidget(self.details_text)
+
+        # Add cancel button
+        self.cancel_button = QPushButton("Cancel")
+        layout.addWidget(self.cancel_button)
+
+        # Center the window on screen
+        self._center_on_screen()  # Changed to use the defined method
+        
+        # Force window to update
+        self.update()
+        self.repaint()
+
+        self.detailed_status = QLabel("")
+        self.detailed_status.setWordWrap(True)
+        layout.addWidget(self.detailed_status)
+
+    def update_detailed_status(self, message):
+        self.detailed_status.setText(message)
+        QApplication.processEvents()
+
+    def update_status(self, message):
+        self.status_label.setText(message)
+        self.details_text.append(message)
+        # Scroll to bottom
+        scrollbar = self.details_text.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    def _center_on_screen(self):
+        """Centers the window on the screen"""
+        screen = QApplication.primaryScreen().geometry()
+        window_size = self.geometry()
+        x = (screen.width() - window_size.width()) // 2
+        y = (screen.height() - window_size.height()) // 2
+        self.move(x, y)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.raise_()  # Bring window to front
+        self.activateWindow()  # Activate the window
+
+    def closeEvent(self, event):
+        # logger.debug("ProcessingWindow close event triggered")  # Debug
+        super().closeEvent(event)
 
 
 class DirectoryListWidget(QListWidget):
@@ -416,10 +496,162 @@ class ConfigWindow(QWidget):
                         "Failed to import MediaConch policy file. Check logs for details."
                     )
 
-
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.signals = ProcessingSignals()
+        self.worker = None  # Initialize worker as None
+        self.processing_window = None
+
+        # Connect all signals
+        self.setup_signal_connections()
+
+        # Init processing window
+        self.processing_window = None
+        
+        # Setup UI
+        self.setup_ui()
+
+    def setup_signal_connections(self):
+        """Setup all signal connections"""
+        # Processing window signals
+        self.signals.started.connect(self.on_processing_started)
+        self.signals.completed.connect(self.on_processing_completed)
+        self.signals.error.connect(self.on_error)
+        self.signals.status_update.connect(self.on_status_update)
+        self.signals.cancelled.connect(self.on_processing_cancelled)
+        
+        # Tool-specific signals
+        self.signals.tool_started.connect(self.on_tool_started)
+        self.signals.tool_completed.connect(self.on_tool_completed)
+        self.signals.fixity_progress.connect(self.on_fixity_progress)
+        self.signals.mediaconch_progress.connect(self.on_mediaconch_progress)
+        self.signals.metadata_progress.connect(self.on_metadata_progress)
+        self.signals.output_progress.connect(self.on_output_progress)
+
+    def call_process_directories(self):
+        """Initialize and start the worker thread"""
+        try:
+            # Create and configure the worker
+            self.worker = ProcessingWorker(self.source_directories, self.signals)
+            
+            # Connect worker-specific signals
+            self.worker.started_processing.connect(self.on_processing_started)
+            self.worker.finished.connect(self.on_worker_finished)
+            self.worker.error.connect(self.on_error)
+            self.worker.processing_time.connect(self.on_processing_time)
+            
+            # Start the worker thread
+            self.worker.start()
+            
+        except Exception as e:
+            # logger.debug(f"Error starting worker thread: {str(e)}")
+            self.signals.error.emit(str(e))
+
+    def on_worker_finished(self):
+        """Handle worker thread completion"""
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        self.check_spex_button.setEnabled(True)
+        
+        # Clean up the worker
+        if self.worker:
+            self.worker.deleteLater()
+            self.worker = None
+
+        # Slot methods
+    def on_processing_started(self, message):
+        """Handle processing start"""
+        # logger.debug("Processing started with message:", message)
+        if self.processing_window is None:
+            self.processing_window = ProcessingWindow(self)
+            self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
+        self.processing_window.update_status(message)
+        self.processing_window.show()
+        self.processing_window.raise_()
+        self.check_spex_button.setEnabled(False)
+        QApplication.processEvents()
+        
+    def on_processing_completed(self, message):
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        # Re-enable the Check Spex button
+        self.check_spex_button.setEnabled(True)
+        QMessageBox.information(self, "Complete", message)
+    
+    def on_processing_time(self, formatted_time):
+        """Handle processing time message from worker"""
+        QMessageBox.information(self, "Complete", f"Processing completed in {formatted_time}!")
+
+    def on_error(self, error_message):
+        """Handle errors"""
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        self.check_spex_button.setEnabled(True)
+        QMessageBox.critical(self, "Error", error_message)
+        
+        # Clean up worker if it exists
+        if self.worker:
+            self.worker.quit()
+            self.worker.wait()
+            self.worker.deleteLater()
+            self.worker = None
+
+    def on_status_update(self, message):
+        """Handle status updates"""
+        if self.processing_window:
+            self.processing_window.update_status(message)
+
+    def cancel_processing(self):
+        if self.worker and self.worker.isRunning():
+            self.worker.cancel()
+            self.processing_window.update_status("Cancelling processing...")
+            self.processing_window.cancel_button.setEnabled(False)
+
+    def on_processing_cancelled(self):
+        if self.processing_window:
+            self.processing_window.close()
+            self.processing_window = None
+        self.check_spex_button.setEnabled(True)
+        QMessageBox.information(self, "Cancelled", "Processing was cancelled.")
+
+    def closeEvent(self, event):
+        if self.worker and self.worker.isRunning():
+            self.worker.cancel()
+            self.worker.wait()
+        super().closeEvent(event)
+
+    def on_tool_started(self, tool_name):
+        if self.processing_window:
+            self.processing_window.update_status(f"Starting {tool_name}")
+        
+    def on_tool_completed(self, message):
+        if self.processing_window:
+            self.processing_window.update_status(message)
+            # Let UI update
+            QApplication.processEvents()
+
+    def on_fixity_progress(self, message):
+        if self.processing_window:
+            self.processing_window.update_detailed_status(message)
+
+    def on_mediaconch_progress(self, message):
+        if self.processing_window:
+            self.processing_window.update_detailed_status(message)
+
+    def on_metadata_progress(self, message):
+        if self.processing_window:
+            self.processing_window.update_detailed_status(message)
+
+    def on_output_progress(self, message):
+        if self.processing_window:
+            self.processing_window.update_detailed_status(message)
+        
+    def setup_ui(self):
+        # Move all UI initialization here
         self.config_mgr = ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
@@ -531,9 +763,9 @@ class MainWindow(QMainWindow):
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
 
-        check_spex_button = QPushButton("Check Spex!")
-        check_spex_button.clicked.connect(self.on_check_spex_clicked)
-        bottom_row.addWidget(check_spex_button)
+        self.check_spex_button = QPushButton("Check Spex!")
+        self.check_spex_button.clicked.connect(self.on_check_spex_clicked)
+        bottom_row.addWidget(self.check_spex_button)
 
         checks_layout.addLayout(bottom_row)
 
@@ -737,9 +969,10 @@ class MainWindow(QMainWindow):
 
     def on_check_spex_clicked(self):
         """Handle the Start button click."""
+        # logger.debug("Check Spex button clicked")  # Debug line
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
-        self.close()  # Close the GUI if needed, signaling readiness
+        self.call_process_directories()
 
 
     def on_profile_selected(self, index):
@@ -889,3 +1122,4 @@ class MainWindow(QMainWindow):
         self.config_mgr.save_last_used_config('checks')
         self.config_mgr.save_last_used_config('spex')
         self.close()  # Close the GUI
+        

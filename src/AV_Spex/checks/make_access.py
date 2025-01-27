@@ -21,7 +21,7 @@ def get_duration(video_path):
     return duration
 
 
-def make_access_file(video_path, output_path):
+def make_access_file(video_path, output_path, check_cancelled=None):
     """Create access file using ffmpeg."""
 
     logger.debug(f'Running ffmpeg on {os.path.basename(video_path)} to create access copy {os.path.basename(output_path)}')
@@ -51,6 +51,8 @@ def make_access_file(video_path, output_path):
             duration_ms = (duration * 1000000)
             # Calculate the total duration in microseconds
             if ff_output.startswith(duration_prefix):
+                if check_cancelled():
+                    return
                 current_frame_str = ff_output.split(duration_prefix)[1]
                 current_frame_ms = float(current_frame_str)
                 percent_complete = (current_frame_ms / duration_ms) * 100
@@ -63,7 +65,7 @@ def make_access_file(video_path, output_path):
     print("\n")
 
 
-def process_access_file(video_path, source_directory, video_id):
+def process_access_file(video_path, source_directory, video_id, check_cancelled=None):
     """
     Generate access file if configured and not already existing.
     
@@ -89,7 +91,7 @@ def process_access_file(video_path, source_directory, video_id):
             return None
 
         # Generate access file
-        make_access_file(video_path, access_output_path)
+        make_access_file(video_path, access_output_path, check_cancelled=check_cancelled)
         return access_output_path
 
     except Exception as e:

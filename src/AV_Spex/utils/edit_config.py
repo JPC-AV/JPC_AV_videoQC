@@ -191,6 +191,13 @@ def update_tool_setting(tool_names: List[str], value: str):
                     logger.warning(f"Invalid field '{field}' for mediaconch. To turn mediaconch on/off use 'mediaconch.run_mediaconch'.")
                     continue
                 updates['tools'][tool_name] = {field: value}
+
+            elif tool_name == 'fixity':
+                updates['fixity'] = {}
+                if field not in ('check_fixity','validate_stream_fixity','embed_stream_fixity','output_fixity','overwrite_stream_fixity'):
+                    logger.warning(f"Invalid field '{field}' for fixity settings")
+                    continue
+                updates['fixity'][field] = value
                 
             # Standard tools with check_tool/run_tool fields
             else:
@@ -204,7 +211,7 @@ def update_tool_setting(tool_names: List[str], value: str):
         except ValueError:
             logger.warning(f"Invalid format '{tool_spec}'. Expected format: tool.field")
     
-    if updates['tools']:  # Only update if we have valid changes
+    if updates:  # Only update if we have changes
         config_mgr.update_config('checks', updates)
 
 def toggle_on(tool_names: List[str]):
