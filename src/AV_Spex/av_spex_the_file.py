@@ -109,11 +109,11 @@ The scripts will confirm that the digital files conform to predetermined specifi
     parser.add_argument("--on", 
                         action='append', 
                          metavar="{tool_name.run_tool, tool_name.check_tool}",
-                         help="Turns on specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
+                         help="Turns on specific tool run_ or check_ option (format: tool.check_tool or tool.run_tool, e.g. mediainfo.run_tool)")
     parser.add_argument("--off", 
                         action='append', 
                          metavar="{tool_name.run_tool, tool_name.check_tool}",
-                         help="Turns off specific tool run_ or check_ option (format tool.check_tool or tool.run_tool, e.g. meidiainfo.run_tool)")
+                         help="Turns off specific tool run_ or check_ option (format: tool.check_tool or tool.run_tool, e.g. mediainfo.run_tool)")
     parser.add_argument("-sn","--signalflow", choices=['JPC_AV_SVHS', 'BVH3100'],
                         help="Select signal flow config type (JPC_AV_SVHS or BVH3100)")
     parser.add_argument("-fn","--filename", choices=['jpc', 'bowser'], 
