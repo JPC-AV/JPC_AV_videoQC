@@ -311,12 +311,17 @@ class BasicToolConfig:
     run_tool: str
 
 @dataclass
+class QCToolsConfig:
+    run_tool: str
+
+@dataclass
 class MediaConchConfig:
     mediaconch_policy: str
     run_mediaconch: str
 
 @dataclass
 class QCTParseToolConfig:
+    run_tool: str
     barsDetection: bool
     evaluateBars: bool
     contentFilter: List[str]
@@ -331,7 +336,7 @@ class ToolsConfig:
     mediaconch: MediaConchConfig
     mediainfo: BasicToolConfig
     mediatrace: BasicToolConfig
-    qctools: BasicToolConfig
+    qctools: QCToolsConfig
     qct_parse: QCTParseToolConfig
 
 @dataclass

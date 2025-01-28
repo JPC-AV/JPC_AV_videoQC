@@ -224,7 +224,6 @@ def toggle_off(tool_names: List[str]):
 profile_step1 = {
     "tools": {
         "qctools": {
-            "check_tool": "no",
             "run_tool": "no"   
         },
         "exiftool": {
@@ -285,10 +284,10 @@ profile_step2 = {
             "run_tool": "no"
         },
         "qctools": {
-            "check_tool": "yes",
             "run_tool": "yes"
         },
         "qct_parse": {
+            "run_tool": "yes",
             "barsDetection": True,
             "evaluateBars": True,
             "contentFilter": [],
