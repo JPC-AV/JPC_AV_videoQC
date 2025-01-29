@@ -403,17 +403,16 @@ class ConfigWindow(QWidget):
         self.update_current_policy_display(mediaconch.mediaconch_policy)
         
         # Load available policies
-        policies_dir = os.path.join(self.config_mgr.project_root, 'config', 'mediaconch_policies')
-        if os.path.exists(policies_dir):
-            available_policies = [f for f in os.listdir(policies_dir) if f.endswith('.xml')]
-            self.policy_combo.clear()
-            self.policy_combo.addItems(available_policies)
-            
-            # Temporarily block signals while setting the current text
-            self.policy_combo.blockSignals(True)
-            if mediaconch.mediaconch_policy in available_policies:
-                self.policy_combo.setCurrentText(mediaconch.mediaconch_policy)
-            self.policy_combo.blockSignals(False)
+        available_policies = self.config_mgr.get_available_policies()
+        self.policy_combo.clear()
+        self.policy_combo.addItems(available_policies)
+        
+        # Temporarily block signals while setting the current text
+        self.policy_combo.blockSignals(True)
+        mediaconch = self.checks_config.tools.mediaconch
+        if mediaconch.mediaconch_policy in available_policies:
+            self.policy_combo.setCurrentText(mediaconch.mediaconch_policy)
+        self.policy_combo.blockSignals(False)
         
         # QCT Parse
         qct = self.checks_config.tools.qct_parse
@@ -640,6 +639,8 @@ class MainWindow(QMainWindow):
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.worker.wait()
+        # Call our quit handling method
+        self.on_quit_clicked()
         super().closeEvent(event)
 
     def on_tool_started(self, tool_name):
@@ -990,6 +991,8 @@ class MainWindow(QMainWindow):
         # logger.debug("Check Spex button clicked")  # Debug line
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
+        self.config_mgr.save_last_used_config('checks')
+        self.config_mgr.save_last_used_config('spex')
         self.call_process_directories()
 
 
@@ -1038,7 +1041,7 @@ class MainWindow(QMainWindow):
             }
         
         self.config_mgr.update_config('spex', updates)
-        # self.config_mgr.save_last_used_config('spex')
+        self.config_mgr.save_last_used_config('spex')
 
 
     def on_signalflow_profile_changed(self, index):

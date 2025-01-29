@@ -85,7 +85,14 @@ SIGNAL_FLOW_CONFIGS = {
 
 
 def parse_arguments():
-    project_path = os.path.dirname(os.path.dirname(config_mgr.project_root))
+    # Get the version from pyproject.toml
+    if getattr(sys, 'frozen', False):
+        # If running as bundled executable
+        project_path = os.path.dirname(os.path.dirname(sys._MEIPASS))
+    else:
+        # If running from source
+        project_path = os.path.dirname(os.path.dirname(config_mgr._bundle_dir))
+        
     pyproject_path = os.path.join(project_path, 'pyproject.toml')
     with open(pyproject_path, 'r') as f:
         version_string = toml.load(f)['project']['version']
@@ -151,16 +158,21 @@ The scripts will confirm that the digital files conform to predetermined specifi
 
     if args.use_default_config:
         try:
-            # Get the project root and construct config paths
-            config_path = os.path.join(config_mgr.project_root, "config")
-            os.remove(os.path.join(config_path, "last_used_checks_config.json"))
-            os.remove(os.path.join(config_path, "last_used_spex_config.json"))
-            print("Reset to default configuration")
-        except FileNotFoundError:
-            # It's okay if the files don't exist
-            print("Already using default configuration")
+            # Remove user config files from user config directory
+            user_config_dir = config_mgr._user_config_dir
+            try:
+                os.remove(os.path.join(user_config_dir, "last_used_checks_config.json"))
+                os.remove(os.path.join(user_config_dir, "last_used_spex_config.json"))
+                print("Reset to default configuration")
+            except FileNotFoundError:
+                # It's okay if the files don't exist
+                print("Already using default configuration")
+        except PermissionError:
+            print("Error: Unable to reset config - permission denied. Try running with administrator privileges.")
+        except OSError as e:
+            print(f"Error: Unable to reset config - {str(e)}")
         except Exception as e:
-            print(f"Warning: Could not fully reset config: {e}")
+            print(f"Error: Unexpected error while resetting config - {str(e)}")
 
     return ParsedArguments(
         source_directories=source_directories,
