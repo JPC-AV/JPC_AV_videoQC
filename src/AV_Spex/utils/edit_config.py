@@ -245,6 +245,12 @@ profile_step1 = {
         "mediatrace": {
             "check_tool": "yes",
             "run_tool": "yes"
+        },
+        "qctools": {
+            "run_tool": "no"
+        },
+        "qct_parse": {
+            "run_tool": "no"
         }
     },
     "outputs": {
@@ -333,10 +339,10 @@ profile_allOff = {
             "run_tool": "no"
         },
         "qctools": {
-            "check_tool": "no",
             "run_tool": "no"
         },
         "qct_parse": {
+            "run_tool": "no",
             "barsDetection": False,
             "evaluateBars": False,
             "contentFilter": [],

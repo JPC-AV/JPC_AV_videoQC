@@ -348,7 +348,7 @@ class ConfigWindow(QWidget):
                     
         # QCT Parse
         self.run_qctparse_cb.stateChanged.connect(
-            lambda state: self.on_boolean_changed(state, ['tools', 'qct_parse', 'run_tool'])
+            lambda state: self.on_checkbox_changed(state, ['tools', 'qct_parse', 'run_tool'])
         )
         self.bars_detection_cb.stateChanged.connect(
             lambda state: self.on_boolean_changed(state, ['tools', 'qct_parse', 'barsDetection'])
@@ -417,6 +417,7 @@ class ConfigWindow(QWidget):
         
         # QCT Parse
         qct = self.checks_config.tools.qct_parse
+        self.run_qctparse_cb.setChecked(qct.run_tool.lower() == 'yes')
         self.bars_detection_cb.setChecked(qct.barsDetection)
         self.evaluate_bars_cb.setChecked(qct.evaluateBars)
         self.thumb_export_cb.setChecked(qct.thumbExport)
