@@ -33,10 +33,10 @@
       "run_tool": "yes"
     },
     "qctools": {
-      "check_tool": "no",
       "run_tool": "no"
     },
     "qct_parse": {
+      "run_tool": "yes",
       "barsDetection": true,
       "evaluateBars": true,
       "contentFilter": [],

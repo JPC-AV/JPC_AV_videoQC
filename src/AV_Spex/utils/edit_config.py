@@ -224,7 +224,6 @@ def toggle_off(tool_names: List[str]):
 profile_step1 = {
     "tools": {
         "qctools": {
-            "check_tool": "no",
             "run_tool": "no"   
         },
         "exiftool": {
@@ -246,6 +245,12 @@ profile_step1 = {
         "mediatrace": {
             "check_tool": "yes",
             "run_tool": "yes"
+        },
+        "qctools": {
+            "run_tool": "no"
+        },
+        "qct_parse": {
+            "run_tool": "no"
         }
     },
     "outputs": {
@@ -285,10 +290,10 @@ profile_step2 = {
             "run_tool": "no"
         },
         "qctools": {
-            "check_tool": "yes",
             "run_tool": "yes"
         },
         "qct_parse": {
+            "run_tool": "yes",
             "barsDetection": True,
             "evaluateBars": True,
             "contentFilter": [],
@@ -334,10 +339,10 @@ profile_allOff = {
             "run_tool": "no"
         },
         "qctools": {
-            "check_tool": "no",
             "run_tool": "no"
         },
         "qct_parse": {
+            "run_tool": "no",
             "barsDetection": False,
             "evaluateBars": False,
             "contentFilter": [],

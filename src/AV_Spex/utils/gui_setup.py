@@ -199,9 +199,13 @@ class ConfigWindow(QWidget):
             tool_layout = QVBoxLayout()
             check_cb = QCheckBox("Check Tool")
             run_cb = QCheckBox("Run Tool")
-            self.tool_widgets[tool] = {'check': check_cb, 'run': run_cb}
-            tool_layout.addWidget(check_cb)
-            tool_layout.addWidget(run_cb)
+            if tool == 'qctools':
+                self.tool_widgets[tool] = {'run': run_cb}
+                tool_layout.addWidget(run_cb)
+            else:
+                self.tool_widgets[tool] = {'check': check_cb, 'run': run_cb}
+                tool_layout.addWidget(check_cb)
+                tool_layout.addWidget(run_cb)
             tool_group.setLayout(tool_layout)
             tools_layout.addWidget(tool_group)
         
@@ -243,7 +247,8 @@ class ConfigWindow(QWidget):
         # QCT Parse
         qct_group = QGroupBox("qct-parse")
         qct_layout = QVBoxLayout()
-        
+
+        self.run_qctparse_cb = QCheckBox("Run Tool")
         self.bars_detection_cb = QCheckBox("barsDetection")
         self.evaluate_bars_cb = QCheckBox("evaluateBars")
         self.thumb_export_cb = QCheckBox("thumbExport")
@@ -265,6 +270,7 @@ class ConfigWindow(QWidget):
         self.tagname_input = QLineEdit()
         self.tagname_input.setPlaceholderText("None")
         
+        qct_layout.addWidget(self.run_qctparse_cb)
         qct_layout.addWidget(self.bars_detection_cb)
         qct_layout.addWidget(self.evaluate_bars_cb)
         qct_layout.addWidget(self.thumb_export_cb)
@@ -318,12 +324,17 @@ class ConfigWindow(QWidget):
         
         # Tools section
         for tool, widgets in self.tool_widgets.items():
-            widgets['check'].stateChanged.connect(
-                lambda state, t=tool: self.on_checkbox_changed(state, ['tools', t, 'check_tool'])
-            )
-            widgets['run'].stateChanged.connect(
+            if tool == 'qctools':
+                widgets['run'].stateChanged.connect(
                 lambda state, t=tool: self.on_checkbox_changed(state, ['tools', t, 'run_tool'])
             )
+            else:
+                widgets['check'].stateChanged.connect(
+                    lambda state, t=tool: self.on_checkbox_changed(state, ['tools', t, 'check_tool'])
+                )
+                widgets['run'].stateChanged.connect(
+                    lambda state, t=tool: self.on_checkbox_changed(state, ['tools', t, 'run_tool'])
+                )
         
         # MediaConch
         mediaconch = self.checks_config.tools.mediaconch
@@ -336,6 +347,9 @@ class ConfigWindow(QWidget):
         self.import_policy_btn.clicked.connect(self.open_policy_file_dialog)
                     
         # QCT Parse
+        self.run_qctparse_cb.stateChanged.connect(
+            lambda state: self.on_checkbox_changed(state, ['tools', 'qct_parse', 'run_tool'])
+        )
         self.bars_detection_cb.stateChanged.connect(
             lambda state: self.on_boolean_changed(state, ['tools', 'qct_parse', 'barsDetection'])
         )
@@ -375,8 +389,11 @@ class ConfigWindow(QWidget):
         # Tools
         for tool, widgets in self.tool_widgets.items():
             tool_config = getattr(self.checks_config.tools, tool)
-            widgets['check'].setChecked(tool_config.check_tool.lower() == 'yes')
-            widgets['run'].setChecked(tool_config.run_tool.lower() == 'yes')
+            if tool == 'qctools':
+                widgets['run'].setChecked(tool_config.run_tool.lower() == 'yes')
+            else:
+                widgets['check'].setChecked(tool_config.check_tool.lower() == 'yes')
+                widgets['run'].setChecked(tool_config.run_tool.lower() == 'yes')
         
         # MediaConch
         mediaconch = self.checks_config.tools.mediaconch
@@ -400,6 +417,7 @@ class ConfigWindow(QWidget):
         
         # QCT Parse
         qct = self.checks_config.tools.qct_parse
+        self.run_qctparse_cb.setChecked(qct.run_tool.lower() == 'yes')
         self.bars_detection_cb.setChecked(qct.barsDetection)
         self.evaluate_bars_cb.setChecked(qct.evaluateBars)
         self.thumb_export_cb.setChecked(qct.thumbExport)
