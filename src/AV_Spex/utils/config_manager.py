@@ -78,12 +78,14 @@ class ConfigManager:
         # Check user directory first
         user_path = os.path.join(self._user_policies_dir, policy_name)
         if os.path.exists(user_path):
-            return user_path
+            # Quote the path if it contains spaces
+            return f'"{user_path}"' if ' ' in user_path else user_path
             
         # Then check bundled policies
         bundled_path = os.path.join(self._bundled_policies_dir, policy_name)
         if os.path.exists(bundled_path):
-            return bundled_path
+            # Quote the path if it contains spaces
+            return f'"{bundled_path}"' if ' ' in bundled_path else bundled_path
             
         return None
 
