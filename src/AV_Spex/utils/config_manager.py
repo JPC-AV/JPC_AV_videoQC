@@ -44,6 +44,9 @@ class ConfigManager:
                 appauthor="NMAAHC"
             )
             
+            # Set up logo files directory path
+            cls._instance._logo_files_dir = os.path.join(cls._instance._bundle_dir, 'logo_image_files')
+            
             # Set up policies directory paths
             cls._instance._bundled_policies_dir = os.path.join(cls._instance._bundle_dir, 'config', 'mediaconch_policies')
             cls._instance._user_policies_dir = os.path.join(cls._instance._user_config_dir, 'mediaconch_policies')
@@ -59,6 +62,22 @@ class ConfigManager:
             
         return cls._instance
 
+    def get_logo_path(self, logo_filename: str) -> Optional[str]:
+        """
+        Get the full path for a logo file in the bundled logo_image_files directory
+        
+        Args:
+            logo_filename: Name of the logo file
+            
+        Returns:
+            Optional[str]: Full path to the logo file or None if not found
+        """
+        logo_path = os.path.join(self._logo_files_dir, logo_filename)
+        if os.path.exists(logo_path):
+            # Quote the path if it contains spaces
+            return f'"{logo_path}"' if ' ' in logo_path else logo_path
+        return None
+    
     def get_available_policies(self) -> list[str]:
         """Get all available policy files from both bundled and user directories"""
         policies = set()  # Use set to avoid duplicates

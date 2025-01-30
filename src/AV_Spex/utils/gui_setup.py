@@ -702,13 +702,10 @@ class MainWindow(QMainWindow):
         self.main_layout = QVBoxLayout(self.central_widget)
 
         # Get the absolute path of the script file
-        script_path = os.path.dirname(os.path.abspath(__file__))
-        # Determine the  path to the image file
-        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
-        logo_dir = os.path.join(root_dir, 'logo_image_files')
+        logo_path = self.config_mgr.get_logo_path('JPCA_H_Branding_011025.png')
 
         # Add images at the top of the GUI
-        self.add_image_to_top(logo_dir)
+        self.add_image_to_top(logo_path)
 
         # Create a QTabWidget for tabs
         self.tabs = QTabWidget()
@@ -881,12 +878,11 @@ class MainWindow(QMainWindow):
         spex_layout.addWidget(qct_toggle_button)
 
 
-    def add_image_to_top(self, logo_dir):
+    def add_image_to_top(self, logo_path):
         """Add image to the top of the main layout."""
         image_layout = QHBoxLayout()
         
-        image_file = os.path.join(logo_dir, "JPCA_H_Branding_011025.png")
-        pixmap = QPixmap(image_file)
+        pixmap = QPixmap(logo_path)
         
         label = QLabel()
         label.setMinimumHeight(100)  # Set minimum height to prevent image from disappearing
