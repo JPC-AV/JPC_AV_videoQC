@@ -793,13 +793,16 @@ class MainWindow(QMainWindow):
         spex_tab.setLayout(spex_layout)
         self.tabs.addTab(spex_tab, "Spex")
 
+        # Filename section
+        filename_section_group = QGroupBox()
+        filename_section_layout = QVBoxLayout()
         # Create a label to display the section name
         filename_section_label = QLabel(f"<b>Filename Values</b>")
-        spex_layout.addWidget(filename_section_label)
+        filename_section_layout.addWidget(filename_section_label)
 
         # Add a dropdown menu for command profiles
         filenames_profile_label = QLabel("Expected filename profiles:")
-        spex_layout.addWidget(filenames_profile_label)
+        filename_section_layout.addWidget(filenames_profile_label)
 
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Bowser file names")
@@ -810,45 +813,70 @@ class MainWindow(QMainWindow):
         elif self.spex_config.filename_values.Collection == "2012_79":
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
-        spex_layout.addWidget(self.filename_profile_dropdown)
-
+        filename_section_layout.addWidget(self.filename_profile_dropdown)
         # Create a toggle button to open a new window
         filename_button = QPushButton("Open Section")
         filename_button.clicked.connect(lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values)))
-        spex_layout.addWidget(filename_button)
+        filename_section_layout.addWidget(filename_button)
+        # Add filename layout to spex_layout
+        filename_section_group.setLayout(filename_section_layout)
+        filename_section_group.setFixedHeight(150)
+        spex_layout.addWidget(filename_section_group)
         
+        # MediaInfo section
+        mediainfo_section_group = QGroupBox()
+        mediainfo_section_layout = QVBoxLayout()
         # Create a label to display the section name
         mediainfo_section_label = QLabel(f"<b>MediaInfo Values</b>")
-        spex_layout.addWidget(mediainfo_section_label)
+        mediainfo_section_layout.addWidget(mediainfo_section_label)
          # Create a toggle button to open a new window
         mediainfo_toggle_button = QPushButton("Open Section")
         mediainfo_toggle_button.clicked.connect(lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values))
-        spex_layout.addWidget(mediainfo_toggle_button)
+        mediainfo_section_layout.addWidget(mediainfo_toggle_button)
+        # add section to Spex Layout
+        mediainfo_section_group.setLayout(mediainfo_section_layout)
+        mediainfo_section_group.setFixedHeight(100)
+        spex_layout.addWidget(mediainfo_section_group)
 
+        # Exiftool section
+        exiftool_section_group = QGroupBox()
+        exiftool_section_layout = QVBoxLayout()
         # Create a label to display the section name
         exiftool_section_label = QLabel(f"<b>Exiftool Values</b>")
-        spex_layout.addWidget(exiftool_section_label)
+        exiftool_section_layout.addWidget(exiftool_section_label)
          # Create a toggle button to open a new window
         exiftool_toggle_button = QPushButton("Open Section")
         exiftool_toggle_button.clicked.connect(lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values)))
-        spex_layout.addWidget(exiftool_toggle_button)
+        exiftool_section_layout.addWidget(exiftool_toggle_button)
+        # add section to Spex Layout
+        exiftool_section_group.setLayout(exiftool_section_layout)
+        exiftool_section_group.setFixedHeight(100)
+        spex_layout.addWidget(exiftool_section_group)
 
+        # FFprobe section
+        ffprobe_section_group = QGroupBox()
+        ffprobe_section_layout = QVBoxLayout()
         # Create a label to display the section name
         ffprobe_section_label = QLabel(f"<b>FFprobe Values</b>")
-        spex_layout.addWidget(ffprobe_section_label)
+        ffprobe_section_layout.addWidget(ffprobe_section_label)
          # Create a toggle button to open a new window
         ffprobe_toggle_button = QPushButton("Open Section")
         ffprobe_toggle_button.clicked.connect(lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values))
-        spex_layout.addWidget(ffprobe_toggle_button)
+        ffprobe_section_layout.addWidget(ffprobe_toggle_button)
+        # add section to Spex Layout
+        ffprobe_section_group.setLayout(ffprobe_section_layout)
+        ffprobe_section_group.setFixedHeight(100)
+        spex_layout.addWidget(ffprobe_section_group)
 
+        # MediaTrace section
+        mediatrace_section_group = QGroupBox()
+        mediatrace_section_layout = QVBoxLayout()
         # Create a label to display the section name
         mediatrace_section_label = QLabel(f"<b>Mediatrace Values</b>")
-        spex_layout.addWidget(mediatrace_section_label)
-
+        mediatrace_section_layout.addWidget(mediatrace_section_label)
         # Add a dropdown menu for command profiles
         signalflow_profile_label = QLabel("Expected Signalflow profiles:")
-        spex_layout.addWidget(signalflow_profile_label)
-
+        mediatrace_section_layout.addWidget(signalflow_profile_label)
         self.signalflow_profile_dropdown = QComboBox()
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
@@ -858,26 +886,35 @@ class MainWindow(QMainWindow):
             source_vtr = encoder_settings.get('Source_VTR', [])
         else:
             source_vtr = encoder_settings.Source_VTR
-
         if any("SVO5800" in vtr for vtr in source_vtr):
             self.signalflow_profile_dropdown.setCurrentText("JPC_AV_SVHS Signal Flow")
         elif any("Sony BVH3100" in vtr for vtr in source_vtr):
             self.signalflow_profile_dropdown.setCurrentText("BVH3100 Signal Flow")
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
-        spex_layout.addWidget(self.signalflow_profile_dropdown)
-
+        mediatrace_section_layout.addWidget(self.signalflow_profile_dropdown)
         # Create a toggle button to open a new window
         mediatrace_toggle_button = QPushButton("Open Section")
         mediatrace_toggle_button.clicked.connect(lambda: self.open_new_window('Mediatrace Values', asdict(self.spex_config.mediatrace_values)))
-        spex_layout.addWidget(mediatrace_toggle_button)
+        mediatrace_section_layout.addWidget(mediatrace_toggle_button)
+        # add section to Spex Layout
+        mediatrace_section_group.setLayout(mediatrace_section_layout)
+        mediatrace_section_group.setFixedHeight(150)
+        spex_layout.addWidget(mediatrace_section_group)
 
+        # qct-parse section
+        qct_section_group = QGroupBox()
+        qct_section_layout = QVBoxLayout()
         # Create a label to display the section name
         qct_section_label = QLabel(f"<b>qct-parse Values</b>")
-        spex_layout.addWidget(qct_section_label)
+        qct_section_layout.addWidget(qct_section_label)
         # Create a toggle button to open a new window
         qct_toggle_button = QPushButton("Open Section")
         qct_toggle_button.clicked.connect(lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values)))
-        spex_layout.addWidget(qct_toggle_button)
+        qct_section_layout.addWidget(qct_toggle_button)
+        # add section to Spex Layout
+        qct_section_group.setLayout(qct_section_layout)
+        qct_section_group.setFixedHeight(100)
+        spex_layout.addWidget(qct_section_group)
 
 
     def add_image_to_top(self, logo_dir):
