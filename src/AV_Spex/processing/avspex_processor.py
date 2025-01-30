@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import os
+os.environ["PATH"] = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 import time
 from art import art, text2art
 
