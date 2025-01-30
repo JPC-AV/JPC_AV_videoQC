@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
-
 block_cipher = None
 
 # Define source and destination paths for data files
@@ -33,42 +32,39 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-# -*- mode: python ; coding: utf-8 -*-
-
-from PyInstaller.utils.hooks import collect_submodules
-
-hiddenimports = collect_submodules('your_module')  # Ensure all dependencies are included
-
 exe = EXE(
     pyz,
     a.scripts,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
     [],
-    exclude_binaries=True,
     name='avspex',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,  
-    argv_emulation=True,  # Enables opening via Finder
-)
-
-coll = COLLECT(
-    exe,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    strip=False,
-    upx=True,
     upx_exclude=[],
-    name='avspex'
+    runtime_tmpdir=None,
+    console=False,
+    disable_windowed_traceback=False,
+    argv_emulation=True,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
 )
 
+# Add BUNDLE step without COLLECT
 app = BUNDLE(
-    coll,
+    exe,
     name='avspex.app',
-    icon="av_spex_the_logo.icns",
-    bundle_identifier="com.nmaahc.avspex",
-    envvars={"PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"}
+    icon='av_spex_the_logo.icns',
+    bundle_identifier='com.nmaahc.avspex',
+    # Include PATH to help find necessary binaries
+    info_plist={
+        'NSHighResolutionCapable': True,
+        'LSEnvironment': {
+            'PATH': '/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin'
+        }
+    }
 )
-
