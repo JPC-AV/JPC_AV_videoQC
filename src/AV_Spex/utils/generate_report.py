@@ -8,7 +8,7 @@ import csv
 import pandas as pd
 import plotly.graph_objs as go
 from base64 import b64encode
-from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.setup_config import ChecksConfig
 from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 

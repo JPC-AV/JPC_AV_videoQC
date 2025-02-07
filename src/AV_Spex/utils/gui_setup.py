@@ -1,15 +1,14 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
-    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QToolButton, QComboBox, QTabWidget,
-    QTextEdit, QListView, QTreeView, QAbstractItemView, QInputDialog, QMessageBox, QToolBar, QStatusBar, 
-    QProgressBar
+    QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QComboBox, QTabWidget,
+    QTextEdit, QAbstractItemView, QInputDialog, QMessageBox, QProgressBar
 )
-from PyQt6.QtCore import Qt, QUrl, QMimeData, QSettings, QDir, pyqtSignal, QObject
-from PyQt6.QtGui import QPixmap, QAction
+from PyQt6.QtCore import Qt, QSettings, QDir
+from PyQt6.QtGui import QPixmap
 
 import os
 import sys
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict
 
 from ..utils.setup_config import SpexConfig, ChecksConfig
 from ..utils.config_manager import ConfigManager
