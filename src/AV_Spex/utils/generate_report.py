@@ -2,11 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-os.environ["NUMEXPR_MAX_THREADS"] = "11"  # troubleshooting goofy numbpy related error "Note: NumExpr detected 11 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8. # NumExpr defaulting to 8 threads."
+os.environ["NUMEXPR_MAX_THREADS"] = "11" # troubleshooting goofy numbpy related error "Note: NumExpr detected 11 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8. # NumExpr defaulting to 8 threads."
 
 import csv
-import pandas as pd
-import plotly.graph_objs as go
 from base64 import b64encode
 from ..utils.setup_config import ChecksConfig
 from ..utils.config_manager import ConfigManager
@@ -317,7 +315,14 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
 
 
 def make_profile_piecharts(qctools_profile_check_output, sorted_thumbs_dict, failureInfoSummary, check_cancelled=None):
-
+    """Lazy load pandas and plotly only when needed"""
+    try:
+        import pandas as pd
+        import plotly.graph_objs as go
+    except ImportError as e:
+        logger.critical(f"Error importing required libraries for graphs: {e}")
+        return None
+    
     # Read the profile summary CSV, skipping the first two metadata lines
     profile_summary_df = pd.read_csv(qctools_profile_check_output, skiprows=3)
 
