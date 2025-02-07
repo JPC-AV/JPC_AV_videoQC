@@ -24,27 +24,57 @@ class LazyGUILoader:
     _ConfigWindow = None
     _MainWindow = None
     _QApplication = None
+    _splash = None
+    _QTimer = None
 
     @classmethod
     def load_gui_components(cls):
         if cls._QApplication is None:
-            from PyQt6.QtWidgets import QApplication
+            # Import Qt components
+            from PyQt6.QtWidgets import QApplication, QSplashScreen
+            from PyQt6.QtCore import Qt, QTimer
+            from PyQt6.QtGui import QPixmap, QFont
             from .utils.gui_setup import ConfigWindow, MainWindow
+
+            # Store all needed Qt components
             cls._QApplication = QApplication
+            cls._QTimer = QTimer  # Store QTimer
+            cls._app = cls._QApplication(sys.argv)
+
+            # Create a simple splash screen
+            splash_pixmap = QPixmap(400, 200)
+            splash_pixmap.fill(Qt.GlobalColor.white)
+            cls._splash = QSplashScreen(splash_pixmap)
+            
+            # Add text to splash screen
+            font = QFont()
+            font.setPointSize(14)
+            cls._splash.setFont(font)
+            cls._splash.showMessage("Loading AV Spex...\nPlease wait...", 
+                                 Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter,
+                                 Qt.GlobalColor.black)
+            cls._splash.show()
+            
+            # Process events to ensure splash screen is displayed
+            cls._app.processEvents()
+
+            # Load the GUI components
             cls._ConfigWindow = ConfigWindow
             cls._MainWindow = MainWindow
-            
+
     @classmethod
     def get_application(cls):
         cls.load_gui_components()
-        if cls._app is None:
-            cls._app = cls._QApplication(sys.argv)
         return cls._app
 
     @classmethod
     def get_main_window(cls):
         cls.load_gui_components()
-        return cls._MainWindow()
+        window = cls._MainWindow()
+        # Close splash screen after a short delay
+        if cls._splash:
+            cls._QTimer.singleShot(1500, cls._splash.close)  # Now using stored QTimer
+        return window
 
 config_mgr = ConfigManager()
 
@@ -287,9 +317,14 @@ def run_avspex(source_directories, signals=None):
 
 def main_gui():
     args = parse_arguments()
+    
+    # Get application (will show splash screen)
     app = LazyGUILoader.get_application()
+    
+    # Get main window (will close splash screen after delay)
     window = LazyGUILoader.get_main_window()
     window.show()
+    
     return app.exec()
 
 
