@@ -2,17 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
 import sys
-import logging
-import csv
-import shutil
 import argparse
-import importlib.metadata
-import time
 import toml
-from art import art, text2art
-from datetime import datetime
+from art import text2art
 from dataclasses import dataclass
 from typing import List, Optional, Any
 
