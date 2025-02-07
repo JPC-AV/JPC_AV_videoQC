@@ -19,7 +19,7 @@ import operator
 import collections      # for circular buffer
 import csv
 import datetime as dt
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict
 
 from ..utils.log_setup import logger
 from ..utils.setup_config import ChecksConfig, SpexConfig
