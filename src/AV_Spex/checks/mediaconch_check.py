@@ -2,13 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-import sys
 import csv
 import subprocess
-import shutil
-from pathlib import Path
 from ..utils.log_setup import logger
-from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.setup_config import ChecksConfig
 from ..utils.config_manager import ConfigManager
 
 config_mgr = ConfigManager()
