@@ -1,7 +1,22 @@
-from dataclasses import asdict
+from dataclasses import asdict, is_dataclass
 from typing import Optional, TypeVar, Type, Dict, Any, get_type_hints
 import json
 import os
+from pathlib import Path
+import appdirs
+import sys
+
+from ..utils.log_setup import logger
+
+T = TypeVar('T')
+
+from dataclasses import asdict, is_dataclass
+from typing import Optional, TypeVar, Type, Dict, Any, get_type_hints
+import json
+import os
+from pathlib import Path
+import appdirs
+import sys
 
 from ..utils.log_setup import logger
 
@@ -14,19 +29,98 @@ class ConfigManager:
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
-            config_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config')
-            if not os.path.exists(config_dir):
-                raise FileNotFoundError(f"Config directory not found at {config_dir}")
+            
+            # Define the base directory for bundled configs
+            if getattr(sys, 'frozen', False):
+                # If running as bundled executable
+                cls._instance._bundle_dir = sys._MEIPASS
+            else:
+                # If running from source
+                cls._instance._bundle_dir = os.path.dirname(os.path.dirname(__file__))
+            
+            # Set up user config directory using appdirs
+            cls._instance._user_config_dir = appdirs.user_config_dir(
+                appname="AVSpex",
+                appauthor="NMAAHC"
+            )
+            
+            # Set up logo files directory path
+            cls._instance._logo_files_dir = os.path.join(cls._instance._bundle_dir, 'logo_image_files')
+            
+            # Set up policies directory paths
+            cls._instance._bundled_policies_dir = os.path.join(cls._instance._bundle_dir, 'config', 'mediaconch_policies')
+            cls._instance._user_policies_dir = os.path.join(cls._instance._user_config_dir, 'mediaconch_policies')
+            
+            # Ensure directories exist
+            os.makedirs(cls._instance._user_config_dir, exist_ok=True)
+            os.makedirs(cls._instance._user_policies_dir, exist_ok=True)
+            
+            # Verify bundled configs exist
+            bundle_config_dir = os.path.join(cls._instance._bundle_dir, 'config')
+            if not os.path.exists(bundle_config_dir):
+                raise FileNotFoundError(f"Bundled config directory not found at {bundle_config_dir}")
+            
         return cls._instance
-    
-    @property
-    def project_root(self) -> str:
-        return os.path.dirname(os.path.dirname(__file__))
 
-    def find_file(self, filename: str, subdir: str = 'config') -> Optional[str]:
-        file_path = os.path.join(self.project_root, subdir, filename)
-        # print(f"Looking for config file at: {file_path}")
-        # print(f"Project root is: {self.project_root}")
+    def get_logo_path(self, logo_filename: str) -> Optional[str]:
+        """
+        Get the full path for a logo file in the bundled logo_image_files directory
+        
+        Args:
+            logo_filename: Name of the logo file
+            
+        Returns:
+            Optional[str]: Full path to the logo file or None if not found
+        """
+        logo_path = os.path.join(self._logo_files_dir, logo_filename)
+        if os.path.exists(logo_path):
+            # Quote the path if it contains spaces
+            return f'"{logo_path}"' if ' ' in logo_path else logo_path
+        return None
+    
+    def get_available_policies(self) -> list[str]:
+        """Get all available policy files from both bundled and user directories"""
+        policies = set()  # Use set to avoid duplicates
+        
+        # Get bundled policies
+        if os.path.exists(self._bundled_policies_dir):
+            policies.update(f for f in os.listdir(self._bundled_policies_dir) if f.endswith('.xml'))
+            
+        # Get user policies
+        if os.path.exists(self._user_policies_dir):
+            policies.update(f for f in os.listdir(self._user_policies_dir) if f.endswith('.xml'))
+            
+        return sorted(list(policies))
+
+    def get_policy_path(self, policy_name: str) -> Optional[str]:
+        """Get the full path for a policy file, checking user dir first then bundled"""
+        # Check user directory first
+        user_path = os.path.join(self._user_policies_dir, policy_name)
+        if os.path.exists(user_path):
+            # Quote the path if it contains spaces
+            return f'"{user_path}"' if ' ' in user_path else user_path
+            
+        # Then check bundled policies
+        bundled_path = os.path.join(self._bundled_policies_dir, policy_name)
+        if os.path.exists(bundled_path):
+            # Quote the path if it contains spaces
+            return f'"{bundled_path}"' if ' ' in bundled_path else bundled_path
+            
+        return None
+
+    def find_file(self, filename: str, user_config: bool = False) -> Optional[str]:
+        """
+        Find a config file in either the bundled configs or user config directory.
+        
+        Args:
+            filename: Name of the config file
+            user_config: If True, look in user config directory instead of bundled configs
+        """
+        if user_config:
+            file_path = os.path.join(self._user_config_dir, filename)
+        else:
+            file_path = os.path.join(self._bundle_dir, 'config', filename)
+            
         return file_path if os.path.exists(file_path) else None
 
     def _load_json_config(self, config_name: str, last_used: bool = False) -> dict:
@@ -34,36 +128,56 @@ class ConfigManager:
         Load JSON config file by name
         Args:
             config_name: Name of the config file
-            last_used: If True, look for last_used_{config_name}_config.json first
+            last_used: If True, look for last_used_{config_name}_config.json in user directory
         """
         if last_used:
-            last_used_path = self.find_file(f"last_used_{config_name}_config.json")
+            last_used_path = self.find_file(
+                f"last_used_{config_name}_config.json",
+                user_config=True
+            )
             if last_used_path and os.path.exists(last_used_path):
                 try:
                     with open(last_used_path, 'r') as f:
                         data = json.load(f)
-                        logger.debug(f"Successfully loaded last_used_{config_name}_config.json")
+                        logger.debug(f"Loaded last used config from {last_used_path}")
                         return data
                 except json.JSONDecodeError:
                     logger.critical(f"Error loading last used config, falling back to defaults")
 
-        # Load default config if last_used is False or last_used config doesn't exist
-        json_path = self.find_file(f"{config_name}_config.json")
-        # print(f"Attempting to load config from: {json_path}")
+        # Load default config from bundled configs
+        json_path = self.find_file(f"{config_name}_config.json", user_config=False)
         
         if not json_path or not os.path.exists(json_path):
             raise FileNotFoundError(
-                f"Config file {config_name}_config.json not found. "
-                f"Required configuration files must be present in the config directory."
+                f"Default config file {config_name}_config.json not found in bundled configs."
             )
             
         try:
             with open(json_path, 'r') as f:
                 data = json.load(f)
-                logger.debug(f"Successfully loaded {config_name}_config.json")
+                logger.debug(f"Loaded default config from {json_path}")
                 return data
         except json.JSONDecodeError as e:
             raise ValueError(f"Error parsing {config_name}_config.json: {str(e)}")
+
+    def save_last_used_config(self, config_name: str) -> None:
+        """Save current config state as last used settings in user config directory"""
+        config = self._configs.get(config_name)
+        if not config:
+            logger.error(f"No config found for {config_name}, cannot save last used settings")
+            return
+            
+        last_used_path = os.path.join(
+            self._user_config_dir,
+            f"last_used_{config_name}_config.json"
+        )
+        
+        try:
+            with open(last_used_path, 'w') as f:
+                json.dump(asdict(config), f, indent=2)
+            logger.debug(f"Saved last used config to {last_used_path}")
+        except Exception as e:
+            logger.critical(f"Error saving last used config for {config_name}: {str(e)}")
 
 
     def _create_dataclass_instance(self, cls: Type[T], data: dict) -> T:
@@ -177,24 +291,26 @@ class ConfigManager:
         # Perform the update
         update_recursively(current_config, updates)
         # logger.debug(f"Updated {config_name} config")
-        
-        # Save the updated config
-        self.save_last_used_config(config_name)
 
     def get_config(self, config_name: str, config_class: Type[T]) -> T:
         """
         Get config, ensuring it's always returned as a proper dataclass instance.
         """
         if config_name not in self._configs:
-            # Load default config
+            # Load default config first
             default_config = self._load_json_config(config_name, last_used=False)
             
-            try:
-                # Try to load and merge last used config
-                last_used_data = self._load_json_config(config_name, last_used=True)
-                self._deep_merge_dict(default_config, last_used_data)
-            except (FileNotFoundError, json.JSONDecodeError):
-                logger.debug(f"No valid last used config found for {config_name}")
+            # Only try to load and merge last used config if it exists
+            last_used_path = self.find_file(
+                f"last_used_{config_name}_config.json",
+                user_config=True
+            )
+            if last_used_path and os.path.exists(last_used_path):
+                try:
+                    last_used_data = self._load_json_config(config_name, last_used=True)
+                    self._deep_merge_dict(default_config, last_used_data)
+                except (FileNotFoundError, json.JSONDecodeError):
+                    logger.debug(f"No valid last used config found for {config_name}")
                 
             # Create dataclass instance
             self._configs[config_name] = self._create_dataclass_instance(
@@ -215,39 +331,19 @@ class ConfigManager:
                     target[key] = value
 
     def save_config(self, config_name: str) -> None:
-        """Save current config state to JSON file"""
+        """Save current config state to user config directory"""
         config = self._configs.get(config_name)
         if not config:
             return
             
-        json_path = self.find_file(f"{config_name}_config.json")
-        if not json_path:
-            json_path = os.path.join(self.project_root, 'config', f"{config_name}_config.json")
-            os.makedirs(os.path.dirname(json_path), exist_ok=True)
-            
-        with open(json_path, 'w') as f:
-            json.dump(asdict(config), f, indent=2)
-
-    def save_last_used_config(self, config_name: str) -> None:
-        """Save current config state as last used settings"""
-        config = self._configs.get(config_name)
-        if not config:
-            print(f"No config found for {config_name}, cannot save last used settings")
-            return
-            
-        last_used_path = os.path.join(
-            self.project_root, 
-            'config', 
-            f"last_used_{config_name}_config.json"
-        )
-        os.makedirs(os.path.dirname(last_used_path), exist_ok=True)
+        json_path = os.path.join(self._user_config_dir, f"{config_name}_config.json")
         
         try:
-            with open(last_used_path, 'w') as f:
+            with open(json_path, 'w') as f:
                 json.dump(asdict(config), f, indent=2)
-            # logger.debug(f"Successfully saved last used config for {config_name} at {last_used_path}")
+            logger.debug(f"Saved config to {json_path}")
         except Exception as e:
-            logger.critical(f"Error saving last used config for {config_name}: {str(e)}")
+            logger.critical(f"Error saving config for {config_name}: {str(e)}")
 
     def set_config(self, config_name: str, config: Any) -> None:
         """
