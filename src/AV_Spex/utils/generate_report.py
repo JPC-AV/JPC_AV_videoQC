@@ -257,7 +257,14 @@ def summarize_failures(failure_csv_path):  # Change parameter to accept CSV file
 
 
 def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbars_values_output, sorted_thumbs_dict):
-
+    """Lazy load pandas and plotly only when needed"""
+    try:
+        import pandas as pd
+        import plotly.graph_objs as go
+    except ImportError as e:
+        logger.critical(f"Error importing required libraries for graphs: {e}")
+        return None
+    
     # Read the CSV files
     colorbars_df = pd.read_csv(colorbars_values_output)
 
