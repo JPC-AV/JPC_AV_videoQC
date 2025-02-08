@@ -2,35 +2,47 @@
 # -*- coding: utf-8 -*-
 
 import os
-import subprocess
 import sys
-import logging
-import csv
-import shutil
 import argparse
-import importlib.metadata
-import time
 import toml
-from art import art, text2art
-from datetime import datetime
+from art import text2art
 from dataclasses import dataclass
 from typing import List, Optional, Any
 
-from PyQt6.QtWidgets import (
-    QApplication
-)
-
 from .processing import processing_mgmt
-from .processing import run_tools
-from .processing.avspex_processor import AVSpexProcessor, display_processing_banner
+from .processing.avspex_processor import AVSpexProcessor
 from .utils import dir_setup
 from .utils import edit_config
 from .utils.log_setup import logger
-from .utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from .utils.setup_config import ChecksConfig, SpexConfig
+from .utils.setup_config import SpexConfig
 from .utils.config_manager import ConfigManager
 from .utils.config_io import ConfigIO
-from .utils.gui_setup import ConfigWindow, MainWindow
+
+# Create lazy loader for GUI components
+class LazyGUILoader:
+    _app = None
+    _ConfigWindow = None
+    _MainWindow = None
+    _QApplication = None
+    @classmethod
+    def load_gui_components(cls):
+        if cls._QApplication is None:
+            from PyQt6.QtWidgets import QApplication
+            from .utils.gui_setup import ConfigWindow, MainWindow
+            cls._QApplication = QApplication
+            cls._ConfigWindow = ConfigWindow
+            cls._MainWindow = MainWindow
+            
+    @classmethod
+    def get_application(cls):
+        cls.load_gui_components()
+        if cls._app is None:
+            cls._app = cls._QApplication(sys.argv)
+        return cls._app
+    @classmethod
+    def get_main_window(cls):
+        cls.load_gui_components()
+        return cls._MainWindow()
 
 config_mgr = ConfigManager()
 
@@ -286,9 +298,14 @@ def run_avspex(source_directories, signals=None):
 
 def main_gui():
     args = parse_arguments()
-    app = QApplication(sys.argv)
-    window = MainWindow()
+    
+    # Get application (will show splash screen)
+    app = LazyGUILoader.get_application()
+    
+    # Get main window (will close splash screen after delay)
+    window = LazyGUILoader.get_main_window()
     window.show()
+    
     return app.exec()
 
 

@@ -2,7 +2,7 @@ import os
 import sys
 import shutil
 import re
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict
 
 from ..utils.log_setup import logger
 from ..utils.setup_config import ChecksConfig, SpexConfig

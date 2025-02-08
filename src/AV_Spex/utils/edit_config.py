@@ -1,9 +1,5 @@
-import os
-import csv
-import subprocess
-import argparse
-from dataclasses import dataclass, asdict, field
-from typing import List, Optional
+from dataclasses import asdict
+from typing import List
 
 from ..utils.log_setup import logger
 from ..utils.setup_config import ChecksConfig, SpexConfig

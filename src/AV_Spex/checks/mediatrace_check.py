@@ -5,7 +5,7 @@ import re
 import csv
 import os
 import xml.etree.ElementTree as ET
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict
 
 from ..utils.log_setup import logger
 from ..utils.setup_config import ChecksConfig, SpexConfig

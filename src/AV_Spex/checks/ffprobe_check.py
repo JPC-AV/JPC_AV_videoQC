@@ -2,11 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
 import sys
-import logging
 import json
-from dataclasses import dataclass, asdict, field
 
 from ..utils.log_setup import logger
 from ..utils.setup_config import ChecksConfig, SpexConfig

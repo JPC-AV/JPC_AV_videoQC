@@ -8,7 +8,6 @@
 # The original code from the qct-parse was written by Brendan Coates and Morgan Morel as part of the 2016 AMIA "Hack Day"
 # Summary of that event here: https://wiki.curatecamp.org/index.php/Association_of_Moving_Image_Archivists_%26_Digital_Library_Federation_Hack_Day_2016
 
-from lxml import etree
 import gzip
 import os
 import subprocess
@@ -19,7 +18,7 @@ import operator
 import collections      # for circular buffer
 import csv
 import datetime as dt
-from dataclasses import dataclass, asdict, field
+from dataclasses import asdict
 
 from ..utils.log_setup import logger
 from ..utils.setup_config import ChecksConfig, SpexConfig
@@ -28,6 +27,15 @@ from ..utils.config_manager import ConfigManager
 config_mgr = ConfigManager()
 checks_config = config_mgr.get_config('checks', ChecksConfig)
 spex_config = config_mgr.get_config('spex', SpexConfig)
+
+def load_etree():
+    """Helper function to load lxml.etree with error handling"""
+    try:
+        from lxml import etree
+        return etree
+    except ImportError as e:
+        logger.critical(f"Error importing lxml.etree: {e}")
+        return None
 
 
 # Dictionary to map the string to the corresponding operator function
@@ -206,6 +214,10 @@ def detectBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize,bit_de
     - "Bars start at [timestamp] ([formatted timestamp])"
     - "Bars ended at [timestamp] ([formatted timestamp])"
     """
+    etree = load_etree()
+    if etree is None:
+        return "", "", None, None
+    
     if bit_depth_10:
         YMAX_thresh = 800
         YMIN_thresh = 10
@@ -263,7 +275,11 @@ def evalBars(startObj,pkt,durationStart,durationEnd,framesList,buffSize):
     Returns:
         maxBarsDict (dict): Returns dictionary of max or min value of corresponding QCTools keys
     """
- 
+    
+    etree = load_etree()
+    if etree is None:
+        return None
+    
     # Define the keys for which you want to calculate the average
     keys_to_check = ['YMAX', 'YMIN', 'UMIN', 'UMAX', 'VMIN', 'VMAX', 'SATMAX', 'SATMIN']
     # Initialize a dictionary to store the highest values for each key
@@ -502,7 +518,10 @@ def analyzeIt(qct_parse, video_path, profile, profile_name, startObj, pkt, durat
         - Analyzing frames using a single tag threshold: `analyzeIt(args, {}, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, framesList)`
         - Analyzing frames using a profile: `analyzeIt(args, profile, startObj, pkt, durationStart, durationEnd, thumbPath, thumbDelay, framesList)`
     """
-
+    etree = load_etree()
+    if etree is None:
+        return {}, 0, 0, {}
+    
     kbeyond = {} # init a dict for each key which we'll use to track how often a given key is over
     fots = "" # init frame over threshold to avoid counting the same frame more than once in the overallFrameFail count
     failureInfo = {}  # Initialize a new dictionary to store failure information
@@ -794,6 +813,10 @@ def save_failures_to_csv(failureInfo, failure_csv_path):
                 writer.writerow({'Timestamp': timestamp, 'Tag': info['tag'], 'Tag Value': info['tagValue'], 'Threshold': info['over']})
 
 def extract_report_mkv(startObj, qctools_output_path):
+    etree = load_etree()
+    if etree is None:
+        return None
+    
     report_file_output = qctools_output_path.replace(".qctools.mkv", ".qctools.xml.gz")
 
     if os.path.isfile(report_file_output):
@@ -841,28 +864,32 @@ def extract_report_mkv(startObj, qctools_output_path):
     
 
 def detectBitdepth(startObj,pkt,framesList,buffSize):
-	bit_depth_10 = False
-	with gzip.open(startObj) as xml:
-		for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
-			if elem.attrib['media_type'] == "video": # get just the video frames
-				frame_pkt_dts_time = elem.attrib[pkt] # get the timestamps for the current frame we're looking at
-				frameDict = {}  # start an empty dict for the new frame
-				frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
-				for t in list(elem):    # iterating through each attribute for each element
-					keySplit = t.attrib['key'].split(".")   # split the names by dots 
-					keyName = str(keySplit[-1])             # get just the last word for the key name
-					frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
-				framesList.append(frameDict)
-				middleFrame = int(round(float(len(framesList))/2))	# i hate this calculation, but it gets us the middle index of the list as an integer
-				if len(framesList) == buffSize:	# wait till the buffer is full to start detecting bars
-					## This is where the bars detection magic actually happens
-					bufferRange = list(range(0, buffSize))
-					if float(framesList[middleFrame]['YMAX']) > 250:
-						bit_depth_10 = True
-						break
-			elem.clear() # we're done with that element so let's get it outta memory
+    etree = load_etree()
+    if etree is None:
+        return False
 
-	return bit_depth_10
+    bit_depth_10 = False
+    with gzip.open(startObj) as xml:
+        for event, elem in etree.iterparse(xml, events=('end',), tag='frame'): # iterparse the xml doc
+            if elem.attrib['media_type'] == "video": # get just the video frames
+                frame_pkt_dts_time = elem.attrib[pkt] # get the timestamps for the current frame we're looking at
+                frameDict = {}  # start an empty dict for the new frame
+                frameDict[pkt] = frame_pkt_dts_time  # give the dict the timestamp, which we have now
+                for t in list(elem):    # iterating through each attribute for each element
+                    keySplit = t.attrib['key'].split(".")   # split the names by dots 
+                    keyName = str(keySplit[-1])             # get just the last word for the key name
+                    frameDict[keyName] = t.attrib['value']	# add each attribute to the frame dictionary
+                framesList.append(frameDict)
+                middleFrame = int(round(float(len(framesList))/2))	# i hate this calculation, but it gets us the middle index of the list as an integer
+                if len(framesList) == buffSize:	# wait till the buffer is full to start detecting bars
+                    ## This is where the bars detection magic actually happens
+                    bufferRange = list(range(0, buffSize))
+                    if float(framesList[middleFrame]['YMAX']) > 250:
+                        bit_depth_10 = True
+                        break
+            elem.clear() # we're done with that element so let's get it outta memory
+
+    return bit_depth_10
 
 
 def run_qctparse(video_path, qctools_output_path, report_directory, check_cancelled=None):
@@ -875,6 +902,12 @@ def run_qctparse(video_path, qctools_output_path, report_directory, check_cancel
         report_directory (str): Path to {video_id}_report_csvs directory.
 
     """
+    # Check if we can load required library
+    etree = load_etree()
+    if etree is None:
+        logger.critical("Cannot proceed with qct-parse: required library lxml.etree is not available")
+        return None
+    
     logger.info("Starting qct-parse\n")
 
     ###### Initialize variables ######
