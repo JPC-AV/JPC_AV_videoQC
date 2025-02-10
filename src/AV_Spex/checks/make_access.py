@@ -86,6 +86,10 @@ def process_access_file(video_path, source_directory, video_id, check_cancelled=
 
     try:
         # Check if access file already exists
+        for filename in os.listdir(source_directory):
+            if filename.lower().endswith('mp4'):
+                logger.critical(f"Access file already exists, not running ffmpeg\n")
+                return None
         if os.path.isfile(access_output_path):
             logger.critical(f"Access file already exists, not running ffmpeg\n")
             return None
