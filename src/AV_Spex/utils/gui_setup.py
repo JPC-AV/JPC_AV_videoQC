@@ -672,10 +672,8 @@ class MainWindow(QMainWindow):
         self.config_mgr = ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
-        # Get the screen geometry
-        screen = QApplication.primaryScreen().geometry()
-        # Set window height to screen height, but keep a reasonable width
-        self.resize(800, screen.height())
+
+        self.resize(800, 900)
         
          # Initialize settings
         self.settings = QSettings('NMAAHC', 'AVSpex')
