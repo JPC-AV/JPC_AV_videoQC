@@ -1,16 +1,4 @@
-from dataclasses import asdict, is_dataclass
-from typing import Optional, TypeVar, Type, Dict, Any, get_type_hints
-import json
-import os
-from pathlib import Path
-import appdirs
-import sys
-
-from ..utils.log_setup import logger
-
-T = TypeVar('T')
-
-from dataclasses import asdict, is_dataclass
+from dataclasses import asdict
 from typing import Optional, TypeVar, Type, Dict, Any, get_type_hints
 import json
 import os
@@ -30,12 +18,9 @@ class ConfigManager:
         if cls._instance is None:
             cls._instance = super(ConfigManager, cls).__new__(cls)
             
-            # Define the base directory for bundled configs
             if getattr(sys, 'frozen', False):
-                # If running as bundled executable
-                cls._instance._bundle_dir = sys._MEIPASS
+                cls._instance._bundle_dir = os.path.join(sys._MEIPASS, 'AV_Spex')
             else:
-                # If running from source
                 cls._instance._bundle_dir = os.path.dirname(os.path.dirname(__file__))
             
             # Set up user config directory using appdirs
