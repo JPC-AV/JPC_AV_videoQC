@@ -37,10 +37,17 @@ av-spex = "AV_Spex.av_spex_the_file:main_cli"
 av-spex-gui = "AV_Spex.av_spex_the_file:main_gui"
 
 [tool.setuptools.packages.find]
-where = ["src"]  # list of folders that contain the packages (["."] by default)
-include = ["AV_Spex*"]  # package names should match these glob patterns (["*"] by default)
-exclude = ["config", "logs", "tests"]  # exclude packages matching these glob patterns (empty by default)
-namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+where = ["src"]
+include = ["AV_Spex*"]
+exclude = ["tests"]
+namespaces = false
+
+[tool.setuptools.package-data]
+"AV_Spex" = [
+    "config/*.json",
+    "config/mediaconch_policies/*.xml",
+    "logo_image_files/*.png"
+]
 
 [project.optional-dependencies]
 test = ["pytest"]
