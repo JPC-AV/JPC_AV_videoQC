@@ -3,9 +3,11 @@
 
 import logging
 import os
+import sys
 import colorlog
 from datetime import datetime
 from colorlog import ColoredFormatter
+from pathlib import Path
 
 def get_log_directory():
     """Determine the appropriate log directory based on how the app is running"""
