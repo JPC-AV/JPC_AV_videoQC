@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QAbstractItemView, QInputDialog, QMessageBox, QProgressBar
 )
 from PyQt6.QtCore import Qt, QSettings, QDir
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QPalette
 
 import os
 import sys
@@ -1125,8 +1125,7 @@ class MainWindow(QMainWindow):
             }
 
         content_text = self.dict_to_string(nested_dict)
-        
-        # Rest of the original method remains the same
+    
         self.new_window = QWidget()
         self.new_window.setWindowTitle(title)
         self.new_window.setLayout(QVBoxLayout())
@@ -1138,7 +1137,16 @@ class MainWindow(QMainWindow):
         content_widget.setPlainText(content_text)
         content_widget.setReadOnly(True)
         content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
-        content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
+        
+        # Remove the hardcoded background color and use system palette instead
+        content_widget.setStyleSheet("padding: 5px;")
+        
+        # Explicitly set the text color to follow system palette
+        palette = content_widget.palette()
+        palette.setColor(QPalette.ColorRole.Base, palette.color(QPalette.ColorRole.Window))
+        palette.setColor(QPalette.ColorRole.Text, palette.color(QPalette.ColorRole.WindowText))
+        content_widget.setPalette(palette)
+        
         scroll_area.setWidget(content_widget)
         
         self.new_window.layout().addWidget(scroll_area)
