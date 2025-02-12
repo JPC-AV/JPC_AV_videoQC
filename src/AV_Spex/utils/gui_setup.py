@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QCheckBox, QLineEdit, QLabel, 
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QComboBox, QTabWidget,
-    QTextEdit, QAbstractItemView, QInputDialog, QMessageBox, QProgressBar
+    QTextEdit, QAbstractItemView, QInputDialog, QMessageBox, QProgressBar, QDialog
 )
 from PyQt6.QtCore import Qt, QSettings, QDir
 from PyQt6.QtGui import QPixmap, QPalette
@@ -20,6 +20,150 @@ from ..processing.worker_thread import ProcessingWorker
 
 from ..processing.avspex_processor import AVSpexProcessor
 from ..utils.signals import ProcessingSignals
+
+
+class CustomFilenameDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Custom Filename Pattern")
+        self.setModal(True)
+        
+        # Initialize layout
+        layout = QVBoxLayout()
+        
+        # Add description
+        description = QLabel("Define your custom filename pattern. Each component will be separated by underscores.")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+        
+        # Collection input
+        collection_layout = QHBoxLayout()
+        collection_layout.addWidget(QLabel("Collection:"))
+        self.collection_input = QLineEdit()
+        collection_layout.addWidget(self.collection_input)
+        layout.addLayout(collection_layout)
+        
+        # Media Type input
+        mediatype_layout = QHBoxLayout()
+        mediatype_layout.addWidget(QLabel("Media Type:"))
+        self.mediatype_input = QLineEdit()
+        mediatype_layout.addWidget(self.mediatype_input)
+        layout.addLayout(mediatype_layout)
+        
+        # Object ID pattern
+        objectid_layout = QHBoxLayout()
+        objectid_layout.addWidget(QLabel("Object ID Pattern:"))
+        self.objectid_pattern = QComboBox()
+        self.objectid_pattern.addItems([
+            "Custom Pattern",
+            "5 digits (e.g., 12345)",
+            "3 digits + underscore + 1 letter (e.g., 123_A)"
+        ])
+        self.objectid_pattern.currentIndexChanged.connect(self.on_objectid_pattern_changed)
+        objectid_layout.addWidget(self.objectid_pattern)
+        layout.addLayout(objectid_layout)
+        
+        # Custom Object ID input
+        self.objectid_input_layout = QHBoxLayout()
+        self.objectid_input_layout.addWidget(QLabel("Custom Object ID Regex:"))
+        self.objectid_input = QLineEdit()
+        self.objectid_input_layout.addWidget(self.objectid_input)
+        layout.addLayout(self.objectid_input_layout)
+        
+        # Digital Generation checkbox and input
+        dg_layout = QHBoxLayout()
+        self.dg_checkbox = QCheckBox("Include Digital Generation")
+        self.dg_checkbox.stateChanged.connect(self.on_dg_checkbox_changed)
+        dg_layout.addWidget(self.dg_checkbox)
+        self.dg_input = QLineEdit()
+        self.dg_input.setEnabled(False)
+        dg_layout.addWidget(self.dg_input)
+        layout.addLayout(dg_layout)
+        
+        # File Extension input
+        extension_layout = QHBoxLayout()
+        extension_layout.addWidget(QLabel("File Extension:"))
+        self.extension_input = QLineEdit()
+        self.extension_input.setText("mkv")
+        extension_layout.addWidget(self.extension_input)
+        layout.addLayout(extension_layout)
+        
+        # Preview section
+        preview_layout = QHBoxLayout()
+        preview_layout.addWidget(QLabel("Preview:"))
+        self.preview_label = QLabel()
+        preview_layout.addWidget(self.preview_label)
+        layout.addLayout(preview_layout)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        save_button = QPushButton("Save Pattern")
+        save_button.clicked.connect(self.accept)
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+        
+        # Connect text changed signals for preview updates
+        self.collection_input.textChanged.connect(self.update_preview)
+        self.mediatype_input.textChanged.connect(self.update_preview)
+        self.objectid_input.textChanged.connect(self.update_preview)
+        self.dg_input.textChanged.connect(self.update_preview)
+        self.extension_input.textChanged.connect(self.update_preview)
+        
+        self.setLayout(layout)
+        
+    def on_objectid_pattern_changed(self, index):
+        if index == 0:  # Custom Pattern
+            self.objectid_input.setEnabled(True)
+            self.objectid_input.clear()
+        elif index == 1:  # 5 digits
+            self.objectid_input.setEnabled(False)
+            self.objectid_input.setText(r"\d{5}")
+        elif index == 2:  # 3 digits + underscore + 1 letter
+            self.objectid_input.setEnabled(False)
+            self.objectid_input.setText(r"\d{3}_\d{1}[a-zA-Z]")
+        self.update_preview()
+        
+    def on_dg_checkbox_changed(self, state):
+        self.dg_input.setEnabled(state == Qt.Checked)
+        self.update_preview()
+        
+    def update_preview(self):
+        parts = [
+            self.collection_input.text(),
+            self.mediatype_input.text(),
+            self.objectid_input.text()
+        ]
+        
+        if self.dg_checkbox.isChecked() and self.dg_input.text():
+            parts.append(self.dg_input.text())
+            
+        example = "_".join(parts) + "." + self.extension_input.text()
+        self.preview_label.setText(example)
+        
+    def get_filename_pattern(self):
+        if not all([self.collection_input.text(), 
+                   self.mediatype_input.text(),
+                   self.objectid_input.text(),
+                   self.extension_input.text()]):
+            QMessageBox.warning(self, "Validation Error", 
+                              "All fields except Digital Generation must be filled.")
+            return None
+            
+        pattern = {
+            "filename_values": {
+                "Collection": self.collection_input.text(),
+                "MediaType": self.mediatype_input.text(),
+                "ObjectID": self.objectid_input.text(),
+                "DigitalGeneration": self.dg_input.text() if self.dg_checkbox.isChecked() else None,
+                "FileExtension": self.extension_input.text()
+            }
+        }
+        return pattern
+
+
 
 class ProcessingWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -666,6 +810,23 @@ class MainWindow(QMainWindow):
     def on_output_progress(self, message):
         if self.processing_window:
             self.processing_window.update_detailed_status(message)
+
+    def add_custom_filename_button(self):
+        custom_button = QPushButton("Create Custom Pattern...")
+        custom_button.clicked.connect(self.show_custom_filename_dialog)
+        # Add to the filename section layout that's already defined
+        self.filename_section_layout.addWidget(custom_button)
+
+    def show_custom_filename_dialog(self):
+        dialog = CustomFilenameDialog(self)
+        if dialog.exec() == QDialog.Accepted:
+            pattern = dialog.get_filename_pattern()
+            if pattern:
+                self.config_mgr.update_config('spex', pattern)
+                # Add the new pattern to the dropdown
+                custom_name = f"Custom ({pattern['filename_values']['Collection']})"
+                self.filename_profile_dropdown.addItem(custom_name)
+                self.filename_profile_dropdown.setCurrentText(custom_name)
         
     def setup_ui(self):
         # Move all UI initialization here
@@ -811,6 +972,13 @@ class MainWindow(QMainWindow):
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
         filename_section_layout.addWidget(self.filename_profile_dropdown)
+
+        # Store the layout as an instance variable so it can be accessed by add_custom_filename_button
+        self.filename_section_layout = filename_section_layout
+        
+        # Add the custom filename button
+        self.add_custom_filename_button()
+        
         # Create a toggle button to open a new window
         filename_button = QPushButton("Open Section")
         filename_button.clicked.connect(lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values)))
