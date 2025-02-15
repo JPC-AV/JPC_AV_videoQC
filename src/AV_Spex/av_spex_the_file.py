@@ -97,18 +97,9 @@ SIGNAL_FLOW_CONFIGS = {
 
 
 def parse_arguments():
-    # Get the version from pyproject.toml
-    if getattr(sys, 'frozen', False):
-        # If running as bundled executable
-        base_path = sys._MEIPASS
-        project_path = base_path  # Set project_path for frozen app
-    else:
-        # If running from source
-        project_path = os.path.dirname(os.path.dirname(config_mgr._bundle_dir))
-        
-    pyproject_path = os.path.join(project_path, 'pyproject.toml')
-    with open(pyproject_path, 'r') as f:
-        version_string = toml.load(f)['project']['version']
+    # Get the version from __init__
+    from AV_Spex import __version__
+    version_string = __version__
 
     parser = argparse.ArgumentParser(
         description=f"""\
