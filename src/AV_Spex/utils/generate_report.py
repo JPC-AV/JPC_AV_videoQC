@@ -257,42 +257,80 @@ def summarize_failures(failure_csv_path):  # Change parameter to accept CSV file
 
 
 def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbars_values_output, sorted_thumbs_dict):
-    """Lazy load pandas and plotly only when needed"""
+    """
+    Creates HTML visualizations for color bars analysis, including bar charts comparing 
+    SMPTE color bars with the video's color bars values.
+
+    Args:
+        video_id (str): The identifier for the video being analyzed.
+        qctools_colorbars_duration_output (str): Path to CSV file containing color bars duration data.
+        colorbars_values_output (str): Path to CSV file containing color bars values data.
+        sorted_thumbs_dict (dict): Dictionary containing thumbnail information with keys as descriptions
+                                 and values as tuples of (path, profile_name, timestamp). 
+                                 Output find_qct_thumbs().
+
+    Returns:
+        str or None: HTML string containing the visualization if successful, None if there are errors.
+    """
     try:
-        import pandas as pd
         import plotly.graph_objs as go
     except ImportError as e:
         logger.critical(f"Error importing required libraries for graphs: {e}")
         return None
     
-    # Read the CSV files
-    colorbars_df = pd.read_csv(colorbars_values_output)
+    try:
+        with open(colorbars_values_output, 'r') as file:
+            csv_reader = csv.DictReader(file)
+            # Convert CSV data to lists for plotly
+            colorbar_csv_data = {
+                'QCTools Fields': [],
+                'SMPTE Colorbars': [],
+                f'{video_id} Colorbars': []
+            }
+            for row in csv_reader:
+                colorbar_csv_data['QCTools Fields'].append(row['QCTools Fields'])
+                # Convert string values to float
+                colorbar_csv_data['SMPTE Colorbars'].append(float(row['SMPTE Colorbars']))
+                colorbar_csv_data[f'{video_id} Colorbars'].append(float(row[f'{video_id} Colorbars']))
+    except Exception as e:
+        logger.critical(f"Error reading colorbars CSV file: {e}")
+        return None
 
-    if os.path.isfile(qctools_colorbars_duration_output):
+     # Initialize duration_text with default value
+    duration_text = "Colorbars duration: Not available"
 
-        # Read the colorbars duration CSV
+    if not os.path.isfile(qctools_colorbars_duration_output):
+        logger.critical(f"Cannot open color bars csv file: {qctools_colorbars_duration_output}")
+        return None  # Return None if duration file doesn't exist
+
+    try:
         with open(qctools_colorbars_duration_output, 'r') as file:
             duration_lines = file.readlines()
-
-            # Check if there are enough lines to access the second one
-            if len(duration_lines) > 1:
-                duration_text = duration_lines[1].strip()  # The 2nd line contains the color bars duration
-                duration_text = duration_text.replace(',',' - ')
-                duration_text = "Colorbars duration: " + duration_text
-                # Create the bar chart for the colorbars values
-                colorbars_fig = go.Figure(data=[
-                    go.Bar(name='SMPTE Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df['SMPTE Colorbars'], marker=dict(color='#378d6a')),
-                    go.Bar(name=f'{video_id} Colorbars', x=colorbars_df['QCTools Fields'], y=colorbars_df[f'{video_id} Colorbars'], marker=dict(color='#bf971b'))
-                ])
-                colorbars_fig.update_layout(barmode='group')
-                # Save each chart as an HTML string
-                colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
-            else:
-                logger.critical(f"The csv file {colorbars_values_output} does not match the expected format, cannot be used in html report.")
-                colorbars_barchart_html = None
-    else:
-        logger.critical(f"Cannot open color bars csv file: {qctools_colorbars_duration_output}")
-        colorbars_barchart_html = None
+            
+            if len(duration_lines) <= 1:  # Check if file is empty or doesn't have enough lines
+                logger.critical(f"The csv file {qctools_colorbars_duration_output} does not match the expected format")
+                return None  # Return None if duration file is empty or malformed
+            
+            duration_text = duration_lines[1].strip()
+            duration_text = duration_text.replace(',', ' - ')
+            duration_text = "Colorbars duration: " + duration_text
+            
+            # Create the bar chart for the colorbars values
+            colorbars_fig = go.Figure(data=[
+                go.Bar(name='SMPTE Colorbars', 
+                      x=colorbar_csv_data['QCTools Fields'], 
+                      y=colorbar_csv_data['SMPTE Colorbars'], 
+                      marker=dict(color='#378d6a')),
+                go.Bar(name=f'{video_id} Colorbars', 
+                      x=colorbar_csv_data['QCTools Fields'], 
+                      y=colorbar_csv_data[f'{video_id} Colorbars'], 
+                      marker=dict(color='#bf971b'))
+            ])
+            colorbars_fig.update_layout(barmode='group')
+            colorbars_barchart_html = colorbars_fig.to_html(full_html=False, include_plotlyjs='cdn')
+    except Exception as e:
+        logger.critical(f"Error processing duration file: {e}")
+        return None 
 
     # Add annotations for the thumbnail
     thumbnail_html = ''
@@ -322,32 +360,62 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
 
 
 def make_profile_piecharts(qctools_profile_check_output, sorted_thumbs_dict, failureInfoSummary, check_cancelled=None):
-    """Lazy load pandas and plotly only when needed"""
+    """
+    Creates HTML visualizations showing pie charts of profile check results with thumbnails 
+    and detailed failure information for each failed profile check.
+
+    Args:
+        qctools_profile_check_output (str): Path to CSV file containing profile check results.
+        sorted_thumbs_dict (dict): Dictionary containing thumbnail information with keys as descriptions
+                                 and values as tuples of (path, profile_name, timestamp). Output of find_qct_thumbs().
+        failureInfoSummary (dict): Dictionary containing detailed failure information, with timestamps
+                                 as keys and lists of failure details as values. Output of summarize_failures().
+        check_cancelled (callable, optional): Function to check if processing should be cancelled.
+                                           Defaults to None.
+
+    Returns:
+        str or None: HTML string containing the visualizations if successful, None if there are errors.
+    """
     try:
-        import pandas as pd
         import plotly.graph_objs as go
     except ImportError as e:
         logger.critical(f"Error importing required libraries for graphs: {e}")
         return None
     
-    # Read the profile summary CSV, skipping the first two metadata lines
-    profile_summary_df = pd.read_csv(qctools_profile_check_output, skiprows=3)
+    # Read and validate CSV file
+    try:
+        # Check if file exists
+        if not os.path.isfile(qctools_profile_check_output):
+            logger.critical(f"Profile check CSV file not found: {qctools_profile_check_output}")
+            return None
+    
+        # First, get the total frames from the third line
+        with open(qctools_profile_check_output, 'r') as file:
+            lines = file.readlines()
+            total_frames_line = lines[2].strip()
+            _, total_frames = total_frames_line.split(',')
+            total_frames = int(total_frames)
+            
+            # Read the profile summary data, skipping the first three lines
+            profile_data = []
+            csv_reader = csv.DictReader(lines[3:])
+            for row in csv_reader:
+                profile_data.append(row)
 
-    # Extract the total frames from the third line of the profile summary file
-    with open(qctools_profile_check_output, 'r') as file:
-        lines = file.readlines()
-        total_frames_line = lines[2].strip()  # The third line (index 2) contains TotalFrames
+    except Exception as e:
+        logger.critical(f"Error processing profile check CSV: {e}")
+        return None
 
-    # Parse the total frames line
-    _, total_frames = total_frames_line.split(',')
-    total_frames = int(total_frames)
+    # Initialize profile summary html
+    profile_summary_html = None
+    profile_summary_pie_charts = []
 
     # Create pie charts for the profile summary
-    profile_summary_pie_charts = []
-    for index, row in profile_summary_df.iterrows():
-        if check_cancelled():
+    for row in profile_data:
+        if check_cancelled and check_cancelled():
             logger.warning("HTML report cancelled.")
             return profile_summary_html
+
         tag = row['Tag']
         failed_frames = int(row['Number of failed frames'])
         percentage = float(row['Percentage of failed frames'])
@@ -356,14 +424,15 @@ def make_profile_piecharts(qctools_profile_check_output, sorted_thumbs_dict, fai
             # Initialize variables for summary data
             failed_frame_timestamps = []
             failed_frame_values = []
-            failed_frame_thresholds = []  # New list to store thresholds
+            failed_frame_thresholds = []
+
             # Get failure details for this tag
             for timestamp, info_list in failureInfoSummary.items():
                 for info in info_list:
                     if info['tag'] == tag:
                         failed_frame_timestamps.append(timestamp)
                         failed_frame_values.append(info['tagValue'])
-                        failed_frame_thresholds.append(info['over'])  # Store thresholds
+                        failed_frame_thresholds.append(info['over'])
 
             # Create formatted failure summary string
             formatted_failures = "<br>".join(
