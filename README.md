@@ -25,6 +25,12 @@ There are currently 3 installation options.
 2. Install av-spex using the macOS package manger [homebrew](https://brew.sh/)
 3. Download this code from github and install the Python version using `pip install .`, as described below.
 
+### DMG Version
+
+Download the DMG here: 
+
+sha 256: 6cfe826a3fabc335429adfb242e4da3eb01502cf60f9dc9a0121f8e8982c3a97
+
 ### Homebrew Version
 
 For instructions on installing homebrew, see: https://brew.sh/
