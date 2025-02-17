@@ -124,7 +124,7 @@ class ConfigManager:
                 try:
                     with open(last_used_path, 'r') as f:
                         data = json.load(f)
-                        logger.debug(f"Loaded last used config from {last_used_path}")
+                        # logger.debug(f"Loaded last used config from {last_used_path}")
                         return data
                 except json.JSONDecodeError:
                     logger.critical(f"Error loading last used config, falling back to defaults")
@@ -140,7 +140,7 @@ class ConfigManager:
         try:
             with open(json_path, 'r') as f:
                 data = json.load(f)
-                logger.debug(f"Loaded default config from {json_path}")
+                # logger.debug(f"Loaded default config from {json_path}")
                 return data
         except json.JSONDecodeError as e:
             raise ValueError(f"Error parsing {config_name}_config.json: {str(e)}")
@@ -160,7 +160,7 @@ class ConfigManager:
         try:
             with open(last_used_path, 'w') as f:
                 json.dump(asdict(config), f, indent=2)
-            logger.debug(f"Saved last used config to {last_used_path}")
+            # logger.debug(f"Saved last used config to {last_used_path}")
         except Exception as e:
             logger.critical(f"Error saving last used config for {config_name}: {str(e)}")
 
