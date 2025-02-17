@@ -672,13 +672,9 @@ def write_html_report(video_id, report_directory, destination_directory, html_re
     if check_cancelled():
         return
 
-    # Get the absolute path of the script file
-    script_path = os.path.dirname(os.path.abspath(__file__))
     # Determine the  path to the image file
-    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
-    logo_dir = os.path.join(root_dir, 'logo_image_files')
-    logo_image_path = os.path.join(logo_dir, 'av_spex_the_logo.png')
-    eq_image_path = os.path.join(logo_dir, 'germfree_eq.png')
+    logo_image_path = config_mgr.get_logo_path('av_spex_the_logo.png')
+    eq_image_path = config_mgr.get_logo_path('germfree_eq.png')
 
     # HTML template
     html_template = f"""
