@@ -20,8 +20,10 @@ The following command line tools are necessary and must be installed separately:
 
 ### Installation
 
-There are currently 2 installation options. 
-Install av-spex using the macOS package manger [homebrew](https://brew.sh/), or download this code from github and install the Pyhton version using `pip install .`, as described below.
+There are currently 3 installation options.
+1. Install av-spex using the provided DMG file
+2. Install av-spex using the macOS package manger [homebrew](https://brew.sh/)
+3. Download this code from github and install the Python version using `pip install .`, as described below.
 
 ### Homebrew Version
 
