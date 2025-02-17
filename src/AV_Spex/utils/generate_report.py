@@ -257,7 +257,21 @@ def summarize_failures(failure_csv_path):  # Change parameter to accept CSV file
 
 
 def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbars_values_output, sorted_thumbs_dict):
-    """Lazy load pandas and plotly only when needed"""
+    """
+    Creates HTML visualizations for color bars analysis, including bar charts comparing 
+    SMPTE color bars with the video's color bars values.
+
+    Args:
+        video_id (str): The identifier for the video being analyzed.
+        qctools_colorbars_duration_output (str): Path to CSV file containing color bars duration data.
+        colorbars_values_output (str): Path to CSV file containing color bars values data.
+        sorted_thumbs_dict (dict): Dictionary containing thumbnail information with keys as descriptions
+                                 and values as tuples of (path, profile_name, timestamp). 
+                                 Output find_qct_thumbs().
+
+    Returns:
+        str or None: HTML string containing the visualization if successful, None if there are errors.
+    """
     try:
         import plotly.graph_objs as go
     except ImportError as e:
@@ -346,7 +360,22 @@ def make_color_bars_graphs(video_id, qctools_colorbars_duration_output, colorbar
 
 
 def make_profile_piecharts(qctools_profile_check_output, sorted_thumbs_dict, failureInfoSummary, check_cancelled=None):
-    """Create profile piecharts without pandas dependency"""
+    """
+    Creates HTML visualizations showing pie charts of profile check results with thumbnails 
+    and detailed failure information for each failed profile check.
+
+    Args:
+        qctools_profile_check_output (str): Path to CSV file containing profile check results.
+        sorted_thumbs_dict (dict): Dictionary containing thumbnail information with keys as descriptions
+                                 and values as tuples of (path, profile_name, timestamp). Output of find_qct_thumbs().
+        failureInfoSummary (dict): Dictionary containing detailed failure information, with timestamps
+                                 as keys and lists of failure details as values. Output of summarize_failures().
+        check_cancelled (callable, optional): Function to check if processing should be cancelled.
+                                           Defaults to None.
+
+    Returns:
+        str or None: HTML string containing the visualizations if successful, None if there are errors.
+    """
     try:
         import plotly.graph_objs as go
     except ImportError as e:
