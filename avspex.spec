@@ -40,6 +40,8 @@ exe = EXE(
     upx=True,
     runtime_tmpdir=None,
     console=False,
+    codesign_identity=None,
+    entitlements_file=None, 
     icon='av_spex_the_logo.icns'
 )
 
