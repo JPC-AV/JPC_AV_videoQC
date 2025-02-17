@@ -20,8 +20,6 @@ a = Analysis(['gui_launcher.py'],
     runtime_hooks=[],
     excludes=[
         'PyQt6.QtDBus', 'PyQt6.QtPdf', 'PyQt6.QtSvg', 'PyQt6.QtNetwork',
-        'pandas.io.clipboard', 'pandas.io.excel', 'pandas.io.html', 
-        'pandas.io.json', 'pandas.io.sql',
         'plotly.validators', 'plotly.matplotlylib', 'plotly.figure_factory'
     ],
     noarchive=False,
