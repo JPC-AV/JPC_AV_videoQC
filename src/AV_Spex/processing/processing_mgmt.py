@@ -104,7 +104,8 @@ class ProcessingManager:
             return None
         
         # Find the policy file
-        policy_path = find_mediaconch_policy()
+        policy_name = checks_config.tools.mediaconch.mediaconch_policy
+        policy_path = config_mgr.get_policy_path(policy_name)
         if not policy_path:
             return {}
 
@@ -375,17 +376,15 @@ def setup_mediaconch_policy(user_policy_path: str = None) -> str:
             logger.critical(f"User provided policy file not found: {user_policy_path}")
             return None
             
-        # Get policy file name and destination path
+        # Get policy file name
         policy_filename = os.path.basename(user_policy_path)
-        policy_dest_dir = os.path.join(config_mgr.project_root, 'config', 'mediaconch_policies')
-        policy_dest_path = os.path.join(policy_dest_dir, policy_filename)
         
-        # Create mediaconch_policies directory if it doesn't exist
-        os.makedirs(policy_dest_dir, exist_ok=True)
+        # Copy policy file to user policies directory
+        user_policy_dest = os.path.join(config_mgr._user_policies_dir, policy_filename)
         
-        # Copy policy file to config directory, overwriting if file exists
-        shutil.copy2(user_policy_path, policy_dest_path, follow_symlinks=False)
-        logger.info(f"Copied user policy file to config directory: {policy_filename}")
+        # Copy policy file, overwriting if file exists
+        shutil.copy2(user_policy_path, user_policy_dest, follow_symlinks=False)
+        logger.info(f"Copied user policy file to user policies directory: {policy_filename}")
         
         # Get current config to preserve run_mediaconch value
         current_config = config_mgr.get_config('checks', ChecksConfig)
@@ -405,5 +404,5 @@ def setup_mediaconch_policy(user_policy_path: str = None) -> str:
         return policy_filename
         
     except Exception as e:
-        logger.critical(f"Error setting up MediaConch policy: {e}")
+        logger.critical(f"Error setting up MediaConch policy: {str(e)}")
         return None

@@ -9,13 +9,47 @@ This repository stores python scripts designed to help process digital audio and
 
 ## Requirements
 
+### Required Command Line Tools
+
+The following command line tools are necessary and must be installed separately:
+- MediaConch
+- MediaInfo
+- Exiftool
+- ffmpeg
+- QCTools
+
+### Installation
+
+There are currently 3 installation options.
+1. Install av-spex using the provided DMG file
+2. Install av-spex using the macOS package manger [homebrew](https://brew.sh/)
+3. Download this code from github and install the Python version using `pip install .`, as described below.
+
+### DMG Version
+
+Download the DMG here: 
+
+sha 256: 6cfe826a3fabc335429adfb242e4da3eb01502cf60f9dc9a0121f8e8982c3a97
+
+### Homebrew Version
+
+For instructions on installing homebrew, see: https://brew.sh/
+
+To install av-spex with homebrew first tap the formula's git repo:
+```
+brew tap eddycolloton/av-spex
+```
+Then install the app
+```
+brew install av-spex
+```
+
 ### Python Version
 - Python 3.10 or higher is required.
 
-### Installation
+#### Setting Up Conda
 Below are the instructions for setting up a compatible Python environment using Conda, although Conda is optional - any Python 3.10+ environment should be compatible.
 
-#### Setting Up Conda
 1. **Install Conda:**
    - Via Homebrew: `brew install --cask anaconda`
    - Alternatively, follow the installation guide on [Anaconda's official website](https://conda.io/projects/conda/en/latest/user-guide/install/macos.html).
@@ -40,15 +74,6 @@ Below are the instructions for setting up a compatible Python environment using 
   conda create -n JPC_AV python=3.10.13
   ```
 
-### Required Command Line Tools
-
-The following command line tools are necessary and must be installed separately:
-- MediaConch
-- MediaInfo
-- Exiftool
-- ffmpeg
-- QCTools
-
 ## Installation of AV Spex Scripts
 
 ### Initial Setup
@@ -60,20 +85,13 @@ The following command line tools are necessary and must be installed separately:
 
 2. **Install the AV Spex Scripts in Editable Mode:**
    ```bash
-   pip install -e .
+   pip install .
    ```
 
 Verify the installation by running:
 ```bash
 av-spex --help
 ```
-
-There is a unresolved bug in the installation process. After installing, if you are getting a PyQt6 error message, reactivate your virtual environment.
-For conda this would be:
-```bash
-conda activate JPC_AV
-```
-This should resolve the PyQt6 error message until I find a better solution. 
 
 ## GUI Usage
 <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
