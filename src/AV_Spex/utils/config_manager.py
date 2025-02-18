@@ -326,7 +326,7 @@ class ConfigManager:
         try:
             with open(json_path, 'w') as f:
                 json.dump(asdict(config), f, indent=2)
-            logger.debug(f"Saved config to {json_path}")
+            # logger.debug(f"Saved config to {json_path}")
         except Exception as e:
             logger.critical(f"Error saving config for {config_name}: {str(e)}")
 

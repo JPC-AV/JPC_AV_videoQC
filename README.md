@@ -35,7 +35,11 @@ sha 256: 6cfe826a3fabc335429adfb242e4da3eb01502cf60f9dc9a0121f8e8982c3a97
 
 For instructions on installing homebrew, see: https://brew.sh/
 
-To install av-spex with homebrew use the command:
+To install av-spex with homebrew first tap the formula's git repo:
+```
+brew tap eddycolloton/av-spex
+```
+Then install the app
 ```
 brew install av-spex
 ```
