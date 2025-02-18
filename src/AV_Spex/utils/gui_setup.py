@@ -3,8 +3,8 @@ from PyQt6.QtWidgets import (
     QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, QComboBox, QTabWidget,
     QTextEdit, QAbstractItemView, QInputDialog, QMessageBox, QProgressBar, QDialog
 )
-from PyQt6.QtCore import Qt, QSettings, QDir
-from PyQt6.QtGui import QPixmap, QPalette
+from PyQt6.QtCore import Qt, QSettings, QDir, QTimer
+from PyQt6.QtGui import QPixmap
 
 import os
 import sys
@@ -298,70 +298,95 @@ class ConfigWindow(QWidget):
     def setup_ui(self):
         """Create fixed layout structure"""
         main_layout = QVBoxLayout(self)
+
+        self.setup_outputs_section(main_layout)
+
+        self.setup_fixity_section(main_layout)
+
+        self.setup_tools_section(main_layout)
+
+        self.connect_signals()
         
-        # Outputs Section
+    # Outputs Section
+    def setup_outputs_section(self, main_layout):
         outputs_group = QGroupBox("Outputs")
         outputs_layout = QVBoxLayout()
+        
+        # Create widgets
         self.access_file_cb = QCheckBox("access_file")
         self.report_cb = QCheckBox("report")
         self.qctools_ext_label = QLabel("qctools_ext")
         self.qctools_ext_input = QLineEdit()
         
+        # Add to layout
         outputs_layout.addWidget(self.access_file_cb)
         outputs_layout.addWidget(self.report_cb)
         outputs_layout.addWidget(self.qctools_ext_label)
         outputs_layout.addWidget(self.qctools_ext_input)
-        outputs_group.setLayout(outputs_layout)
         
-        # Fixity Section
+        outputs_group.setLayout(outputs_layout)
+        main_layout.addWidget(outputs_group)
+    
+    # Fixity Section
+    def setup_fixity_section(self, main_layout):
         fixity_group = QGroupBox("Fixity")
         fixity_layout = QVBoxLayout()
+        
+        # Create checkboxes
         self.output_fixity_cb = QCheckBox("Output fixity (to .txt and .md5 files)")
         self.check_fixity_cb = QCheckBox("Validate fixity")
         self.embed_stream_cb = QCheckBox("Embed Stream fixity")
         self.validate_stream_cb = QCheckBox("Validate Stream fixity")
         self.overwrite_stream_cb = QCheckBox("Overwrite Stream fixity")
         
+        # Add to layout
         fixity_layout.addWidget(self.output_fixity_cb)
         fixity_layout.addWidget(self.check_fixity_cb)
         fixity_layout.addWidget(self.embed_stream_cb)
         fixity_layout.addWidget(self.validate_stream_cb)
         fixity_layout.addWidget(self.overwrite_stream_cb)
-        fixity_group.setLayout(fixity_layout)
         
-        # Tools Section
+        fixity_group.setLayout(fixity_layout)
+        main_layout.addWidget(fixity_group)
+        
+    # Tools Section
+    def setup_tools_section(self, main_layout):
         tools_group = QGroupBox("Tools")
         tools_layout = QVBoxLayout()
         
-        # Basic tools (exiftool, ffprobe, mediainfo, mediatrace, qctools)
+        # Setup basic tools
         basic_tools = ['exiftool', 'ffprobe', 'mediainfo', 'mediatrace', 'qctools']
         self.tool_widgets = {}
         
         for tool in basic_tools:
             tool_group = QGroupBox(tool)
             tool_layout = QVBoxLayout()
-            check_cb = QCheckBox("Check Tool")
-            run_cb = QCheckBox("Run Tool")
+            
             if tool == 'qctools':
+                run_cb = QCheckBox("Run Tool")
                 self.tool_widgets[tool] = {'run': run_cb}
                 tool_layout.addWidget(run_cb)
             else:
+                check_cb = QCheckBox("Check Tool")
+                run_cb = QCheckBox("Run Tool")
                 self.tool_widgets[tool] = {'check': check_cb, 'run': run_cb}
                 tool_layout.addWidget(check_cb)
                 tool_layout.addWidget(run_cb)
+            
             tool_group.setLayout(tool_layout)
             tools_layout.addWidget(tool_group)
-        
-        # MediaConch
+
+        # MediaConch section
         mediaconch_group = QGroupBox("Mediaconch")
         mediaconch_layout = QVBoxLayout()
+        
         self.run_mediaconch_cb = QCheckBox("Run Mediaconch")
         
         # Policy selection
         policy_container = QWidget()
         policy_layout = QVBoxLayout(policy_container)
         
-        # Add current policy display
+        # Current policy display
         current_policy_widget = QWidget()
         current_policy_layout = QHBoxLayout(current_policy_widget)
         current_policy_layout.setContentsMargins(0, 0, 0, 0)
@@ -373,7 +398,7 @@ class ConfigWindow(QWidget):
         current_policy_layout.addWidget(self.policy_label)
         current_policy_layout.addWidget(self.current_policy_display)
         current_policy_layout.addStretch()
-
+        
         self.policy_combo = QComboBox()
         self.import_policy_btn = QPushButton("Import New MediaConch Policy")
         
@@ -386,23 +411,24 @@ class ConfigWindow(QWidget):
         mediaconch_layout.addWidget(policy_container)
         mediaconch_group.setLayout(mediaconch_layout)
         tools_layout.addWidget(mediaconch_group)
-        
-        # QCT Parse
+
+        # QCT Parse section
         qct_group = QGroupBox("qct-parse")
         qct_layout = QVBoxLayout()
-
+        
+        # Checkboxes
         self.run_qctparse_cb = QCheckBox("Run Tool")
         self.bars_detection_cb = QCheckBox("barsDetection")
         self.evaluate_bars_cb = QCheckBox("evaluateBars")
         self.thumb_export_cb = QCheckBox("thumbExport")
         
-        # Content Filter combo
+        # Content Filter
         content_filter_label = QLabel("contentFilter")
         self.content_filter_combo = QComboBox()
         self.content_filter_combo.addItem("Select options...")
         self.content_filter_combo.addItems(["allBlack", "static"])
         
-        # Profile combo
+        # Profile
         profile_label = QLabel("profile")
         self.profile_combo = QComboBox()
         self.profile_combo.addItem("Select options...")
@@ -413,6 +439,7 @@ class ConfigWindow(QWidget):
         self.tagname_input = QLineEdit()
         self.tagname_input.setPlaceholderText("None")
         
+        # Add widgets to layout
         qct_layout.addWidget(self.run_qctparse_cb)
         qct_layout.addWidget(self.bars_detection_cb)
         qct_layout.addWidget(self.evaluate_bars_cb)
@@ -428,15 +455,7 @@ class ConfigWindow(QWidget):
         tools_layout.addWidget(qct_group)
         
         tools_group.setLayout(tools_layout)
-        
-        # Add all sections to main layout
-        main_layout.addWidget(outputs_group)
-        main_layout.addWidget(fixity_group)
         main_layout.addWidget(tools_group)
-        main_layout.addStretch()
-        
-        # Connect signals
-        self.connect_signals()
 
     def connect_signals(self):
         """Connect all widget signals to their handlers"""
@@ -546,17 +565,16 @@ class ConfigWindow(QWidget):
         self.update_current_policy_display(mediaconch.mediaconch_policy)
         
         # Load available policies
-        policies_dir = os.path.join(self.config_mgr.project_root, 'config', 'mediaconch_policies')
-        if os.path.exists(policies_dir):
-            available_policies = [f for f in os.listdir(policies_dir) if f.endswith('.xml')]
-            self.policy_combo.clear()
-            self.policy_combo.addItems(available_policies)
-            
-            # Temporarily block signals while setting the current text
-            self.policy_combo.blockSignals(True)
-            if mediaconch.mediaconch_policy in available_policies:
-                self.policy_combo.setCurrentText(mediaconch.mediaconch_policy)
-            self.policy_combo.blockSignals(False)
+        available_policies = self.config_mgr.get_available_policies()
+        self.policy_combo.clear()
+        self.policy_combo.addItems(available_policies)
+        
+        # Temporarily block signals while setting the current text
+        self.policy_combo.blockSignals(True)
+        mediaconch = self.checks_config.tools.mediaconch
+        if mediaconch.mediaconch_policy in available_policies:
+            self.policy_combo.setCurrentText(mediaconch.mediaconch_policy)
+        self.policy_combo.blockSignals(False)
         
         # QCT Parse
         qct = self.checks_config.tools.qct_parse
@@ -783,6 +801,8 @@ class MainWindow(QMainWindow):
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.worker.wait()
+        # Call our quit handling method
+        self.on_quit_clicked()
         super().closeEvent(event)
 
     def on_tool_started(self, tool_name):
@@ -829,7 +849,6 @@ class MainWindow(QMainWindow):
                 self.filename_profile_dropdown.setCurrentText(custom_name)
         
     def setup_ui(self):
-        # Move all UI initialization here
         self.config_mgr = ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
@@ -853,25 +872,36 @@ class MainWindow(QMainWindow):
         self.quit_action = self.file_menu.addAction("Quit")
         self.quit_action.triggered.connect(self.on_quit_clicked)
 
-        # Main layout
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.main_layout = QVBoxLayout(self.central_widget)
+        self.setup_main_layout()
+        
+        self.logo_setup()
 
-        # Get the absolute path of the script file
-        script_path = os.path.dirname(os.path.abspath(__file__))
-        # Determine the  path to the image file
-        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
-        logo_dir = os.path.join(root_dir, 'logo_image_files')
+        self.setup_tabs()
 
-        # Add images at the top of the GUI
-        self.add_image_to_top(logo_dir)
+    def logo_setup(self):
+        if getattr(sys, 'frozen', False):
+            QTimer.singleShot(0, self._delayed_logo_setup)
+        else:
+            self._load_logo()
 
-        # Create a QTabWidget for tabs
+    def _delayed_logo_setup(self):
+        self._load_logo()
+
+    def _load_logo(self):
+        logo_path = self.config_mgr.get_logo_path('JPCA_H_Branding_011025.png')
+        image_layout = self.add_image_to_top(logo_path)
+        self.main_layout.insertLayout(0, image_layout)  # Insert at index 0 (top)
+
+    # Create a QTabWidget for tabs
+    def setup_tabs(self):
         self.tabs = QTabWidget()
         self.main_layout.addWidget(self.tabs)
 
-        # First tab: "checks"
+        self.setup_checks_tab()
+        self.setup_spex_tab()
+
+    # First tab: "checks"
+    def setup_checks_tab(self):
         checks_tab = QWidget()
         checks_layout = QVBoxLayout(checks_tab)
         self.tabs.addTab(checks_tab, "Checks")
@@ -881,224 +911,263 @@ class MainWindow(QMainWindow):
         main_scroll_area.setWidgetResizable(True)
         main_widget = QWidget(self)
         main_scroll_area.setWidget(main_widget)
-        
+
         # Vertical layout for the main content in "Checks"
         vertical_layout = QVBoxLayout(main_widget)
 
+        # Import directory button
         import_directories_button = QPushButton("Import Directory...")
         import_directories_button.clicked.connect(self.import_directories)
         vertical_layout.addWidget(import_directories_button)
 
-        # Selected directories section
+        # Directory list
         directory_label = QLabel("Selected Directories:")
         self.directory_list = DirectoryListWidget(self)
         vertical_layout.addWidget(directory_label)
         vertical_layout.addWidget(self.directory_list)
 
-        # Remove directory button
+        # Delete button
         delete_button = QPushButton("Delete Selected")
         delete_button.clicked.connect(self.delete_selected_directory)
         vertical_layout.addWidget(delete_button)
 
-        # Directory storage
-        self.selected_directories = []
-
-        # Command Profile Dropdown section
+        # Command Profile section
         command_profile_label = QLabel("Command profiles:")
         self.command_profile_dropdown = QComboBox()
         self.command_profile_dropdown.addItem("step1")
         self.command_profile_dropdown.addItem("step2")
         self.command_profile_dropdown.addItem("allOff")
-        # Set dropdown based on condition
+        
+        # Set initial dropdown state
         if self.checks_config.tools.exiftool.run_tool == "yes":
             self.command_profile_dropdown.setCurrentText("step1")
         elif self.checks_config.tools.exiftool.run_tool == "no":
             self.command_profile_dropdown.setCurrentText("step2")
+
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
         vertical_layout.addWidget(command_profile_label)
         vertical_layout.addWidget(self.command_profile_dropdown)
 
-        # Checkboxes (ConfigWidget) section
+        # Config section
         command_checks_label = QLabel("Command options:")
         config_scroll_area = QScrollArea()
         self.config_widget = ConfigWindow(config_mgr=self.config_mgr)
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
 
+        # Set a minimum width for the config widget to ensure legibility
+        config_scroll_area.setMinimumWidth(400)
+
         # Add checkboxes and label to the vertical layout
         vertical_layout.addWidget(command_checks_label)
         vertical_layout.addWidget(config_scroll_area)
 
-        # Set a minimum width for the config widget to ensure legibility
-        config_scroll_area.setMinimumWidth(400)
-
-        # Add the vertical layout to the scroll area
+        # Add scroll area to main layout
         checks_layout.addWidget(main_scroll_area)
 
-        # Bottom row with "Check Spex!" button
+        # Bottom button section
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
-
         self.check_spex_button = QPushButton("Check Spex!")
         self.check_spex_button.clicked.connect(self.on_check_spex_clicked)
         bottom_row.addWidget(self.check_spex_button)
-
         checks_layout.addLayout(bottom_row)
 
-        # Second tab: "spex"
+    # Second tab: "spex"
+    def setup_spex_tab(self):
         spex_tab = QWidget()
         spex_layout = QVBoxLayout(spex_tab)
-        spex_tab.setLayout(spex_layout)
         self.tabs.addTab(spex_tab, "Spex")
 
-        # Filename section
-        filename_section_group = QGroupBox()
-        filename_section_layout = QVBoxLayout()
-        # Create a label to display the section name
-        filename_section_label = QLabel(f"<b>Filename Values</b>")
-        filename_section_layout.addWidget(filename_section_label)
+        filename_section_group = self.setup_filename_section()
+        spex_layout.addWidget(filename_section_group)
 
-        # Add a dropdown menu for command profiles
-        filenames_profile_label = QLabel("Expected filename profiles:")
-        filename_section_layout.addWidget(filenames_profile_label)
+        mediainfo_section_group = self.setup_mediainfo_section()
+        spex_layout.addWidget(mediainfo_section_group)
 
+        exiftool_section_group = self.setup_exiftool_section()
+        spex_layout.addWidget(exiftool_section_group)
+
+        ffprobe_section_group = self.setup_ffprobe_section()
+        spex_layout.addWidget(ffprobe_section_group)
+
+        mediatrace_section_group = self.setup_mediatrace_section()
+        spex_layout.addWidget(mediatrace_section_group)
+
+        qct_section_group = self.setup_qct_section()
+        spex_layout.addWidget(qct_section_group)
+    
+    
+    # Main layout
+    def setup_main_layout(self):
+        """Set up the main window layout structure"""
+        # Create and set central widget
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+
+        # Create main vertical layout
+        self.main_layout = QVBoxLayout(self.central_widget)
+
+        # Set layout margins and spacing
+        self.main_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_layout.setSpacing(10)
+
+    # File name section
+    def setup_filename_section(self):
+        group = QGroupBox()
+        layout = QVBoxLayout()
+        
+        # Section label
+        layout.addWidget(QLabel("<b>Filename Values</b>"))
+        
+        # Profile dropdown
+        layout.addWidget(QLabel("Expected filename profiles:"))
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
-        # Set dropdown based on condition
+        
+        # Set initial state
         if self.spex_config.filename_values.Collection == "JPC":
             self.filename_profile_dropdown.setCurrentText("JPC file names")
         elif self.spex_config.filename_values.Collection == "2012_79":
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
+            
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
-        filename_section_layout.addWidget(self.filename_profile_dropdown)
+        layout.addWidget(self.filename_profile_dropdown)
+        
+        # Open section button
+        button = QPushButton("Open Section")
+        button.clicked.connect(
+            lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values))
+        )
+        layout.addWidget(button)
+        
+        group.setLayout(layout)
+        group.setFixedHeight(150)
+        return group
 
-        # Store the layout as an instance variable so it can be accessed by add_custom_filename_button
-        self.filename_section_layout = filename_section_layout
+    # Section setup functions for each tool (mediainfo, exiftool, ffprobe)
+    def setup_mediainfo_section(self):
+        group = QGroupBox()
+        layout = QVBoxLayout()
         
-        # Add the custom filename button
-        self.add_custom_filename_button()
-        
+        # Section label
+        layout.addWidget(QLabel("<b>MediaInfo Values</b>"))
         # Create a toggle button to open a new window
-        filename_button = QPushButton("Open Section")
-        filename_button.clicked.connect(lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values)))
-        filename_section_layout.addWidget(filename_button)
-        # Add filename layout to spex_layout
-        filename_section_group.setLayout(filename_section_layout)
-        filename_section_group.setFixedHeight(150)
-        spex_layout.addWidget(filename_section_group)
+        button = QPushButton("Open Section")
+        button.clicked.connect(
+            lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values)
+        )
+        layout.addWidget(button)
         
-        # MediaInfo section
-        mediainfo_section_group = QGroupBox()
-        mediainfo_section_layout = QVBoxLayout()
-        # Create a label to display the section name
-        mediainfo_section_label = QLabel(f"<b>MediaInfo Values</b>")
-        mediainfo_section_layout.addWidget(mediainfo_section_label)
-         # Create a toggle button to open a new window
-        mediainfo_toggle_button = QPushButton("Open Section")
-        mediainfo_toggle_button.clicked.connect(lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values))
-        mediainfo_section_layout.addWidget(mediainfo_toggle_button)
-        # add section to Spex Layout
-        mediainfo_section_group.setLayout(mediainfo_section_layout)
-        mediainfo_section_group.setFixedHeight(100)
-        spex_layout.addWidget(mediainfo_section_group)
-
-        # Exiftool section
-        exiftool_section_group = QGroupBox()
-        exiftool_section_layout = QVBoxLayout()
-        # Create a label to display the section name
-        exiftool_section_label = QLabel(f"<b>Exiftool Values</b>")
-        exiftool_section_layout.addWidget(exiftool_section_label)
-         # Create a toggle button to open a new window
-        exiftool_toggle_button = QPushButton("Open Section")
-        exiftool_toggle_button.clicked.connect(lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values)))
-        exiftool_section_layout.addWidget(exiftool_toggle_button)
-        # add section to Spex Layout
-        exiftool_section_group.setLayout(exiftool_section_layout)
-        exiftool_section_group.setFixedHeight(100)
-        spex_layout.addWidget(exiftool_section_group)
-
-        # FFprobe section
-        ffprobe_section_group = QGroupBox()
-        ffprobe_section_layout = QVBoxLayout()
-        # Create a label to display the section name
-        ffprobe_section_label = QLabel(f"<b>FFprobe Values</b>")
-        ffprobe_section_layout.addWidget(ffprobe_section_label)
-         # Create a toggle button to open a new window
-        ffprobe_toggle_button = QPushButton("Open Section")
-        ffprobe_toggle_button.clicked.connect(lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values))
-        ffprobe_section_layout.addWidget(ffprobe_toggle_button)
-        # add section to Spex Layout
-        ffprobe_section_group.setLayout(ffprobe_section_layout)
-        ffprobe_section_group.setFixedHeight(100)
-        spex_layout.addWidget(ffprobe_section_group)
-
-        # MediaTrace section
-        mediatrace_section_group = QGroupBox()
-        mediatrace_section_layout = QVBoxLayout()
-        # Create a label to display the section name
-        mediatrace_section_label = QLabel(f"<b>Mediatrace Values</b>")
-        mediatrace_section_layout.addWidget(mediatrace_section_label)
-        # Add a dropdown menu for command profiles
-        signalflow_profile_label = QLabel("Expected Signalflow profiles:")
-        mediatrace_section_layout.addWidget(signalflow_profile_label)
+        group.setLayout(layout)
+        group.setFixedHeight(100)
+        return group
+    
+    def setup_exiftool_section(self):
+        group = QGroupBox()
+        layout = QVBoxLayout()
+        
+        layout.addWidget(QLabel("<b>Exiftool Values</b>"))
+        button = QPushButton("Open Section")
+        button.clicked.connect(
+            lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values))
+        )
+        layout.addWidget(button)
+        
+        group.setLayout(layout)
+        group.setFixedHeight(100)
+        return group
+    
+    def setup_ffprobe_section(self):
+        group = QGroupBox()
+        layout = QVBoxLayout()
+        
+        layout.addWidget(QLabel("<b>FFprobe Values</b>"))
+        button = QPushButton("Open Section")
+        button.clicked.connect(
+            lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values)
+        )
+        layout.addWidget(button)
+        
+        group.setLayout(layout)
+        group.setFixedHeight(100)
+        return group
+    
+    # Mediatrace section has custom dropdowns
+    def setup_mediatrace_section(self):
+        group = QGroupBox()
+        layout = QVBoxLayout()
+        
+        layout.addWidget(QLabel("<b>Mediatrace Values</b>"))
+        
+        # Signalflow profile dropdown
+        layout.addWidget(QLabel("Expected Signalflow profiles:"))
         self.signalflow_profile_dropdown = QComboBox()
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
-        # Set dropdown based on condition
+        
+        # Set initial state
         encoder_settings = self.spex_config.mediatrace_values.ENCODER_SETTINGS
         if isinstance(encoder_settings, dict):
             source_vtr = encoder_settings.get('Source_VTR', [])
         else:
             source_vtr = encoder_settings.Source_VTR
+            
         if any("SVO5800" in vtr for vtr in source_vtr):
             self.signalflow_profile_dropdown.setCurrentText("JPC_AV_SVHS Signal Flow")
         elif any("Sony BVH3100" in vtr for vtr in source_vtr):
             self.signalflow_profile_dropdown.setCurrentText("BVH3100 Signal Flow")
+            
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
-        mediatrace_section_layout.addWidget(self.signalflow_profile_dropdown)
-        # Create a toggle button to open a new window
-        mediatrace_toggle_button = QPushButton("Open Section")
-        mediatrace_toggle_button.clicked.connect(lambda: self.open_new_window('Mediatrace Values', asdict(self.spex_config.mediatrace_values)))
-        mediatrace_section_layout.addWidget(mediatrace_toggle_button)
-        # add section to Spex Layout
-        mediatrace_section_group.setLayout(mediatrace_section_layout)
-        mediatrace_section_group.setFixedHeight(150)
-        spex_layout.addWidget(mediatrace_section_group)
-
-        # qct-parse section
-        qct_section_group = QGroupBox()
-        qct_section_layout = QVBoxLayout()
-        # Create a label to display the section name
-        qct_section_label = QLabel(f"<b>qct-parse Values</b>")
-        qct_section_layout.addWidget(qct_section_label)
-        # Create a toggle button to open a new window
-        qct_toggle_button = QPushButton("Open Section")
-        qct_toggle_button.clicked.connect(lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values)))
-        qct_section_layout.addWidget(qct_toggle_button)
-        # add section to Spex Layout
-        qct_section_group.setLayout(qct_section_layout)
-        qct_section_group.setFixedHeight(100)
-        spex_layout.addWidget(qct_section_group)
-
-
-    def add_image_to_top(self, logo_dir):
+        layout.addWidget(self.signalflow_profile_dropdown)
+        
+        button = QPushButton("Open Section")
+        button.clicked.connect(
+            lambda: self.open_new_window('Mediatrace Values', asdict(self.spex_config.mediatrace_values))
+        )
+        layout.addWidget(button)
+        
+        group.setLayout(layout)
+        group.setFixedHeight(150)
+        return group
+    
+    def setup_qct_section(self):
+        group = QGroupBox()
+        layout = QVBoxLayout()
+        
+        layout.addWidget(QLabel("<b>qct-parse Values</b>"))
+        button = QPushButton("Open Section")
+        button.clicked.connect(
+            lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values))
+        )
+        layout.addWidget(button)
+        
+        group.setLayout(layout)
+        group.setFixedHeight(100)
+        return group
+    
+    def add_image_to_top(self, logo_path):
         """Add image to the top of the main layout."""
         image_layout = QHBoxLayout()
         
-        image_file = os.path.join(logo_dir, "JPCA_H_Branding_011025.png")
-        pixmap = QPixmap(image_file)
-        
         label = QLabel()
-        label.setMinimumHeight(100)  # Set minimum height to prevent image from disappearing
+        label.setMinimumHeight(100)
         
-        # Scale pixmap to window width while keeping aspect ratio
-        scaled_pixmap = pixmap.scaledToWidth(self.width(), Qt.TransformationMode.SmoothTransformation)
-        label.setPixmap(scaled_pixmap)
+        if logo_path and os.path.exists(logo_path):
+            pixmap = QPixmap(logo_path)
+            if not pixmap.isNull():
+                # Scale pixmap to window width while keeping aspect ratio
+                scaled_pixmap = pixmap.scaledToWidth(self.width(), Qt.TransformationMode.SmoothTransformation)
+                label.setPixmap(scaled_pixmap)
+            else:
+                print(f"Failed to load image at path: {logo_path}")
+        else:
+            print(f"Invalid logo path: {logo_path}")
+        
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
         image_layout.addWidget(label)
-        self.main_layout.addLayout(image_layout)
+        return image_layout
 
 
     def import_directories(self):
@@ -1192,6 +1261,8 @@ class MainWindow(QMainWindow):
         # logger.debug("Check Spex button clicked")  # Debug line
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
+        self.config_mgr.save_last_used_config('checks')
+        self.config_mgr.save_last_used_config('spex')
         self.call_process_directories()
 
 
@@ -1240,7 +1311,7 @@ class MainWindow(QMainWindow):
             }
         
         self.config_mgr.update_config('spex', updates)
-        # self.config_mgr.save_last_used_config('spex')
+        self.config_mgr.save_last_used_config('spex')
 
 
     def on_signalflow_profile_changed(self, index):
