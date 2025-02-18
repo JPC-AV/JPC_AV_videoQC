@@ -691,10 +691,8 @@ class MainWindow(QMainWindow):
         self.config_mgr = ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
-        # Get the screen geometry
-        screen = QApplication.primaryScreen().geometry()
-        # Set window height to screen height, but keep a reasonable width
-        self.resize(800, screen.height())
+
+        self.resize(800, 900)
         
          # Initialize settings
         self.settings = QSettings('NMAAHC', 'AVSpex')
@@ -1203,8 +1201,7 @@ class MainWindow(QMainWindow):
             }
 
         content_text = self.dict_to_string(nested_dict)
-        
-        # Rest of the original method remains the same
+    
         self.new_window = QWidget()
         self.new_window.setWindowTitle(title)
         self.new_window.setLayout(QVBoxLayout())
@@ -1216,7 +1213,16 @@ class MainWindow(QMainWindow):
         content_widget.setPlainText(content_text)
         content_widget.setReadOnly(True)
         content_widget.setFrameStyle(QFrame.Shape.Panel | QFrame.Shadow.Sunken)
-        content_widget.setStyleSheet("padding: 5px; background-color: #f0f0f0;")
+        
+        # Remove the hardcoded background color and use system palette instead
+        content_widget.setStyleSheet("padding: 5px;")
+        
+        # Explicitly set the text color to follow system palette
+        palette = content_widget.palette()
+        palette.setColor(QPalette.ColorRole.Base, palette.color(QPalette.ColorRole.Window))
+        palette.setColor(QPalette.ColorRole.Text, palette.color(QPalette.ColorRole.WindowText))
+        content_widget.setPalette(palette)
+        
         scroll_area.setWidget(content_widget)
         
         self.new_window.layout().addWidget(scroll_area)
