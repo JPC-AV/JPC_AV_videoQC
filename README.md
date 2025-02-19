@@ -105,7 +105,7 @@ The GUI is divided into 2 tabs  - "Checks" and "Spex".
 
 <div style="display: flex; justify-content: space-between;">
   <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/images_for_readme/avspex_gui_screenshot_1.png" alt="AV Spex GUI Screenshot 1" width="400"/>
-  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/images_for_readme/avspex_gui_screenshot_1.png" alt="AV Spex GUI Screenshot 2" width="400"/>
+  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/images_for_readme/avspex_gui_screenshot_2.png" alt="AV Spex GUI Screenshot 2" width="400"/>
 </div>
 
 ### Checks
