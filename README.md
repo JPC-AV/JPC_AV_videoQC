@@ -2,7 +2,7 @@
 AV processing scripts for the Johnson Publishing Company archive
 
 ## Introduction:
-![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/av_spex_the_logo.png?raw=true)
+![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/av_spex_the_logo.png?raw=true)
 This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications. 
 
 ----
@@ -23,11 +23,11 @@ The following command line tools are necessary and must be installed separately:
 There are currently 3 installation options.
 1. Install av-spex using the provided DMG file
 2. Install av-spex using the macOS package manger [homebrew](https://brew.sh/)
-3. Download this code from github and install the Python version using `pip install .`, as described below.
+3. Download this code from github and install the Python version using `pip install .`
 
 ### DMG Version
 
-Download the DMG here: 
+Download the DMG here: https://github.com/JPC-AV/JPC_AV_videoQC/releases/latest
 
 sha 256: 6cfe826a3fabc335429adfb242e4da3eb01502cf60f9dc9a0121f8e8982c3a97
 
@@ -94,7 +94,7 @@ av-spex --help
 ```
 
 ## GUI Usage
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 
 Open the AV Spex gui with the command:
 ```bash
@@ -104,8 +104,8 @@ av-spex-gui
 The GUI is divided into 2 tabs  - "Checks" and "Spex".   
 
 <div style="display: flex; justify-content: space-between;">
-  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot_01.png" alt="AV Spex GUI Screenshot 1" width="400"/>
-  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot_02.png" alt="AV Spex GUI Screenshot 2" width="400"/>
+  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/images_for_readme/avspex_gui_screenshot_1.png" alt="AV Spex GUI Screenshot 1" width="400"/>
+  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/images_for_readme/avspex_gui_screenshot_1.png" alt="AV Spex GUI Screenshot 2" width="400"/>
 </div>
 
 ### Checks
@@ -135,7 +135,7 @@ Once you have completed your Spex selections, navigate back to the Checks window
 
 
 ## CLI Usage
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main//logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 
 Execute the scripts with:
 ```bash
@@ -314,7 +314,7 @@ Edit the config files using command line options in order to maintain consistent
 
 <br/><br/>
 
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 ---
 
 ## Contributing
