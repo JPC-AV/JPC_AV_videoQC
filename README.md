@@ -37,7 +37,7 @@ For instructions on installing homebrew, see: https://brew.sh/
 
 To install av-spex with homebrew first tap the formula's git repo:
 ```
-brew tap eddycolloton/av-spex
+brew tap JPC-AV/AV-Spex
 ```
 Then install the app
 ```
