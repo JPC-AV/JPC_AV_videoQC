@@ -33,7 +33,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='avspex',
+    name='AV-Spex',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -53,11 +53,11 @@ coll = COLLECT(
     strip=True,
     upx=True,
     upx_exclude=[],
-    name='avspex'
+    name='AV-Spex'
 )
 
 app = BUNDLE(coll,
-    name='avspex.app',
+    name='AV-Spex.app',
     icon='av_spex_the_logo.icns',
     bundle_identifier='com.jpc.avspex'
 )
