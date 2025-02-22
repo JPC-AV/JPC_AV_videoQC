@@ -196,8 +196,7 @@ def is_valid_filename(video_filename):
     - Uses configuration from SpexConfig dataclass containing FilenameSection objects:
         FilenameSection:
             value: str
-            is_regex: Optional[bool]
-            is_wildcard: Optional[bool]
+            section_type: FilenameSectionType
     
     Returns:
     - Boolean indicating if the filename is valid
@@ -227,22 +226,15 @@ def is_valid_filename(video_filename):
         if section_key in fn_sections:
             section = fn_sections[section_key]
             
-            # Handle cases where attributes might be None
-            is_wildcard = section.is_wildcard if section.is_wildcard is not None else False
-            is_regex = section.is_regex if section.is_regex is not None else False
-            
-            # Determine how to process the section value
-            if is_wildcard:
-                # Convert wildcard pattern to regex
+            # Process section based on its type
+            if section.section_type == FilenameSectionType.WILDCARD:
                 pattern_parts.append(convert_wildcards_to_regex(section.value))
-            elif is_regex:
-                # Use raw regex pattern
+            elif section.section_type == FilenameSectionType.REGEX:
                 pattern_parts.append(section.value)
-            else:
-                # Treat as literal string
+            else:  # LITERAL or any unknown type defaults to literal
                 pattern_parts.append(re.escape(section.value))
     
-    # Construct the complete pattern, joining the parts with underscores and accounting for the file extension
+    # Construct the complete pattern
     pattern = r'^{0}\.{1}$'.format('_'.join(pattern_parts), re.escape(file_extension))
     
     # Check if the filename matches the pattern
@@ -252,8 +244,6 @@ def is_valid_filename(video_filename):
     else:
         logger.critical(f"The file name '{base_filename}' is not valid.")
         valid_filename = False
-        
-        # Additional debug info to help identify the issue
         logger.debug(f"Pattern used: {pattern}")
         
     return valid_filename

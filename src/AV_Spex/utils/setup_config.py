@@ -1,11 +1,16 @@
 from dataclasses import dataclass, field
 from typing import List, Dict, Union, Optional
+from enum import Enum
+
+class FilenameSectionType(Enum):
+    LITERAL = "literal"
+    WILDCARD = "wildcard"
+    REGEX = "regex"
 
 @dataclass
 class FilenameSection:
     value: str
-    is_regex: Optional[bool] = None
-    is_wildcard: Optional[bool] = None
+    section_type: FilenameSectionType = FilenameSectionType.LITERAL  # Default to literal
 
 @dataclass
 class FilenameValues:
