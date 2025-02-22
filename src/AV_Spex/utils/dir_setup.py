@@ -187,29 +187,17 @@ def convert_wildcards_to_regex(pattern):
     
     return regex_pattern
 
-def is_valid_filename(video_filename, config):
+def is_valid_filename(video_filename):
     '''
     Validates a filename against a configurable pattern with 1-8 sections.
     
     Parameters:
     - video_filename: The filename to validate
-    - config: Dictionary containing section definitions, with the following structure:
-        {
-            "sections": {
-                "section1": {"value": "JPC", "is_regex": false},
-                "section2": {"value": "###", "is_wildcard": true},
-                ...
-            },
-            "FileExtension": "mkv"
-        }
-        
-        Each section can be one of three types:
-        1. Literal string (is_regex=False, is_wildcard=False or not present)
-        2. Regular expression (is_regex=True)
-        3. Wildcard pattern (is_wildcard=True) using custom syntax:
-           - @ : any letter
-           - # : any number
-           - * : any letter or number
+    - Uses configuration from SpexConfig dataclass containing FilenameSection objects:
+        FilenameSection:
+            value: str
+            is_regex: Optional[bool]
+            is_wildcard: Optional[bool]
     
     Returns:
     - Boolean indicating if the filename is valid
@@ -217,41 +205,42 @@ def is_valid_filename(video_filename, config):
     # Get only the base filename (not the full path)
     base_filename = os.path.basename(video_filename)
     
-    fn_sections = asdict(spex_config.filename_values.fn_sections)
+    # Extract section configurations
+    fn_sections = spex_config.filename_values.fn_sections
     file_extension = spex_config.filename_values.FileExtension
     
-    # Extract section configurations
-    sections = config.get("sections", {})
-    file_extension = config.get("FileExtension", "")
-    
     # Validate number of sections
-    if not sections:
+    if not fn_sections:
         logger.error("No sections defined in configuration.")
         return False
     
-    if len(sections) < 1 or len(sections) > 8:
-        logger.error(f"Invalid number of sections: {len(sections)}. Must be between 1 and 8.")
+    if len(fn_sections) < 1 or len(fn_sections) > 8:
+        logger.error(f"Invalid number of sections: {len(fn_sections)}. Must be between 1 and 8.")
         return False
     
     # Build the dynamic regex pattern based on the sections
     pattern_parts = []
     
     # Process each section in order
-    for i in range(1, len(sections) + 1):
+    for i in range(1, len(fn_sections) + 1):
         section_key = f"section{i}"
-        if section_key in sections:
-            section = sections[section_key]
+        if section_key in fn_sections:
+            section = fn_sections[section_key]
+            
+            # Handle cases where attributes might be None
+            is_wildcard = section.is_wildcard if section.is_wildcard is not None else False
+            is_regex = section.is_regex if section.is_regex is not None else False
             
             # Determine how to process the section value
-            if section.get("is_wildcard", False):
+            if is_wildcard:
                 # Convert wildcard pattern to regex
-                pattern_parts.append(convert_wildcards_to_regex(section["value"]))
-            elif section.get("is_regex", False):
+                pattern_parts.append(convert_wildcards_to_regex(section.value))
+            elif is_regex:
                 # Use raw regex pattern
-                pattern_parts.append(section["value"])
+                pattern_parts.append(section.value)
             else:
                 # Treat as literal string
-                pattern_parts.append(re.escape(section["value"]))
+                pattern_parts.append(re.escape(section.value))
     
     # Construct the complete pattern, joining the parts with underscores and accounting for the file extension
     pattern = r'^{0}\.{1}$'.format('_'.join(pattern_parts), re.escape(file_extension))

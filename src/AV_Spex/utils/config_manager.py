@@ -11,13 +11,17 @@ from ..utils.log_setup import logger
 T = TypeVar('T')
 
 class ConfigManager:
-    _instance = None
-    _configs: Dict[str, Any] = {}
+    _instance = None  # Class-level variable to hold single instance
+    _configs: Dict[str, Any] = {}  # Shared configuration cache
     
+    # The __new__(cls) insures only one instance is ever created
     def __new__(cls):
         if cls._instance is None:
+            # If no config class instance exists, create a instance of ConfigManager.
+            # super() calls the parent class to get ConfigManager's __new__ from within ConfigManager
             cls._instance = super(ConfigManager, cls).__new__(cls)
             
+            # One-time initialization of paths and directories
             if getattr(sys, 'frozen', False):
                 cls._instance._bundle_dir = os.path.join(sys._MEIPASS, 'AV_Spex')
             else:
@@ -281,6 +285,7 @@ class ConfigManager:
         """
         Get config, ensuring it's always returned as a proper dataclass instance.
         """
+        # If not in cache, load the default config:
         if config_name not in self._configs:
             # Load default config first
             default_config = self._load_json_config(config_name, last_used=False)
@@ -299,7 +304,8 @@ class ConfigManager:
                 
             # Create dataclass instance
             self._configs[config_name] = self._create_dataclass_instance(
-                config_class, default_config
+                config_class, # This is either SpexConfig or ChecksConfig from setup_config.py
+                default_config
             )
             
         return self._configs[config_name]

@@ -7,30 +7,30 @@
   "fixity": {
     "check_fixity": "no",
     "validate_stream_fixity": "no",
-    "embed_stream_fixity": "yes",
-    "output_fixity": "yes",
+    "embed_stream_fixity": "no",
+    "output_fixity": "no",
     "overwrite_stream_fixity": "no"
   },
   "tools": {
     "exiftool": {
-      "check_tool": "yes",
-      "run_tool": "yes"
+      "check_tool": "no",
+      "run_tool": "no"
     },
     "ffprobe": {
       "check_tool": "no",
-      "run_tool": "yes"
+      "run_tool": "no"
     },
     "mediaconch": {
       "mediaconch_policy": "JPC_AV_NTSC_MKV_2024-09-20.xml",
-      "run_mediaconch": "yes"
+      "run_mediaconch": "no"
     },
     "mediainfo": {
       "check_tool": "yes",
       "run_tool": "yes"
     },
     "mediatrace": {
-      "check_tool": "yes",
-      "run_tool": "yes"
+      "check_tool": "no",
+      "run_tool": "no"
     },
     "qctools": {
       "run_tool": "no"
