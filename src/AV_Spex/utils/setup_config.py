@@ -2,15 +2,10 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Union, Optional
 from enum import Enum
 
-class FilenameSectionType(Enum):
-    LITERAL = "literal"
-    WILDCARD = "wildcard"
-    REGEX = "regex"
-
 @dataclass
 class FilenameSection:
     value: str
-    section_type: FilenameSectionType = FilenameSectionType.LITERAL  # Default to literal
+    section_type: str = "literal"  # Default to literal, can be "literal", "wildcard", or "regex"
 
 @dataclass
 class FilenameValues:

@@ -196,7 +196,7 @@ def is_valid_filename(video_filename):
     - Uses configuration from SpexConfig dataclass containing FilenameSection objects:
         FilenameSection:
             value: str
-            section_type: FilenameSectionType
+            section_type: str ("literal", "wildcard", or "regex")
     
     Returns:
     - Boolean indicating if the filename is valid
@@ -227,11 +227,11 @@ def is_valid_filename(video_filename):
             section = fn_sections[section_key]
             
             # Process section based on its type
-            if section.section_type == FilenameSectionType.WILDCARD:
+            if section.section_type == "wildcard":
                 pattern_parts.append(convert_wildcards_to_regex(section.value))
-            elif section.section_type == FilenameSectionType.REGEX:
+            elif section.section_type == "regex":
                 pattern_parts.append(section.value)
-            else:  # LITERAL or any unknown type defaults to literal
+            else:  # "literal" or any unknown type defaults to literal
                 pattern_parts.append(re.escape(section.value))
     
     # Construct the complete pattern
