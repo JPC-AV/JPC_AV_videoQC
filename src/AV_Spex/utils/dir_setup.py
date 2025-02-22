@@ -149,53 +149,125 @@ def make_report_dir(source_directory, video_id):
     return report_directory
 
 
-def is_valid_filename(video_filename):
+def convert_wildcards_to_regex(pattern):
     '''
-    Locates approved values for the file name, stored in key:value pairs under 'filename_values' in config/config.yaml.
-    The file name pattern varies and is constructed dynamically depending on the provided config.
-    '''
-    valid_filename = False
+    Converts a pattern with custom wildcards to a regex pattern.
     
-    # Reads filename_values from config.yaml into dictionary approved_values
-    approved_values = asdict(spex_config.filename_values)
+    Custom wildcards:
+    - @ : any letter (no numbers) => [a-zA-Z]
+    - # : any number (no letters) => \d
+    - * : any letter or number => [a-zA-Z0-9]
+    
+    Examples:
+    - "@@@#" => "[a-zA-Z][a-zA-Z][a-zA-Z]\d"
+    - "###" => "\d\d\d"
+    - "ourname###" => "ourname\d\d\d"
+    
+    Parameters:
+    - pattern: String containing custom wildcards
+    
+    Returns:
+    - String with proper regex syntax
+    '''
+    # Escape any regex special characters except our wildcards
+    escaped_pattern = ""
+    for char in pattern:
+        if char in '@#*':
+            escaped_pattern += char
+        else:
+            escaped_pattern += re.escape(char)
+    
+    # Replace wildcards with their regex equivalents
+    regex_pattern = (
+        escaped_pattern
+        .replace('@', '[a-zA-Z]')  # @ becomes [a-zA-Z] (any letter)
+        .replace('#', '\\d')       # # becomes \d (any digit)
+        .replace('*', '[a-zA-Z0-9]')  # * becomes [a-zA-Z0-9] (any alphanumeric)
+    )
+    
+    return regex_pattern
 
+def is_valid_filename(video_filename, config):
+    '''
+    Validates a filename against a configurable pattern with 1-8 sections.
+    
+    Parameters:
+    - video_filename: The filename to validate
+    - config: Dictionary containing section definitions, with the following structure:
+        {
+            "sections": {
+                "section1": {"value": "JPC", "is_regex": false},
+                "section2": {"value": "###", "is_wildcard": true},
+                ...
+            },
+            "FileExtension": "mkv"
+        }
+        
+        Each section can be one of three types:
+        1. Literal string (is_regex=False, is_wildcard=False or not present)
+        2. Regular expression (is_regex=True)
+        3. Wildcard pattern (is_wildcard=True) using custom syntax:
+           - @ : any letter
+           - # : any number
+           - * : any letter or number
+    
+    Returns:
+    - Boolean indicating if the filename is valid
+    '''
     # Get only the base filename (not the full path)
     base_filename = os.path.basename(video_filename)
-
-    # Build the dynamic regex pattern based on the keys in the config
-    pattern_parts = [
-        re.escape(approved_values['Collection']),
-        re.escape(approved_values['MediaType']),
-        approved_values['ObjectID']  # ObjectID can contain a regex, so no escaping
-    ]
     
-    # Check if 'DigitalGeneration' exists and is not None
-    if 'DigitalGeneration' in approved_values and approved_values['DigitalGeneration'] is not None:
-        pattern_parts.append(re.escape(approved_values['DigitalGeneration']))
+    fn_sections = asdict(spex_config.filename_values.fn_sections)
+    file_extension = spex_config.filename_values.FileExtension
     
-    # Append the file extension
-    file_extension = re.escape(approved_values['FileExtension'])
+    # Extract section configurations
+    sections = config.get("sections", {})
+    file_extension = config.get("FileExtension", "")
     
-    # Construct the complete pattern, joining the parts and accounting for the file extension
-    pattern = r'^{0}\.{1}$'.format('_'.join(pattern_parts), file_extension)
+    # Validate number of sections
+    if not sections:
+        logger.error("No sections defined in configuration.")
+        return False
+    
+    if len(sections) < 1 or len(sections) > 8:
+        logger.error(f"Invalid number of sections: {len(sections)}. Must be between 1 and 8.")
+        return False
+    
+    # Build the dynamic regex pattern based on the sections
+    pattern_parts = []
+    
+    # Process each section in order
+    for i in range(1, len(sections) + 1):
+        section_key = f"section{i}"
+        if section_key in sections:
+            section = sections[section_key]
+            
+            # Determine how to process the section value
+            if section.get("is_wildcard", False):
+                # Convert wildcard pattern to regex
+                pattern_parts.append(convert_wildcards_to_regex(section["value"]))
+            elif section.get("is_regex", False):
+                # Use raw regex pattern
+                pattern_parts.append(section["value"])
+            else:
+                # Treat as literal string
+                pattern_parts.append(re.escape(section["value"]))
+    
+    # Construct the complete pattern, joining the parts with underscores and accounting for the file extension
+    pattern = r'^{0}\.{1}$'.format('_'.join(pattern_parts), re.escape(file_extension))
     
     # Check if the filename matches the pattern
     if re.match(pattern, base_filename, re.IGNORECASE):
-        logger.debug(f"The file name '{base_filename}' is valid.\n")
+        logger.debug(f"The file name '{base_filename}' is valid.")
         valid_filename = True
     else:
-        logger.critical(f"The file name '{base_filename}' is not valid.\n")
+        logger.critical(f"The file name '{base_filename}' is not valid.")
         valid_filename = False
-
+        
+        # Additional debug info to help identify the issue
+        logger.debug(f"Pattern used: {pattern}")
+        
     return valid_filename
-
-
-if sys.argv[0] == __file__:
-    if len(sys.argv) != 2:
-        print("Usage: python filename_check.py /path/to/your/directory")
-    else:
-        video_path = sys.argv[1]
-        valid_filename = is_valid_filename(video_path)
 
 
 def initialize_directory(source_directory):

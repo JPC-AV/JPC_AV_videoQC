@@ -2,12 +2,15 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Union, Optional
 
 @dataclass
+class FilenameSection:
+    value: str
+    is_regex: Optional[bool] = None
+    is_wildcard: Optional[bool] = None
+
+@dataclass
 class FilenameValues:
-    Collection: str
-    MediaType: str
-    ObjectID: str
+    fn_sections: Dict[str, FilenameSection]
     FileExtension: str
-    DigitalGeneration: Optional[str] = None
 
 @dataclass
 class MediainfoGeneralValues:

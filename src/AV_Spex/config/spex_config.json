@@ -1,10 +1,19 @@
 {
   "filename_values": {
-    "Collection": "JPC",
-    "MediaType": "AV",
-    "ObjectID": "\\d{5}",
-    "FileExtension": "mkv",
-    "DigitalGeneration": null
+    "fn_sections": {
+            "section1": {
+                "value": "JPC"
+            },
+            "section2": {
+                "value": "AV@",
+                "is_wildcard": true
+            },
+            "section3": {
+                "value": "###",
+                "is_wildcard": true
+            }
+        },
+      "FileExtension": "mkv"
   },
   "mediainfo_values": {
     "expected_general": {
