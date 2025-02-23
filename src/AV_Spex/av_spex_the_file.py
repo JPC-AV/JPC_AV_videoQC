@@ -237,7 +237,8 @@ def run_cli_mode(args):
 
     # Update checks config
     if args.selected_profile:
-        config_mgr.update_config('checks', args.selected_profile)
+        edit_config.apply_profile(args.selected_profile)
+        config_mgr.save_last_used_config('checks')
     if args.tools_on_names:
         edit_config.toggle_on(args.tools_on_names)
         config_mgr.save_last_used_config('checks')
