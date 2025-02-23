@@ -157,35 +157,27 @@ def convert_wildcards_to_regex(pattern):
     - @ : any letter (no numbers) => [a-zA-Z]
     - # : any number (no letters) => \d
     - * : any letter or number => [a-zA-Z0-9]
-    
-    Examples:
-    - "@@@#" => "[a-zA-Z][a-zA-Z][a-zA-Z]\d"
-    - "###" => "\d\d\d"
-    - "ourname###" => "ourname\d\d\d"
-    
-    Parameters:
-    - pattern: String containing custom wildcards
-    
-    Returns:
-    - String with proper regex syntax
     '''
-    # Escape any regex special characters except our wildcards
-    escaped_pattern = ""
+    # Count consecutive # characters and replace with appropriate digit pattern
+    # Replace ### with \d{3} for exactly 3 digits, ##+ with \d{2,} for 2 or more digits, etc.
+    pattern = re.sub(r'#+', lambda m: rf'\d{{{len(m.group())}}}', pattern)
+    
+    # Replace remaining wildcards
+    pattern = pattern.replace('@', '[a-zA-Z]')
+    pattern = pattern.replace('*', '[a-zA-Z0-9]')
+    
+    # Escape any remaining special regex characters
+    parts = []
+    current_part = ""
     for char in pattern:
-        if char in '@#*':
-            escaped_pattern += char
+        if char in (']', '[', '\\', '{', '}', 'd'):  # Skip already processed regex parts
+            current_part += char
         else:
-            escaped_pattern += re.escape(char)
+            current_part += re.escape(char)
+    parts.append(current_part)
     
-    # Replace wildcards with their regex equivalents
-    regex_pattern = (
-        escaped_pattern
-        .replace('@', '[a-zA-Z]')  # @ becomes [a-zA-Z] (any letter)
-        .replace('#', '\\d')       # # becomes \d (any digit)
-        .replace('*', '[a-zA-Z0-9]')  # * becomes [a-zA-Z0-9] (any alphanumeric)
-    )
-    
-    return regex_pattern
+    return ''.join(parts)
+
 
 def is_valid_filename(video_filename):
     '''

@@ -6,11 +6,11 @@
             "section_type": "literal"
         },
         "section2": {
-            "value": "AV@",
-            "section_type": "wildcard"
+            "value": "AV",
+            "section_type": "literal"
         },
         "section3": {
-            "value": "###",
+            "value": "#####",
             "section_type": "wildcard"
         }
     },
