@@ -182,63 +182,65 @@ def convert_wildcards_to_regex(pattern):
 def is_valid_filename(video_filename):
     '''
     Validates a filename against a configurable pattern with 1-8 sections.
+    Provides detailed error messages about which part of the filename doesn't match the pattern.
     
     Parameters:
     - video_filename: The filename to validate
-    - Uses configuration from SpexConfig dataclass containing FilenameSection objects:
-        FilenameSection:
-            value: str
-            section_type: str ("literal", "wildcard", or "regex")
     
     Returns:
-    - Boolean indicating if the filename is valid
+    - Tuple[bool, str]: (is_valid, error_message)
     '''
-    # Get only the base filename (not the full path)
     base_filename = os.path.basename(video_filename)
+    name_without_ext, file_ext = os.path.splitext(base_filename)
+    file_ext = file_ext[1:]  # Remove the leading dot
+    
+    # Validate extension first
+    if file_ext.lower() != spex_config.filename_values.FileExtension.lower():
+        logger.critical(f"Invalid file extension: Expected '{spex_config.filename_values.FileExtension}', got '{file_ext}'")
+        return False
     
     # Extract section configurations
     fn_sections = spex_config.filename_values.fn_sections
-    file_extension = spex_config.filename_values.FileExtension
     
     # Validate number of sections
     if not fn_sections:
-        logger.error("No sections defined in configuration.")
+        logger.critical("No filename sections defined in configuration.")
         return False
     
     if len(fn_sections) < 1 or len(fn_sections) > 8:
-        logger.error(f"Invalid number of sections: {len(fn_sections)}. Must be between 1 and 8.")
+        logger.critical(f"Invalid number of sections in configuration: {len(fn_sections)}. Must be between 1 and 8.")
         return False
     
-    # Build the dynamic regex pattern based on the sections
-    pattern_parts = []
+    # Split the filename into sections
+    filename_parts = name_without_ext.split('_')
+    if len(filename_parts) != len(fn_sections):
+        logger.critical(f"Invalid number of sections in filename: Expected {len(fn_sections)}, got {len(filename_parts)}")
+        return False 
     
-    # Process each section in order
-    for i in range(1, len(fn_sections) + 1):
-        section_key = f"section{i}"
-        if section_key in fn_sections:
-            section = fn_sections[section_key]
-            
-            # Process section based on its type
-            if section.section_type == "wildcard":
-                pattern_parts.append(convert_wildcards_to_regex(section.value))
-            elif section.section_type == "regex":
-                pattern_parts.append(section.value)
-            else:  # "literal" or any unknown type defaults to literal
-                pattern_parts.append(re.escape(section.value))
-    
-    # Construct the complete pattern
-    pattern = r'^{0}\.{1}$'.format('_'.join(pattern_parts), re.escape(file_extension))
-    
-    # Check if the filename matches the pattern
-    if re.match(pattern, base_filename, re.IGNORECASE):
-        logger.debug(f"The file name '{base_filename}' is valid.")
-        valid_filename = True
-    else:
-        logger.critical(f"The file name '{base_filename}' is not valid.")
-        valid_filename = False
-        logger.debug(f"Pattern used: {pattern}")
+    # Validate each section
+    for i, (part, section_key) in enumerate(zip(filename_parts, sorted(fn_sections.keys())), 1):
+        section = fn_sections[section_key]
         
-    return valid_filename
+        if section.section_type == "literal":
+            if part != section.value:
+                logger.critical(f"Section {i} mismatch: Expected '{section.value}', got '{part}'")
+                return False
+                
+        elif section.section_type == "wildcard":
+            # Convert the wildcard pattern to regex for this section only
+            section_pattern = convert_wildcards_to_regex(section.value)
+            if not re.match(f"^{section_pattern}$", part, re.IGNORECASE):
+                expected_format = section.value.replace('@', '[letter]').replace('#', '[digit]').replace('*', '[alphanumeric]')
+                logger.critical(f"Section {i} format mismatch: Expected format '{expected_format}', got '{part}'")
+                return False
+                
+        elif section.section_type == "regex":
+            if not re.match(f"^{section.value}$", part, re.IGNORECASE):
+                logger.critical(f"Section {i} doesn't match required pattern: '{section.value}'")
+                return False
+    
+    logger.debug("Filename is valid")
+    return True
 
 
 def initialize_directory(source_directory):
