@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QAbstractItemView, QInputDialog, QMessageBox, QProgressBar, QDialog
 )
 from PyQt6.QtCore import Qt, QSettings, QDir, QTimer
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QPalette
 
 import os
 import sys
@@ -27,58 +27,43 @@ class CustomFilenameDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Custom Filename Pattern")
         self.setModal(True)
+
+        # Set minimum size for the dialog
+        self.setMinimumSize(500, 600)  # Width: 500px, Height: 600px
         
         # Initialize layout
         layout = QVBoxLayout()
+        layout.setSpacing(10)  # Reduce overall vertical spacing
         
         # Add description
-        description = QLabel("Define your custom filename pattern. Each component will be separated by underscores.")
+        description = QLabel("Define your filename pattern using 1-8 sections separated by underscores.")
         description.setWordWrap(True)
         layout.addWidget(description)
         
-        # Collection input
-        collection_layout = QHBoxLayout()
-        collection_layout.addWidget(QLabel("Collection:"))
-        self.collection_input = QLineEdit()
-        collection_layout.addWidget(self.collection_input)
-        layout.addLayout(collection_layout)
+        # Scrollable area for sections
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        self.sections_layout = QVBoxLayout(scroll_widget)
+        self.sections_layout.setSpacing(5)  # Reduce spacing between sections
+        self.sections_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        scroll.setWidget(scroll_widget)
+
+        # Set a reasonable fixed height for the scroll area
+        scroll.setMinimumHeight(300)  # Ensure scroll area is tall enough
         
-        # Media Type input
-        mediatype_layout = QHBoxLayout()
-        mediatype_layout.addWidget(QLabel("Media Type:"))
-        self.mediatype_input = QLineEdit()
-        mediatype_layout.addWidget(self.mediatype_input)
-        layout.addLayout(mediatype_layout)
+        # Initial section
+        self.sections = []
+        self.add_section()
         
-        # Object ID pattern
-        objectid_layout = QHBoxLayout()
-        objectid_layout.addWidget(QLabel("Object ID Pattern:"))
-        self.objectid_pattern = QComboBox()
-        self.objectid_pattern.addItems([
-            "Custom Pattern",
-            "5 digits (e.g., 12345)",
-            "3 digits + underscore + 1 letter (e.g., 123_A)"
-        ])
-        self.objectid_pattern.currentIndexChanged.connect(self.on_objectid_pattern_changed)
-        objectid_layout.addWidget(self.objectid_pattern)
-        layout.addLayout(objectid_layout)
-        
-        # Custom Object ID input
-        self.objectid_input_layout = QHBoxLayout()
-        self.objectid_input_layout.addWidget(QLabel("Custom Object ID Regex:"))
-        self.objectid_input = QLineEdit()
-        self.objectid_input_layout.addWidget(self.objectid_input)
-        layout.addLayout(self.objectid_input_layout)
-        
-        # Digital Generation checkbox and input
-        dg_layout = QHBoxLayout()
-        self.dg_checkbox = QCheckBox("Include Digital Generation")
-        self.dg_checkbox.stateChanged.connect(self.on_dg_checkbox_changed)
-        dg_layout.addWidget(self.dg_checkbox)
-        self.dg_input = QLineEdit()
-        self.dg_input.setEnabled(False)
-        dg_layout.addWidget(self.dg_input)
-        layout.addLayout(dg_layout)
+        # Buttons for managing sections
+        section_buttons_layout = QHBoxLayout()
+        add_button = QPushButton("Add Section")
+        add_button.clicked.connect(self.add_section)
+        remove_button = QPushButton("Remove Last Section")
+        remove_button.clicked.connect(self.remove_section)
+        section_buttons_layout.addWidget(add_button)
+        section_buttons_layout.addWidget(remove_button)
         
         # File Extension input
         extension_layout = QHBoxLayout()
@@ -86,16 +71,14 @@ class CustomFilenameDialog(QDialog):
         self.extension_input = QLineEdit()
         self.extension_input.setText("mkv")
         extension_layout.addWidget(self.extension_input)
-        layout.addLayout(extension_layout)
         
         # Preview section
         preview_layout = QHBoxLayout()
         preview_layout.addWidget(QLabel("Preview:"))
         self.preview_label = QLabel()
         preview_layout.addWidget(self.preview_label)
-        layout.addLayout(preview_layout)
         
-        # Buttons
+        # Dialog buttons
         button_layout = QHBoxLayout()
         save_button = QPushButton("Save Pattern")
         save_button.clicked.connect(self.accept)
@@ -103,66 +86,159 @@ class CustomFilenameDialog(QDialog):
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(save_button)
         button_layout.addWidget(cancel_button)
+        
+        # Add all layouts to main layout
+        layout.addWidget(scroll)
+        layout.addLayout(section_buttons_layout)
+        layout.addLayout(extension_layout)
+        layout.addLayout(preview_layout)
         layout.addLayout(button_layout)
         
-        # Connect text changed signals for preview updates
-        self.collection_input.textChanged.connect(self.update_preview)
-        self.mediatype_input.textChanged.connect(self.update_preview)
-        self.objectid_input.textChanged.connect(self.update_preview)
-        self.dg_input.textChanged.connect(self.update_preview)
-        self.extension_input.textChanged.connect(self.update_preview)
-        
         self.setLayout(layout)
-        
-    def on_objectid_pattern_changed(self, index):
-        if index == 0:  # Custom Pattern
-            self.objectid_input.setEnabled(True)
-            self.objectid_input.clear()
-        elif index == 1:  # 5 digits
-            self.objectid_input.setEnabled(False)
-            self.objectid_input.setText(r"\d{5}")
-        elif index == 2:  # 3 digits + underscore + 1 letter
-            self.objectid_input.setEnabled(False)
-            self.objectid_input.setText(r"\d{3}_\d{1}[a-zA-Z]")
         self.update_preview()
         
-    def on_dg_checkbox_changed(self, state):
-        self.dg_input.setEnabled(state == Qt.Checked)
-        self.update_preview()
-        
-    def update_preview(self):
-        parts = [
-            self.collection_input.text(),
-            self.mediatype_input.text(),
-            self.objectid_input.text()
-        ]
-        
-        if self.dg_checkbox.isChecked() and self.dg_input.text():
-            parts.append(self.dg_input.text())
+    def add_section(self):
+        """Add a new filename section widget"""
+        if len(self.sections) >= 8:
+            QMessageBox.warning(self, "Warning", "Maximum 8 sections allowed")
+            return
             
-        example = "_".join(parts) + "." + self.extension_input.text()
-        self.preview_label.setText(example)
+        section_widget = QWidget()
+        section_layout = QHBoxLayout(section_widget)
+        section_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins around section
+        section_layout.setSpacing(5)  # Reduce spacing between elements
         
+        # Section number label
+        section_num = len(self.sections) + 1
+        section_label = QLabel(f"Section {section_num}:")
+        section_layout.addWidget(section_label)
+        
+        # Section type combo box
+        type_combo = QComboBox()
+        type_combo.addItems(["Literal", "Wildcard", "Regex"])
+        section_layout.addWidget(type_combo)
+        
+        # Value input
+        value_input = QLineEdit()
+        section_layout.addWidget(value_input)
+        
+        # Help button with tooltip
+        help_button = QPushButton("?")
+        help_button.setFixedSize(20, 20)
+        help_text = {
+            0: "Literal: Exact text match (e.g., 'JPC')",
+            1: "Wildcard: Use # for digits, @ for letters, * for either\n" +
+               "Examples:\n" +
+               "#### = exactly 4 digits\n" +
+               "@@ = exactly 2 letters\n" +
+               "*** = 3 characters (letters or numbers)",
+            2: "Regex: Regular expression pattern (e.g., '\\d{3}')"
+        }
+        help_button.clicked.connect(lambda: QMessageBox.information(self, "Help", help_text[type_combo.currentIndex()]))
+        section_layout.addWidget(help_button)
+        
+        # Store section controls
+        section = {
+            'widget': section_widget,
+            'type_combo': type_combo,
+            'value_input': value_input
+        }
+        self.sections.append(section)
+        
+        # Connect signals for preview updates
+        type_combo.currentIndexChanged.connect(self.update_preview)
+        value_input.textChanged.connect(self.update_preview)
+        
+        self.sections_layout.addWidget(section_widget)
+        self.update_preview()
+        
+    def remove_section(self):
+        """Remove the last filename section"""
+        if self.sections:
+            section = self.sections.pop()
+            section['widget'].deleteLater()
+            self.update_preview()
+        if len(self.sections) < 1:
+            self.add_section()  # Ensure at least one section exists
+            
+    def update_preview(self):
+        """Update the filename preview"""
+        parts = []
+        for section in self.sections:
+            value = section['value_input'].text()
+            if value:
+                parts.append(value)
+                
+        if parts:
+            preview = "_".join(parts) + "." + self.extension_input.text()
+            self.preview_label.setText(preview)
+            
     def get_filename_pattern(self):
-        if not all([self.collection_input.text(), 
-                   self.mediatype_input.text(),
-                   self.objectid_input.text(),
-                   self.extension_input.text()]):
-            QMessageBox.warning(self, "Validation Error", 
-                              "All fields except Digital Generation must be filled.")
+        """Get the filename pattern in the required format"""
+        if not self.sections:
+            QMessageBox.warning(self, "Validation Error", "At least one section is required.")
             return None
+            
+        if not all(section['value_input'].text() for section in self.sections):
+            QMessageBox.warning(self, "Validation Error", "All sections must have a value.")
+            return None
+            
+        if not self.extension_input.text():
+            QMessageBox.warning(self, "Validation Error", "File extension is required.")
+            return None
+            
+        fn_sections = {}
+        for i, section in enumerate(self.sections, 1):
+            section_type = section['type_combo'].currentText().lower()
+            value = section['value_input'].text()
+            
+            fn_sections[f"section{i}"] = {
+                "value": value,
+                "section_type": section_type
+            }
             
         pattern = {
             "filename_values": {
-                "Collection": self.collection_input.text(),
-                "MediaType": self.mediatype_input.text(),
-                "ObjectID": self.objectid_input.text(),
-                "DigitalGeneration": self.dg_input.text() if self.dg_checkbox.isChecked() else None,
+                "fn_sections": fn_sections,
                 "FileExtension": self.extension_input.text()
             }
         }
+        
         return pattern
-
+        
+    def load_existing_pattern(self, pattern):
+        """Load an existing filename pattern into the dialog"""
+        if not pattern or 'filename_values' not in pattern:
+            return
+            
+        # Clear existing sections
+        while self.sections:
+            self.remove_section()
+            
+        values = pattern['filename_values']
+        
+        # Load sections
+        if 'fn_sections' in values:
+            for section_key, section_data in values['fn_sections'].items():
+                self.add_section()
+                section = self.sections[-1]
+                
+                # Set section type
+                type_index = {
+                    'literal': 0,
+                    'wildcard': 1,
+                    'regex': 2
+                }.get(section_data['section_type'].lower(), 0)
+                section['type_combo'].setCurrentIndex(type_index)
+                
+                # Set value
+                section['value_input'].setText(section_data['value'])
+                
+        # Load extension
+        if 'FileExtension' in values:
+            self.extension_input.setText(values['FileExtension'])
+            
+        self.update_preview()
 
 
 class ProcessingWindow(QMainWindow):
@@ -839,7 +915,7 @@ class MainWindow(QMainWindow):
 
     def show_custom_filename_dialog(self):
         dialog = CustomFilenameDialog(self)
-        if dialog.exec() == QDialog.Accepted:
+        if dialog.exec() == QDialog.accepted:
             pattern = dialog.get_filename_pattern()
             if pattern:
                 self.config_mgr.update_config('spex', pattern)
@@ -1014,37 +1090,40 @@ class MainWindow(QMainWindow):
 
     # File name section
     def setup_filename_section(self):
-        group = QGroupBox()
-        layout = QVBoxLayout()
-        
-        # Section label
-        layout.addWidget(QLabel("<b>Filename Values</b>"))
-        
-        # Profile dropdown
-        layout.addWidget(QLabel("Expected filename profiles:"))
+        # Filename section
+        filename_section_group = QGroupBox()
+        filename_section_layout = QVBoxLayout()
+        # Create a label to display the section name
+        filename_section_label = QLabel(f"<b>Filename Values</b>")
+        filename_section_layout.addWidget(filename_section_label)
+
+        # Add a dropdown menu for command profiles
+        filenames_profile_label = QLabel("Expected filename profiles:")
+        filename_section_layout.addWidget(filenames_profile_label)
+
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
-        
-        # Set initial state
-        if self.spex_config.filename_values.Collection == "JPC":
-            self.filename_profile_dropdown.setCurrentText("JPC file names")
-        elif self.spex_config.filename_values.Collection == "2012_79":
-            self.filename_profile_dropdown.setCurrentText("Bowser file names")
             
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
-        layout.addWidget(self.filename_profile_dropdown)
+        filename_section_layout.addWidget(self.filename_profile_dropdown)
+
+        # Store the layout as an instance variable so it can be accessed by add_custom_filename_button
+        self.filename_section_layout = filename_section_layout
+        
+        # Add the custom filename button
+        self.add_custom_filename_button()
         
         # Open section button
         button = QPushButton("Open Section")
         button.clicked.connect(
             lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values))
         )
-        layout.addWidget(button)
+        filename_section_layout.addWidget(button)
         
-        group.setLayout(layout)
-        group.setFixedHeight(150)
-        return group
+        filename_section_group.setLayout(filename_section_layout)
+        filename_section_group.setFixedHeight(150)
+        return filename_section_group
 
     # Section setup functions for each tool (mediainfo, exiftool, ffprobe)
     def setup_mediainfo_section(self):
