@@ -158,25 +158,26 @@ def convert_wildcards_to_regex(pattern):
     - # : any number (no letters) => \d
     - * : any letter or number => [a-zA-Z0-9]
     '''
-    # Count consecutive # characters and replace with appropriate digit pattern
-    # Replace ### with \d{3} for exactly 3 digits, ##+ with \d{2,} for 2 or more digits, etc.
+    if not isinstance(pattern, str):
+        raise TypeError("Pattern must be a string")
+        
+    # First escape any special regex characters except our wildcards
+    escaped_pattern = ''
+    for char in pattern:
+        if char in '@#*':
+            escaped_pattern += char
+        elif char in '.[]{}()\\+?^$':
+            escaped_pattern += '\\' + char
+        else:
+            escaped_pattern += char
+            
+    # Now handle the wildcards
+    pattern = escaped_pattern
     pattern = re.sub(r'#+', lambda m: rf'\d{{{len(m.group())}}}', pattern)
-    
-    # Replace remaining wildcards
     pattern = pattern.replace('@', '[a-zA-Z]')
     pattern = pattern.replace('*', '[a-zA-Z0-9]')
     
-    # Escape any remaining special regex characters
-    parts = []
-    current_part = ""
-    for char in pattern:
-        if char in (']', '[', '\\', '{', '}', 'd'):  # Skip already processed regex parts
-            current_part += char
-        else:
-            current_part += re.escape(char)
-    parts.append(current_part)
-    
-    return ''.join(parts)
+    return pattern
 
 
 def is_valid_filename(video_filename):
@@ -239,7 +240,7 @@ def is_valid_filename(video_filename):
                 logger.critical(f"Section {i} doesn't match required pattern: '{section.value}'")
                 return False
     
-    logger.debug("Filename is valid")
+    logger.debug("Filename is valid\n")
     return True
 
 
