@@ -198,45 +198,51 @@ class CustomFilenameDialog(QDialog):
             }
             
         pattern = {
-            "filename_values": {
-                "fn_sections": fn_sections,
-                "FileExtension": self.extension_input.text()
-            }
+            "fn_sections": fn_sections,
+            "FileExtension": self.extension_input.text()
         }
         
         return pattern
-        
+
+    def accept(self):
+        """Override accept to apply the filename pattern before closing"""
+        pattern = self.get_filename_pattern()
+        if pattern:
+            try:
+                edit_config.apply_filename_profile(pattern)
+                super().accept()
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to apply filename pattern: {str(e)}")
+        # If pattern is None, validation errors were already shown to user
+            
     def load_existing_pattern(self, pattern):
         """Load an existing filename pattern into the dialog"""
-        if not pattern or 'filename_values' not in pattern:
+        if not pattern or 'fn_sections' not in pattern:
             return
             
         # Clear existing sections
         while self.sections:
             self.remove_section()
             
-        values = pattern['filename_values']
-        
         # Load sections
-        if 'fn_sections' in values:
-            for section_key, section_data in values['fn_sections'].items():
-                self.add_section()
-                section = self.sections[-1]
-                
-                # Set section type
-                type_index = {
-                    'literal': 0,
-                    'wildcard': 1,
-                    'regex': 2
-                }.get(section_data['section_type'].lower(), 0)
-                section['type_combo'].setCurrentIndex(type_index)
-                
-                # Set value
-                section['value_input'].setText(section_data['value'])
+        for section_key, section_data in pattern['fn_sections'].items():
+            self.add_section()
+            section = self.sections[-1]
+            
+            # Set section type
+            type_index = {
+                'literal': 0,
+                'wildcard': 1,
+                'regex': 2
+            }.get(section_data['section_type'].lower(), 0)
+            section['type_combo'].setCurrentIndex(type_index)
+            
+            # Set value
+            section['value_input'].setText(section_data['value'])
                 
         # Load extension
-        if 'FileExtension' in values:
-            self.extension_input.setText(values['FileExtension'])
+        if 'FileExtension' in pattern:
+            self.extension_input.setText(pattern['FileExtension'])
             
         self.update_preview()
 
