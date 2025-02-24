@@ -25,6 +25,7 @@ from ..utils.signals import ProcessingSignals
 class CustomFilenameDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.pattern = None
         self.setWindowTitle("Custom Filename Pattern")
         self.setModal(True)
 
@@ -81,7 +82,7 @@ class CustomFilenameDialog(QDialog):
         # Dialog buttons
         button_layout = QHBoxLayout()
         save_button = QPushButton("Save Pattern")
-        save_button.clicked.connect(self.accept)
+        save_button.clicked.connect(self.on_save_clicked)
         cancel_button = QPushButton("Cancel")
         cancel_button.clicked.connect(self.reject)
         button_layout.addWidget(save_button)
@@ -204,16 +205,20 @@ class CustomFilenameDialog(QDialog):
         
         return pattern
 
-    def accept(self):
-        """Override accept to apply the filename pattern before closing"""
+    def on_save_clicked(self):
+        """Handle save button click"""
         pattern = self.get_filename_pattern()
         if pattern:
             try:
                 edit_config.apply_filename_profile(pattern)
-                super().accept()
+                self.pattern = pattern
+                self.accept()  # This will trigger QDialog.accepted
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to apply filename pattern: {str(e)}")
-        # If pattern is None, validation errors were already shown to user
+
+    def get_pattern(self):
+        """Return the stored pattern"""
+        return self.pattern
             
     def load_existing_pattern(self, pattern):
         """Load an existing filename pattern into the dialog"""
@@ -921,14 +926,30 @@ class MainWindow(QMainWindow):
 
     def show_custom_filename_dialog(self):
         dialog = CustomFilenameDialog(self)
-        if dialog.exec() == QDialog.accepted:
-            pattern = dialog.get_filename_pattern()
+        result = dialog.exec()
+        
+        if result == QDialog.DialogCode.Accepted:  # Use the enum value explicitly
+            pattern = dialog.get_pattern()
             if pattern:
-                self.config_mgr.update_config('spex', pattern)
-                # Add the new pattern to the dropdown
-                custom_name = f"Custom ({pattern['filename_values']['Collection']})"
-                self.filename_profile_dropdown.addItem(custom_name)
-                self.filename_profile_dropdown.setCurrentText(custom_name)
+                try:
+                    # Use the first section's value for the custom name
+                    first_section = pattern['fn_sections']['section1']
+                    custom_name = f"Custom ({first_section['value']})"
+                    
+                    # Check if this custom pattern already exists in the dropdown
+                    found = False
+                    for i in range(self.filename_profile_dropdown.count()):
+                        if self.filename_profile_dropdown.itemText(i) == custom_name:
+                            found = True
+                            break
+                    
+                    # Only add if it's not already in the dropdown
+                    if not found:
+                        self.filename_profile_dropdown.addItem(custom_name)
+                    self.filename_profile_dropdown.setCurrentText(custom_name)
+                except Exception as e:
+                    QMessageBox.warning(self, "Error", f"Error adding custom pattern to dropdown: {str(e)}")
+
         
     def setup_ui(self):
         self.config_mgr = ConfigManager()
