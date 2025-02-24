@@ -1110,6 +1110,12 @@ class MainWindow(QMainWindow):
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
+
+        # Set initial state
+        if self.spex_config.filename_values.fn_sections["section1"] == "JPC":
+            self.filename_profile_dropdown.setCurrentText("JPC file names")
+        elif self.spex_config.filename_values.fn_sections["section1"] == "2012":
+            self.filename_profile_dropdown.setCurrentText("Bowser file names")
             
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
         filename_section_layout.addWidget(self.filename_profile_dropdown)
@@ -1372,31 +1378,13 @@ class MainWindow(QMainWindow):
 
     def on_filename_profile_changed(self, index):
         selected_option = self.filename_profile_dropdown.itemText(index)
-        updates = {}
         
         if selected_option == "JPC file names":
-            updates = {
-                "filename_values": {
-                    "Collection": "JPC",
-                    "MediaType": "AV",
-                    "ObjectID": r"\d{5}",
-                    "DigitalGeneration": None,
-                    "FileExtension": "mkv"
-                }
-            }
+            edit_config.apply_filename_profile(edit_config.JPCAV_filename)
+            self.config_mgr.save_last_used_config('spex')
         elif selected_option == "Bowser file names":
-            updates = {
-                "filename_values": {
-                    "Collection": "2012_79",
-                    "MediaType": "2",
-                    "ObjectID": r"\d{3}_\d{1}[a-zA-Z]",
-                    "DigitalGeneration": "PM",
-                    "FileExtension": "mkv"
-                }
-            }
-        
-        self.config_mgr.update_config('spex', updates)
-        self.config_mgr.save_last_used_config('spex')
+            edit_config.apply_filename_profile(edit_config.bowser_filename)
+            self.config_mgr.save_last_used_config('spex')
 
 
     def on_signalflow_profile_changed(self, index):
