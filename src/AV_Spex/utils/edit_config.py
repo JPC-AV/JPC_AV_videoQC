@@ -114,6 +114,43 @@ def resolve_config(args, config_mapping):
     return config_mapping.get(args, None)
 
 
+def apply_filename_profile(selected_profile):
+    """Empty the filename sections by getting the current config and setting an empty section"""
+    spex_config = config_mgr.get_config('spex', SpexConfig)
+    
+    # Completely replace the fn_sections with just one empty section
+    spex_config.filename_values.fn_sections = {
+        "section1": {
+            "value": "",
+            "section_type": "literal"
+        }
+    }
+    
+    # Use set_config instead of update_config to ensure complete replacement
+    config_mgr.set_config("spex", spex_config)
+    
+    if 'fn_sections' in selected_profile:
+        # Create a new dict with just the sections we want
+        new_sections = {}
+        for section_key, section_data in selected_profile['fn_sections'].items():
+            section_type = section_data.get('section_type', 'literal')
+            section_value = section_data['value']
+            
+            new_sections[section_key] = {
+                'value': section_value,
+                'section_type': section_type
+            }
+        
+        # Replace the entire sections dict
+        spex_config.filename_values.fn_sections = new_sections
+    
+    if 'FileExtension' in selected_profile:
+        spex_config.filename_values.FileExtension = selected_profile['FileExtension']
+    
+    # Use set_config to ensure complete replacement
+    config_mgr.set_config('spex', spex_config)
+
+
 def apply_profile(selected_profile):
     """Apply profile changes to checks_config.
     
@@ -378,17 +415,22 @@ BVH3100 = {
 }
 
 bowser_filename = {
-    "Collection": "2012_79",
-    "MediaType": "2",
-    "ObjectID": r"\d{3}_\d{1}[a-zA-Z]",
-    "DigitalGeneration": "PM",
+    "fn_sections": {
+        "section1": {"value": "2012"},
+        "section2": {"value": "79"},
+        "section3": {"value": "2"},
+        "section4": {"value": "###", "section_type": "wildcard"},
+        "section5": {"value": "#@", "section_type": "wildcard"},
+        "section6": {"value": "PM"}
+    },
     "FileExtension": "mkv"
 }
 
 JPCAV_filename = {
-    "Collection": "JPC",
-    "MediaType": "AV",
-    "ObjectID": r"\d{5}",
-    "DigitalGeneration": None,
+    "fn_sections": {
+        "section1": {"value": "JPC"},
+        "section2": {"value": "AV"},
+        "section3": {"value": "#####", "section_type": "wildcard"}
+    },
     "FileExtension": "mkv"
 }

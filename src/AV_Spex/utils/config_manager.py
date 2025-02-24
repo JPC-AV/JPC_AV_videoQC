@@ -317,7 +317,11 @@ class ConfigManager:
         for key, value in source.items():
             if key in target:
                 if isinstance(value, dict) and isinstance(target[key], dict):
-                    self._deep_merge_dict(target[key], value)
+                    # Special handling for fn_sections - replace entirely
+                    if key == 'fn_sections':
+                        target[key] = value.copy()
+                    else:
+                        self._deep_merge_dict(target[key], value)
                 else:
                     target[key] = value
 
