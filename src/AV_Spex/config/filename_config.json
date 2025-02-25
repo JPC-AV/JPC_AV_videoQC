@@ -1,6 +1,6 @@
 {
     "filename_profiles": {
-        "bowser_filename" : {
+        "Bowser Filename Profile" : {
             "fn_sections": {
                 "section1": {"value": "2012", "section_type": "literal"},
                 "section2": {"value": "79", "section_type": "literal"},
@@ -11,7 +11,7 @@
             },
             "FileExtension": "mkv"
         },
-        "JPCAV_filename" : {
+        "JPC Filename Profile" : {
             "fn_sections": {
                 "section1": {"value": "JPC", "section_type": "literal"},
                 "section2": {"value": "AV", "section_type": "literal"},

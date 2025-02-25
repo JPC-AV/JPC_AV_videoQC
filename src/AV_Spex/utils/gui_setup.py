@@ -1154,15 +1154,11 @@ class MainWindow(QMainWindow):
 
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Select a profile...")
-        self.filename_profile_dropdown.addItem("Bowser file names")
-        self.filename_profile_dropdown.addItem("JPC file names")
         
         # Add any custom filename profiles from the config
         if hasattr(self.filename_config, 'filename_profiles') and self.filename_config.filename_profiles:
             for profile_name in self.filename_config.filename_profiles.keys():
-                # check if this profile isn't already added
-                if profile_name not in ["bowser_filename", "JPCAV_filename"]:
-                    self.filename_profile_dropdown.addItem(profile_name)
+                self.filename_profile_dropdown.addItem(profile_name)
 
         # Set initial state
         if self.spex_config.filename_values.fn_sections["section1"] == "JPC":
@@ -1434,8 +1430,8 @@ class MainWindow(QMainWindow):
     def on_filename_profile_changed(self, index):
         self.config_mgr = ConfigManager()
         filename_config = self.config_mgr.get_config("filename", FilenameConfig)
-        jpc_filename_profile = asdict(filename_config.filename_profiles["JPCAV_filename"])
-        bowser_filename_profile = asdict(filename_config.filename_profiles["bowser_filename"])
+        jpc_filename_profile = asdict(filename_config.filename_profiles["JPC Filename Profile"])
+        bowser_filename_profile = asdict(filename_config.filename_profiles["Bowser Filename Profile"])
 
         selected_option = self.filename_profile_dropdown.itemText(index)
         

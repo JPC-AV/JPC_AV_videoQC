@@ -6,7 +6,7 @@ import sys
 import argparse
 import toml
 from art import text2art
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List, Optional, Any
 
 from .processing import processing_mgmt
@@ -80,8 +80,8 @@ SIGNALFLOW_MAPPING = {
 filename_config = config_mgr.get_config("filename", FilenameConfig)
 
 FILENAME_MAPPING = {
-    "jpc": filename_config.filename_profiles["JPCAV_filename"],
-    "bowser": filename_config.filename_profiles["bowser_filename"]
+    "jpc": filename_config.filename_profiles["JPC Filename Profile"],
+    "bowser": filename_config.filename_profiles["Bowser Filename Profile"]
 }
 
 
@@ -169,6 +169,7 @@ The scripts will confirm that the digital files conform to predetermined specifi
             try:
                 os.remove(os.path.join(user_config_dir, "last_used_checks_config.json"))
                 os.remove(os.path.join(user_config_dir, "last_used_spex_config.json"))
+                os.remove(os.path.join(user_config_dir, "last_used_filename_config.json"))
                 print("Reset to default configuration")
             except FileNotFoundError:
                 # It's okay if the files don't exist
@@ -255,7 +256,8 @@ def run_cli_mode(args):
     if args.sn_config_changes:
         update_spex_config('signalflow', args.sn_config_changes)
     if args.fn_config_changes:
-        edit_config.apply_filename_profile(args.fn_config_changes)
+        filename_profile = asdict(args.fn_config_changes)
+        edit_config.apply_filename_profile(filename_profile)
         config_mgr.save_last_used_config('spex')
 
     # Handle config I/O operations
