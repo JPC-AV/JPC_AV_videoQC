@@ -299,7 +299,7 @@ class ConfigManager:
                 try:
                     last_used_data = self._load_json_config(config_name, last_used=True)
                     self._deep_merge_dict(default_config, last_used_data)
-                    logger.debug(f"using config from {last_used_path}")
+                    # logger.debug(f"using config from {last_used_path}")
                 except (FileNotFoundError, json.JSONDecodeError):
                     logger.debug(f"No valid last used config found for {config_name}")
                 

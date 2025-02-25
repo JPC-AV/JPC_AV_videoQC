@@ -1153,6 +1153,7 @@ class MainWindow(QMainWindow):
         filename_section_layout.addWidget(filenames_profile_label)
 
         self.filename_profile_dropdown = QComboBox()
+        self.filename_profile_dropdown.addItem("Select a profile...")
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
         
@@ -1168,6 +1169,8 @@ class MainWindow(QMainWindow):
             self.filename_profile_dropdown.setCurrentText("JPC file names")
         elif self.spex_config.filename_values.fn_sections["section1"] == "2012":
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
+        else:
+             self.filename_profile_dropdown.setCurrentText("Select a profile...")
             
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
         filename_section_layout.addWidget(self.filename_profile_dropdown)
