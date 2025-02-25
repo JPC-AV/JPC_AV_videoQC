@@ -413,24 +413,3 @@ BVH3100 = {
     "Capture_Device": ["Blackmagic Design UltraStudio 4K Extreme", "SN B022159", "Thunderbolt"],
     "Computer": ["2023 Mac Mini", "Apple M2 Pro chip", "SN H9HDW53JMV", "OS 14.5", "vrecord v2023-08-07", "ffmpeg"]
 }
-
-bowser_filename = {
-    "fn_sections": {
-        "section1": {"value": "2012"},
-        "section2": {"value": "79"},
-        "section3": {"value": "2"},
-        "section4": {"value": "###", "section_type": "wildcard"},
-        "section5": {"value": "#@", "section_type": "wildcard"},
-        "section6": {"value": "PM"}
-    },
-    "FileExtension": "mkv"
-}
-
-JPCAV_filename = {
-    "fn_sections": {
-        "section1": {"value": "JPC"},
-        "section2": {"value": "AV"},
-        "section3": {"value": "#####", "section_type": "wildcard"}
-    },
-    "FileExtension": "mkv"
-}

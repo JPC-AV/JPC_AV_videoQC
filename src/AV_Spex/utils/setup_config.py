@@ -5,7 +5,7 @@ from enum import Enum
 @dataclass
 class FilenameSection:
     value: str
-    section_type: str = "literal"  # Default to literal, can be "literal", "wildcard", or "regex"
+    section_type: str = field(default="literal") 
 
 @dataclass
 class FilenameValues:
@@ -345,3 +345,12 @@ class ChecksConfig:
     outputs: OutputsConfig
     fixity: FixityConfig
     tools: ToolsConfig
+
+@dataclass
+class FilenameProfile:
+    fn_sections: Dict[str, FilenameSection]
+    FileExtension: str
+
+@dataclass
+class FilenameConfig:
+    filename_profiles: Dict[str, FilenameProfile]

@@ -10,7 +10,7 @@ import os
 import sys
 from dataclasses import asdict
 
-from ..utils.setup_config import SpexConfig, ChecksConfig
+from ..utils.setup_config import SpexConfig, ChecksConfig, FilenameConfig
 from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 from ..utils import edit_config
@@ -928,8 +928,8 @@ class MainWindow(QMainWindow):
         dialog = CustomFilenameDialog(self)
         result = dialog.exec()
         
-        if result == QDialog.DialogCode.Accepted:  # Use the enum value explicitly
-            pattern = dialog.get_pattern()
+        if result == QDialog.DialogCode.Accepted:
+            pattern = dialog.get_filename_pattern()
             if pattern:
                 try:
                     # Use the first section's value for the custom name
@@ -946,9 +946,31 @@ class MainWindow(QMainWindow):
                     # Only add if it's not already in the dropdown
                     if not found:
                         self.filename_profile_dropdown.addItem(custom_name)
-                    self.filename_profile_dropdown.setCurrentText(custom_name)
+                        self.filename_profile_dropdown.setCurrentText(custom_name)
+                        
+                        # Get the ConfigManager instance
+                        config_manager = ConfigManager()
+                        
+                        # Get the current filename configuration
+                        filename_config = config_manager.get_config('filename', FilenameConfig)
+                        
+                        # Update the config directly with the new pattern
+                        # ConfigManager will handle the conversion to dataclasses internally
+                        updates = {
+                            'filename_profiles': {
+                                **filename_config.filename_profiles,  # Keep existing profiles
+                                custom_name: pattern  # Add the new pattern
+                            }
+                        }
+                        
+                        # Update the config
+                        config_manager.update_config('filename', updates)
+                        
+                        # Save the last used configuration
+                        config_manager.save_last_used_config('filename')
+                        
                 except Exception as e:
-                    QMessageBox.warning(self, "Error", f"Error adding custom pattern to dropdown: {str(e)}")
+                    QMessageBox.warning(self, "Error", f"Error adding custom pattern to dropdown: {str(e)}")                        
 
         
     def setup_ui(self):
@@ -1117,6 +1139,8 @@ class MainWindow(QMainWindow):
 
     # File name section
     def setup_filename_section(self):
+        self.filename_config = self.config_mgr.get_config("filename", FilenameConfig)
+
         # Filename section
         filename_section_group = QGroupBox()
         filename_section_layout = QVBoxLayout()
@@ -1129,14 +1153,24 @@ class MainWindow(QMainWindow):
         filename_section_layout.addWidget(filenames_profile_label)
 
         self.filename_profile_dropdown = QComboBox()
+        self.filename_profile_dropdown.addItem("Select a profile...")
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
+        
+        # Add any custom filename profiles from the config
+        if hasattr(self.filename_config, 'filename_profiles') and self.filename_config.filename_profiles:
+            for profile_name in self.filename_config.filename_profiles.keys():
+                # check if this profile isn't already added
+                if profile_name not in ["bowser_filename", "JPCAV_filename"]:
+                    self.filename_profile_dropdown.addItem(profile_name)
 
         # Set initial state
         if self.spex_config.filename_values.fn_sections["section1"] == "JPC":
             self.filename_profile_dropdown.setCurrentText("JPC file names")
         elif self.spex_config.filename_values.fn_sections["section1"] == "2012":
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
+        else:
+             self.filename_profile_dropdown.setCurrentText("Select a profile...")
             
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
         filename_section_layout.addWidget(self.filename_profile_dropdown)
@@ -1398,15 +1432,25 @@ class MainWindow(QMainWindow):
 
 
     def on_filename_profile_changed(self, index):
+        self.config_mgr = ConfigManager()
+        filename_config = self.config_mgr.get_config("filename", FilenameConfig)
+        jpc_filename_profile = asdict(filename_config.filename_profiles["JPCAV_filename"])
+        bowser_filename_profile = asdict(filename_config.filename_profiles["bowser_filename"])
+
         selected_option = self.filename_profile_dropdown.itemText(index)
         
         if selected_option == "JPC file names":
-            edit_config.apply_filename_profile(edit_config.JPCAV_filename)
+            edit_config.apply_filename_profile(jpc_filename_profile)
             self.config_mgr.save_last_used_config('spex')
         elif selected_option == "Bowser file names":
-            edit_config.apply_filename_profile(edit_config.bowser_filename)
+            edit_config.apply_filename_profile(bowser_filename_profile)
             self.config_mgr.save_last_used_config('spex')
-
+        elif selected_option.startswith("Custom ("):
+            for profile_name in self.filename_config.filename_profiles.keys():
+                if selected_option == profile_name:
+                    profile_dict = asdict(filename_config.filename_profiles[profile_name])
+                    edit_config.apply_filename_profile(profile_dict)
+                    self.config_mgr.save_last_used_config('spex')
 
     def on_signalflow_profile_changed(self, index):
         selected_option = self.signalflow_profile_dropdown.itemText(index)

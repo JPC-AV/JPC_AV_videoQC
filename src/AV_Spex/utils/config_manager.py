@@ -299,6 +299,7 @@ class ConfigManager:
                 try:
                     last_used_data = self._load_json_config(config_name, last_used=True)
                     self._deep_merge_dict(default_config, last_used_data)
+                    # logger.debug(f"using config from {last_used_path}")
                 except (FileNotFoundError, json.JSONDecodeError):
                     logger.debug(f"No valid last used config found for {config_name}")
                 
@@ -318,7 +319,7 @@ class ConfigManager:
             if key in target:
                 if isinstance(value, dict) and isinstance(target[key], dict):
                     # Special handling for fn_sections - replace entirely
-                    if key == 'fn_sections':
+                    if key == 'fn_sections' or key == 'filename_profiles':
                         target[key] = value.copy()
                     else:
                         self._deep_merge_dict(target[key], value)
