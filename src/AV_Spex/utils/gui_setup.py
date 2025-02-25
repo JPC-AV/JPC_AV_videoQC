@@ -1436,7 +1436,7 @@ class MainWindow(QMainWindow):
         elif selected_option.startswith("Custom ("):
             for profile in filename_config.filename_profiles:
                 if selected_option == profile:
-                    edit_config.apply_filename_profile(selected_option)
+                    edit_config.apply_filename_profile(filename_config.filename_profiles[profile])
                     self.config_mgr.save_last_used_config('spex')
 
     def on_signalflow_profile_changed(self, index):
