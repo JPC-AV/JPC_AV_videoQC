@@ -1139,6 +1139,8 @@ class MainWindow(QMainWindow):
 
     # File name section
     def setup_filename_section(self):
+        self.filename_config = self.config_mgr.get_config("filename", FilenameConfig)
+
         # Filename section
         filename_section_group = QGroupBox()
         filename_section_layout = QVBoxLayout()
@@ -1153,6 +1155,13 @@ class MainWindow(QMainWindow):
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
+        
+        # Add any custom filename profiles from the config
+        if hasattr(self.filename_config, 'filename_profiles') and self.filename_config.filename_profiles:
+            for profile_name in self.filename_config.filename_profiles.keys():
+                # check if this profile isn't already added
+                if profile_name not in ["bowser_filename", "JPCAV_filename"]:
+                    self.filename_profile_dropdown.addItem(profile_name)
 
         # Set initial state
         if self.spex_config.filename_values.fn_sections["section1"] == "JPC":
@@ -1434,9 +1443,10 @@ class MainWindow(QMainWindow):
             edit_config.apply_filename_profile(bowser_filename_profile)
             self.config_mgr.save_last_used_config('spex')
         elif selected_option.startswith("Custom ("):
-            for profile in filename_config.filename_profiles:
-                if selected_option == profile:
-                    edit_config.apply_filename_profile(filename_config.filename_profiles[profile])
+            for profile_name in self.filename_config.filename_profiles.keys():
+                if selected_option == profile_name:
+                    profile_dict = asdict(filename_config.filename_profiles[profile_name])
+                    edit_config.apply_filename_profile(profile_dict)
                     self.config_mgr.save_last_used_config('spex')
 
     def on_signalflow_profile_changed(self, index):
