@@ -14,7 +14,7 @@ from .processing.avspex_processor import AVSpexProcessor
 from .utils import dir_setup
 from .utils import edit_config
 from .utils.log_setup import logger
-from .utils.setup_config import SpexConfig
+from .utils.setup_config import SpexConfig, FilenameConfig
 from .utils.config_manager import ConfigManager
 from .utils.config_io import ConfigIO
 
@@ -77,9 +77,11 @@ SIGNALFLOW_MAPPING = {
 }
 
 
+filename_config = config_mgr.get_config("filename", FilenameConfig)
+
 FILENAME_MAPPING = {
-    "jpc": edit_config.JPCAV_filename,
-    "bowser": edit_config.bowser_filename
+    "jpc": filename_config.filename_profiles["JPCAV_filename"],
+    "bowser": filename_config.filename_profiles["bowser_filename"]
 }
 
 
