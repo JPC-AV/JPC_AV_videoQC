@@ -93,7 +93,14 @@ class ProcessingWindow(QMainWindow):
         self.activateWindow()  # Activate the window
 
     def closeEvent(self, event):
-        # logger.debug("ProcessingWindow close event triggered")  # Debug
+        # Get a reference to the parent (MainWindow)
+        parent = self.parent()
+        
+        # If parent exists and has a cancel_processing method, call it
+        if parent and hasattr(parent, 'cancel_processing'):
+            parent.cancel_processing()
+        
+        # Call the parent class's closeEvent to properly handle window closure
         super().closeEvent(event)
 
 
