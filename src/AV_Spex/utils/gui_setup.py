@@ -50,8 +50,8 @@ class ProcessingWindow(QMainWindow):
 
         self.details_text = QTextEdit()
         self.details_text.setReadOnly(True)
-        self.details_text.setMaximumHeight(100)
-        layout.addWidget(self.details_text)
+        self.details_text.setMinimumHeight(100)
+        layout.addWidget(self.details_text, 1) # stretch factor of 1
 
         # Add cancel button
         self.cancel_button = QPushButton("Cancel")
