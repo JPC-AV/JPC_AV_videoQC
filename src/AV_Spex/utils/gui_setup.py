@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QAbstractItemView, QInputDialog, QMessageBox, QProgressBar
 )
 from PyQt6.QtCore import Qt, QSettings, QDir, QTimer
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtGui import QPixmap, QPalette
 
 import os
 import sys
