@@ -1161,10 +1161,10 @@ class MainWindow(QMainWindow):
                 self.filename_profile_dropdown.addItem(profile_name)
 
         # Set initial state
-        if self.spex_config.filename_values.fn_sections["section1"] == "JPC":
-            self.filename_profile_dropdown.setCurrentText("JPC file names")
-        elif self.spex_config.filename_values.fn_sections["section1"] == "2012":
-            self.filename_profile_dropdown.setCurrentText("Bowser file names")
+        if self.spex_config.filename_values.fn_sections["section1"].value == "JPC":
+            self.filename_profile_dropdown.setCurrentText("JPC Filename Profile")
+        elif self.spex_config.filename_values.fn_sections["section1"].value == "2012":
+            self.filename_profile_dropdown.setCurrentText("Bowser Filename Profile")
         else:
              self.filename_profile_dropdown.setCurrentText("Select a profile...")
             
@@ -1435,10 +1435,10 @@ class MainWindow(QMainWindow):
 
         selected_option = self.filename_profile_dropdown.itemText(index)
         
-        if selected_option == "JPC file names":
+        if selected_option == "JPC Filename Profile":
             edit_config.apply_filename_profile(jpc_filename_profile)
             self.config_mgr.save_last_used_config('spex')
-        elif selected_option == "Bowser file names":
+        elif selected_option == "Bowser Filename Profile":
             edit_config.apply_filename_profile(bowser_filename_profile)
             self.config_mgr.save_last_used_config('spex')
         elif selected_option.startswith("Custom ("):
