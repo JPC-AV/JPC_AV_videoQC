@@ -20,7 +20,7 @@ a = Analysis(['gui_launcher.py'],
     runtime_hooks=[],
     excludes=[
         'PyQt6.QtDBus', 'PyQt6.QtPdf', 'PyQt6.QtSvg', 'PyQt6.QtNetwork',
-        'plotly.validators', 'plotly.matplotlylib', 'plotly.figure_factory'
+        'plotly.matplotlylib', 'plotly.figure_factory'
     ],
     noarchive=False,
     cipher=block_cipher
