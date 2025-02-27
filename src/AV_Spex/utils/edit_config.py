@@ -2,7 +2,7 @@ from dataclasses import asdict
 from typing import List
 
 from ..utils.log_setup import logger
-from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.setup_config import ChecksConfig, SpexConfig, FilenameProfile, FilenameSection
 from ..utils.config_manager import ConfigManager
 
 
@@ -114,38 +114,29 @@ def resolve_config(args, config_mapping):
     return config_mapping.get(args, None)
 
 
-def apply_filename_profile(selected_profile):
-    """Empty the filename sections by getting the current config and setting an empty section"""
+def apply_filename_profile(selected_profile: FilenameProfile):
+    """Apply a FilenameProfile dataclass to the current configuration"""
     spex_config = config_mgr.get_config('spex', SpexConfig)
     
     # Completely replace the fn_sections with just one empty section
     spex_config.filename_values.fn_sections = {
-        "section1": {
-            "value": "",
-            "section_type": "literal"
-        }
+        "section1": FilenameSection(
+            value="",
+            section_type="literal"
+        )
     }
     
     # Use set_config instead of update_config to ensure complete replacement
     config_mgr.set_config("spex", spex_config)
     
-    if 'fn_sections' in selected_profile:
-        # Create a new dict with just the sections we want
-        new_sections = {}
-        for section_key, section_data in selected_profile['fn_sections'].items():
-            section_type = section_data.get('section_type', 'literal')
-            section_value = section_data['value']
-            
-            new_sections[section_key] = {
-                'value': section_value,
-                'section_type': section_type
-            }
-        
-        # Replace the entire sections dict
-        spex_config.filename_values.fn_sections = new_sections
+    # Create a new dict with the sections from the profile
+    if selected_profile.fn_sections:
+        # Replace the entire sections dict with the one from the profile
+        spex_config.filename_values.fn_sections = selected_profile.fn_sections
     
-    if 'FileExtension' in selected_profile:
-        spex_config.filename_values.FileExtension = selected_profile['FileExtension']
+    # Set the file extension if it exists in the profile
+    if hasattr(selected_profile, 'FileExtension') and selected_profile.FileExtension:
+        spex_config.filename_values.FileExtension = selected_profile.FileExtension
     
     # Use set_config to ensure complete replacement
     config_mgr.set_config('spex', spex_config)

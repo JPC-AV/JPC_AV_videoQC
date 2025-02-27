@@ -1428,10 +1428,9 @@ class MainWindow(QMainWindow):
 
 
     def on_filename_profile_changed(self, index):
-        self.config_mgr = ConfigManager()
         filename_config = self.config_mgr.get_config("filename", FilenameConfig)
-        jpc_filename_profile = asdict(filename_config.filename_profiles["JPC Filename Profile"])
-        bowser_filename_profile = asdict(filename_config.filename_profiles["Bowser Filename Profile"])
+        jpc_filename_profile = filename_config.filename_profiles["JPC Filename Profile"]
+        bowser_filename_profile = filename_config.filename_profiles["Bowser Filename Profile"]
 
         selected_option = self.filename_profile_dropdown.itemText(index)
         
@@ -1444,8 +1443,8 @@ class MainWindow(QMainWindow):
         elif selected_option.startswith("Custom ("):
             for profile_name in self.filename_config.filename_profiles.keys():
                 if selected_option == profile_name:
-                    profile_dict = asdict(filename_config.filename_profiles[profile_name])
-                    edit_config.apply_filename_profile(profile_dict)
+                    profile_class = filename_config.filename_profiles[profile_name]
+                    edit_config.apply_filename_profile(profile_class)
                     self.config_mgr.save_last_used_config('spex')
 
     def on_signalflow_profile_changed(self, index):

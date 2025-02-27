@@ -256,7 +256,7 @@ def run_cli_mode(args):
     if args.sn_config_changes:
         update_spex_config('signalflow', args.sn_config_changes)
     if args.fn_config_changes:
-        filename_profile = asdict(args.fn_config_changes)
+        filename_profile = args.fn_config_changes
         edit_config.apply_filename_profile(filename_profile)
         config_mgr.save_last_used_config('spex')
 
