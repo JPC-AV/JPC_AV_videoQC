@@ -10,7 +10,7 @@ import os
 import sys
 from dataclasses import asdict
 
-from ..utils.setup_config import SpexConfig, ChecksConfig, FilenameConfig
+from ..utils.setup_config import SpexConfig, ChecksConfig, FilenameConfig, FilenameProfile, FilenameSection
 from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 from ..utils import edit_config
@@ -175,7 +175,7 @@ class CustomFilenameDialog(QDialog):
             self.preview_label.setText(preview)
             
     def get_filename_pattern(self):
-        """Get the filename pattern in the required format"""
+        """Get the filename pattern as a FilenameProfile dataclass"""
         if not self.sections:
             QMessageBox.warning(self, "Validation Error", "At least one section is required.")
             return None
@@ -193,17 +193,17 @@ class CustomFilenameDialog(QDialog):
             section_type = section['type_combo'].currentText().lower()
             value = section['value_input'].text()
             
-            fn_sections[f"section{i}"] = {
-                "value": value,
-                "section_type": section_type
-            }
+            # Create a FilenameSection instance for each section
+            fn_sections[f"section{i}"] = FilenameSection(
+                value=value,
+                section_type=section_type
+            )
             
-        pattern = {
-            "fn_sections": fn_sections,
-            "FileExtension": self.extension_input.text()
-        }
-        
-        return pattern
+        # Create and return a FilenameProfile instance
+        return FilenameProfile(
+            fn_sections=fn_sections,
+            FileExtension=self.extension_input.text()
+        )
 
     def on_save_clicked(self):
         """Handle save button click"""
@@ -933,8 +933,9 @@ class MainWindow(QMainWindow):
             if pattern:
                 try:
                     # Use the first section's value for the custom name
-                    first_section = pattern['fn_sections']['section1']
-                    custom_name = f"Custom ({first_section['value']})"
+                    first_section_key = next(iter(pattern.fn_sections))
+                    first_section = pattern.fn_sections[first_section_key]
+                    custom_name = f"Custom ({first_section.value})"
                     
                     # Check if this custom pattern already exists in the dropdown
                     found = False
@@ -954,17 +955,17 @@ class MainWindow(QMainWindow):
                         # Get the current filename configuration
                         filename_config = config_manager.get_config('filename', FilenameConfig)
                         
-                        # Update the config directly with the new pattern
-                        # ConfigManager will handle the conversion to dataclasses internally
-                        updates = {
-                            'filename_profiles': {
-                                **filename_config.filename_profiles,  # Keep existing profiles
-                                custom_name: pattern  # Add the new pattern
-                            }
-                        }
+                        # Create an updated dictionary of profiles
+                        updated_profiles = dict(filename_config.filename_profiles)
+                        updated_profiles[custom_name] = pattern
                         
-                        # Update the config
-                        config_manager.update_config('filename', updates)
+                        # Create a new FilenameConfig with the updated profiles
+                        new_config = FilenameConfig(
+                            filename_profiles=updated_profiles
+                        )
+                        
+                        # Set the config with the complete new object
+                        config_manager.set_config('filename', new_config)
                         
                         # Save the last used configuration
                         config_manager.save_last_used_config('filename')
