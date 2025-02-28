@@ -176,9 +176,9 @@ class ConfigWindow(QWidget):
         outputs_layout = QVBoxLayout()
         
         # Create widgets
-        self.access_file_cb = QCheckBox("access_file")
-        self.report_cb = QCheckBox("report")
-        self.qctools_ext_label = QLabel("qctools_ext")
+        self.access_file_cb = QCheckBox("Access File (creates a h264 access file of any .mkv file)")
+        self.report_cb = QCheckBox("HTML Report (creates a .html report of ....)")
+        self.qctools_ext_label = QLabel("QCTools File Extension (set the extension for QCTools output):")
         self.qctools_ext_input = QLineEdit()
         
         # Add to layout
@@ -196,18 +196,18 @@ class ConfigWindow(QWidget):
         fixity_layout = QVBoxLayout()
         
         # Create checkboxes
-        self.output_fixity_cb = QCheckBox("Output fixity (to .txt and .md5 files)")
-        self.check_fixity_cb = QCheckBox("Validate fixity")
-        self.embed_stream_cb = QCheckBox("Embed Stream fixity")
-        self.validate_stream_cb = QCheckBox("Validate Stream fixity")
-        self.overwrite_stream_cb = QCheckBox("Overwrite Stream fixity")
+        self.output_fixity_cb = QCheckBox("Output fixity (generate whole file md5 checksum of .mkv files to .txt and .md5)")
+        self.check_fixity_cb = QCheckBox("Validate fixity (validates fixity of .mkv files against a checksum file in the directory)")
+        self.embed_stream_cb = QCheckBox("Embed Stream fixity (embeds video and audio stream checksums into .mkv tags)")
+        self.overwrite_stream_cb = QCheckBox("Overwrite Stream fixity (embed stream checksums regardless if existing ones are found)")
+        self.validate_stream_cb = QCheckBox("Validate Stream fixity (validates any embedded stream fixity, will not run if there is no embedded steam fixity)")
         
         # Add to layout
         fixity_layout.addWidget(self.output_fixity_cb)
         fixity_layout.addWidget(self.check_fixity_cb)
         fixity_layout.addWidget(self.embed_stream_cb)
-        fixity_layout.addWidget(self.validate_stream_cb)
         fixity_layout.addWidget(self.overwrite_stream_cb)
+        fixity_layout.addWidget(self.validate_stream_cb)
         
         fixity_group.setLayout(fixity_layout)
         main_layout.addWidget(fixity_group)
