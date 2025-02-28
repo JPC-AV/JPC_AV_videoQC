@@ -451,7 +451,7 @@ def detectContentFilter(startObj, pkt, contentFilter_name, contentFilter_dict, q
     if common_durations:
         print_consecutive_durations(common_durations, qctools_check_output, contentFilter_name, video_path, qct_parse, startObj, thumbPath)
     else:
-        logger.error(f"No segments found matching content filter: {contentFilter_name}")
+        logger.error(f"No segments found matching content filter: {contentFilter_name}\n")
 
 
 def getCompFromConfig(qct_parse, profile, tag):

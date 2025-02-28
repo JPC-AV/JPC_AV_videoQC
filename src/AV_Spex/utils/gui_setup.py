@@ -225,13 +225,13 @@ class ConfigWindow(QWidget):
             tool_group = QGroupBox(tool)
             tool_layout = QVBoxLayout()
             
-            if tool == 'qctools':
-                run_cb = QCheckBox("Run Tool")
+            if tool == 'QCTools':
+                run_cb = QCheckBox("Run Tool (Run QCTools on input video file)")
                 self.tool_widgets[tool] = {'run': run_cb}
                 tool_layout.addWidget(run_cb)
             else:
-                check_cb = QCheckBox("Check Tool")
-                run_cb = QCheckBox("Run Tool")
+                check_cb = QCheckBox("Check Tool (Check the output of the tool against expected Spex)")
+                run_cb = QCheckBox("Run Tool (Run the tool on the input video)")
                 self.tool_widgets[tool] = {'check': check_cb, 'run': run_cb}
                 tool_layout.addWidget(check_cb)
                 tool_layout.addWidget(run_cb)
@@ -281,21 +281,41 @@ class ConfigWindow(QWidget):
         
         # Checkboxes
         self.run_qctparse_cb = QCheckBox("Run Tool")
-        self.bars_detection_cb = QCheckBox("barsDetection")
-        self.evaluate_bars_cb = QCheckBox("evaluateBars")
-        self.thumb_export_cb = QCheckBox("thumbExport")
+        self.bars_detection_cb = QCheckBox("Detect Color Bars")
+        self.evaluate_bars_cb = QCheckBox("Evaluate Color Bars (compare content to color bars)")
+        self.thumb_export_cb = QCheckBox("Thumbnail Export (export thumbnails of failed frames)")
         
         # Content Filter
-        content_filter_label = QLabel("contentFilter")
+        content_filter_label = QLabel("Content Detection")
         self.content_filter_combo = QComboBox()
-        self.content_filter_combo.addItem("Select options...")
-        self.content_filter_combo.addItems(["allBlack", "static"])
-        
+        self.content_filter_combo.addItem("Select options...", None)  # Store None as data
+
+        # Create a mapping of display text to actual values
+        content_filter_options = {
+            "All Black Detection": "allBlack",
+            "Static Content Detection": "static"
+        }
+
+        # Add items with display text and corresponding data value
+        for display_text, value in content_filter_options.items():
+            self.content_filter_combo.addItem(display_text, value)
+                
         # Profile
-        profile_label = QLabel("profile")
+        profile_label = QLabel("Profile")
         self.profile_combo = QComboBox()
-        self.profile_combo.addItem("Select options...")
-        self.profile_combo.addItems(["default", "highTolerance", "midTolerance", "lowTolerance"])
+        self.profile_combo.addItem("Select options...", None)  # Store None as data
+
+        # Create a mapping of display text to actual values
+        profile_options = {
+            "Default Profile": "default",
+            "High Tolerance": "highTolerance",
+            "Medium Tolerance": "midTolerance",
+            "Low Tolerance": "lowTolerance"
+        }
+
+        # Add items with display text and corresponding data value
+        for display_text, value in profile_options.items():
+            self.profile_combo.addItem(display_text, value)
         
         # Tagname
         tagname_label = QLabel("tagname")
@@ -384,11 +404,11 @@ class ConfigWindow(QWidget):
         self.thumb_export_cb.stateChanged.connect(
             lambda state: self.on_boolean_changed(state, ['tools', 'qct_parse', 'thumbExport'])
         )
-        self.content_filter_combo.currentTextChanged.connect(
-            lambda text: self.on_qct_combo_changed(text, 'contentFilter')
+        self.content_filter_combo.currentIndexChanged.connect(
+            lambda index: self.on_qct_combo_changed(self.content_filter_combo.itemData(index), 'contentFilter')
         )
-        self.profile_combo.currentTextChanged.connect(
-            lambda text: self.on_qct_combo_changed(text, 'profile')
+        self.profile_combo.currentIndexChanged.connect(
+            lambda index: self.on_qct_combo_changed(self.profile_combo.itemData(index), 'profile')
         )
         self.tagname_input.textChanged.connect(
             lambda text: self.on_tagname_changed(text)
@@ -484,10 +504,10 @@ class ConfigWindow(QWidget):
         updates = {path[0]: {path[1]: text}}
         self.config_mgr.update_config('checks', updates)
 
-    def on_qct_combo_changed(self, text, field):
+    def on_qct_combo_changed(self, value, field):
         """Handle changes in QCT Parse combo boxes"""
-        value = [text] if text != "Select options..." else []
-        updates = {'tools': {'qct_parse': {field: value}}}
+        values = [value] if value is not None else []
+        updates = {'tools': {'qct_parse': {field: values}}}
         self.config_mgr.update_config('checks', updates)
 
     def on_tagname_changed(self, text):
