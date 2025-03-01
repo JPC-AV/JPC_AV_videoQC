@@ -186,8 +186,7 @@ class ConfigWindow(QWidget):
         
         self.qctools_ext_label = QLabel("QCTools File Extension")
         self.qctools_ext_label.setStyleSheet("font-weight: bold;")
-        qctools_ext_desc = QLabel("Set the extension for QCTools output")
-        qctools_ext_desc.setIndent(20)
+        qctools_ext_desc = QLabel("Set the extension for QCTools output:")
         self.qctools_ext_input = QLineEdit()
         
         # Add to layout
@@ -251,6 +250,22 @@ class ConfigWindow(QWidget):
     # Tools Section
     def setup_tools_section(self, main_layout):
         tools_group = QGroupBox("Tools")
+        tools_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
         tools_layout = QVBoxLayout()
         
         # Setup basic tools
@@ -365,7 +380,6 @@ class ConfigWindow(QWidget):
         content_filter_label = QLabel("Content Detection")
         content_filter_label.setStyleSheet("font-weight: bold;")
         content_filter_desc = QLabel("Select type of content to detect in the video")
-        content_filter_desc.setIndent(20)
         self.content_filter_combo = QComboBox()
         self.content_filter_combo.addItem("Select options...", None)  # Store None as data
 
@@ -383,7 +397,6 @@ class ConfigWindow(QWidget):
         profile_label = QLabel("Profile")
         profile_label.setStyleSheet("font-weight: bold;")
         profile_desc = QLabel("Select tolerance profile for content analysis")
-        profile_desc.setIndent(20)
         self.profile_combo = QComboBox()
         self.profile_combo.addItem("Select options...", None)  # Store None as data
 
@@ -419,10 +432,13 @@ class ConfigWindow(QWidget):
         tools_layout.addWidget(qct_group)
         
         # Tagname
-        tagname_label = QLabel("tagname")
+        tagname_label = QLabel("Tag Name")
+        tagname_label.setStyleSheet("font-weight: bold;")
+        tagname_desc = QLabel("Input ad hoc tags using this format: YMIN, lt, 100 (tag name, lt or gt, number value)")
         self.tagname_input = QLineEdit()
         self.tagname_input.setPlaceholderText("None")
         qct_layout.addWidget(tagname_label)
+        qct_layout.addWidget(tagname_desc)
         qct_layout.addWidget(self.tagname_input)
         
         tools_group.setLayout(tools_layout)
