@@ -163,9 +163,7 @@ class ConfigWindow(QWidget):
         main_layout = QVBoxLayout(self)
 
         self.setup_outputs_section(main_layout)
-
         self.setup_fixity_section(main_layout)
-
         self.setup_tools_section(main_layout)
 
         self.connect_signals()
@@ -175,16 +173,30 @@ class ConfigWindow(QWidget):
         outputs_group = QGroupBox("Outputs")
         outputs_layout = QVBoxLayout()
         
-        # Create widgets
-        self.access_file_cb = QCheckBox("Access File (creates a h264 access file of any .mkv file)")
-        self.report_cb = QCheckBox("HTML Report (creates a .html report of ....)")
-        self.qctools_ext_label = QLabel("QCTools File Extension (set the extension for QCTools output):")
+        # Create widgets with descriptions on second line
+        self.access_file_cb = QCheckBox("Access File")
+        self.access_file_cb.setStyleSheet("font-weight: bold;")
+        access_file_desc = QLabel("Creates a h264 access file of any .mkv file")
+        access_file_desc.setIndent(20)  # Indented to align with checkbox text
+        
+        self.report_cb = QCheckBox("HTML Report")
+        self.report_cb.setStyleSheet("font-weight: bold;")
+        report_desc = QLabel("Creates a .html report of ....")
+        report_desc.setIndent(20)
+        
+        self.qctools_ext_label = QLabel("QCTools File Extension")
+        self.qctools_ext_label.setStyleSheet("font-weight: bold;")
+        qctools_ext_desc = QLabel("Set the extension for QCTools output")
+        qctools_ext_desc.setIndent(20)
         self.qctools_ext_input = QLineEdit()
         
         # Add to layout
         outputs_layout.addWidget(self.access_file_cb)
+        outputs_layout.addWidget(access_file_desc)
         outputs_layout.addWidget(self.report_cb)
+        outputs_layout.addWidget(report_desc)
         outputs_layout.addWidget(self.qctools_ext_label)
+        outputs_layout.addWidget(qctools_ext_desc)
         outputs_layout.addWidget(self.qctools_ext_input)
         
         outputs_group.setLayout(outputs_layout)
@@ -195,19 +207,43 @@ class ConfigWindow(QWidget):
         fixity_group = QGroupBox("Fixity")
         fixity_layout = QVBoxLayout()
         
-        # Create checkboxes
-        self.output_fixity_cb = QCheckBox("Output fixity (generate whole file md5 checksum of .mkv files to .txt and .md5)")
-        self.check_fixity_cb = QCheckBox("Validate fixity (validates fixity of .mkv files against a checksum file in the directory)")
-        self.embed_stream_cb = QCheckBox("Embed Stream fixity (embeds video and audio stream checksums into .mkv tags)")
-        self.overwrite_stream_cb = QCheckBox("Overwrite Stream fixity (embed stream checksums regardless if existing ones are found)")
-        self.validate_stream_cb = QCheckBox("Validate Stream fixity (validates any embedded stream fixity, will not run if there is no embedded steam fixity)")
+        # Create checkboxes with descriptions on second line
+        self.output_fixity_cb = QCheckBox("Output fixity")
+        self.output_fixity_cb.setStyleSheet("font-weight: bold;")
+        output_fixity_desc = QLabel("Generate whole file md5 checksum of .mkv files to .txt and .md5")
+        output_fixity_desc.setIndent(20)
+        
+        self.check_fixity_cb = QCheckBox("Validate fixity")
+        self.check_fixity_cb.setStyleSheet("font-weight: bold;")
+        check_fixity_desc = QLabel("Validates fixity of .mkv files against a checksum file in the directory")
+        check_fixity_desc.setIndent(20)
+        
+        self.embed_stream_cb = QCheckBox("Embed Stream fixity")
+        self.embed_stream_cb.setStyleSheet("font-weight: bold;")
+        embed_stream_desc = QLabel("Embeds video and audio stream checksums into .mkv tags")
+        embed_stream_desc.setIndent(20)
+        
+        self.overwrite_stream_cb = QCheckBox("Overwrite Stream fixity")
+        self.overwrite_stream_cb.setStyleSheet("font-weight: bold;")
+        overwrite_stream_desc = QLabel("Embed stream checksums regardless if existing ones are found")
+        overwrite_stream_desc.setIndent(20)
+        
+        self.validate_stream_cb = QCheckBox("Validate Stream fixity")
+        self.validate_stream_cb.setStyleSheet("font-weight: bold;")
+        validate_stream_desc = QLabel("Validates any embedded stream fixity, will not run if there is no embedded steam fixity")
+        validate_stream_desc.setIndent(20)
         
         # Add to layout
         fixity_layout.addWidget(self.output_fixity_cb)
+        fixity_layout.addWidget(output_fixity_desc)
         fixity_layout.addWidget(self.check_fixity_cb)
+        fixity_layout.addWidget(check_fixity_desc)
         fixity_layout.addWidget(self.embed_stream_cb)
+        fixity_layout.addWidget(embed_stream_desc)
         fixity_layout.addWidget(self.overwrite_stream_cb)
+        fixity_layout.addWidget(overwrite_stream_desc)
         fixity_layout.addWidget(self.validate_stream_cb)
+        fixity_layout.addWidget(validate_stream_desc)
         
         fixity_group.setLayout(fixity_layout)
         main_layout.addWidget(fixity_group)
@@ -225,16 +261,31 @@ class ConfigWindow(QWidget):
             tool_group = QGroupBox(tool)
             tool_layout = QVBoxLayout()
             
-            if tool == 'QCTools':
-                run_cb = QCheckBox("Run Tool (Run QCTools on input video file)")
+            if tool.lower() == 'qctools':
+                run_cb = QCheckBox("Run Tool")
+                run_cb.setStyleSheet("font-weight: bold;")
+                run_desc = QLabel("Run QCTools on input video file")
+                run_desc.setIndent(20)
+                
                 self.tool_widgets[tool] = {'run': run_cb}
                 tool_layout.addWidget(run_cb)
+                tool_layout.addWidget(run_desc)
             else:
-                check_cb = QCheckBox("Check Tool (Check the output of the tool against expected Spex)")
-                run_cb = QCheckBox("Run Tool (Run the tool on the input video)")
+                check_cb = QCheckBox("Check Tool")
+                check_cb.setStyleSheet("font-weight: bold;")
+                check_desc = QLabel("Check the output of the tool against expected Spex")
+                check_desc.setIndent(20)
+                
+                run_cb = QCheckBox("Run Tool")
+                run_cb.setStyleSheet("font-weight: bold;")
+                run_desc = QLabel(f"Run the tool on the input video")
+                run_desc.setIndent(20)
+                
                 self.tool_widgets[tool] = {'check': check_cb, 'run': run_cb}
                 tool_layout.addWidget(check_cb)
+                tool_layout.addWidget(check_desc)
                 tool_layout.addWidget(run_cb)
+                tool_layout.addWidget(run_desc)
             
             tool_group.setLayout(tool_layout)
             tools_layout.addWidget(tool_group)
@@ -242,35 +293,45 @@ class ConfigWindow(QWidget):
         # MediaConch section
         mediaconch_group = QGroupBox("Mediaconch")
         mediaconch_layout = QVBoxLayout()
-        
+
         self.run_mediaconch_cb = QCheckBox("Run Mediaconch")
-        
+        self.run_mediaconch_cb.setStyleSheet("font-weight: bold;")
+        run_mediaconch_desc = QLabel("Run MediaConch validation on input files")
+        run_mediaconch_desc.setIndent(20)
+
         # Policy selection
         policy_container = QWidget()
         policy_layout = QVBoxLayout(policy_container)
-        
+
         # Current policy display
         current_policy_widget = QWidget()
         current_policy_layout = QHBoxLayout(current_policy_widget)
         current_policy_layout.setContentsMargins(0, 0, 0, 0)
-        
-        self.policy_label = QLabel("Current policy: ")
+
+        self.policy_label = QLabel("Current policy:")
+        self.policy_label.setStyleSheet("font-weight: bold;")
         self.current_policy_display = QLabel()
         self.current_policy_display.setStyleSheet("font-weight: bold;")
-        
+
         current_policy_layout.addWidget(self.policy_label)
         current_policy_layout.addWidget(self.current_policy_display)
         current_policy_layout.addStretch()
-        
+
         self.policy_combo = QComboBox()
+        policies_label = QLabel("Available policies:")
+        policies_label.setStyleSheet("font-weight: bold;")
         self.import_policy_btn = QPushButton("Import New MediaConch Policy")
-        
+        import_policy_desc = QLabel("Import a custom policy file for MediaConch validation")
+        import_policy_desc.setIndent(20)
+
         policy_layout.addWidget(current_policy_widget)
-        policy_layout.addWidget(QLabel("Available policies:"))
+        policy_layout.addWidget(policies_label)
         policy_layout.addWidget(self.policy_combo)
         policy_layout.addWidget(self.import_policy_btn)
-        
+        policy_layout.addWidget(import_policy_desc)
+
         mediaconch_layout.addWidget(self.run_mediaconch_cb)
+        mediaconch_layout.addWidget(run_mediaconch_desc)
         mediaconch_layout.addWidget(policy_container)
         mediaconch_group.setLayout(mediaconch_layout)
         tools_layout.addWidget(mediaconch_group)
@@ -278,15 +339,33 @@ class ConfigWindow(QWidget):
         # QCT Parse section
         qct_group = QGroupBox("qct-parse")
         qct_layout = QVBoxLayout()
-        
-        # Checkboxes
+
+        # Checkboxes with descriptions on second line
         self.run_qctparse_cb = QCheckBox("Run Tool")
+        self.run_qctparse_cb.setStyleSheet("font-weight: bold;")
+        run_qctparse_desc = QLabel("Run qct-parse tool on input video file")
+        run_qctparse_desc.setIndent(20)
+
         self.bars_detection_cb = QCheckBox("Detect Color Bars")
-        self.evaluate_bars_cb = QCheckBox("Evaluate Color Bars (compare content to color bars)")
-        self.thumb_export_cb = QCheckBox("Thumbnail Export (export thumbnails of failed frames)")
-        
+        self.bars_detection_cb.setStyleSheet("font-weight: bold;")
+        bars_detection_desc = QLabel("Detect color bars in the video content")
+        bars_detection_desc.setIndent(20)
+
+        self.evaluate_bars_cb = QCheckBox("Evaluate Color Bars")
+        self.evaluate_bars_cb.setStyleSheet("font-weight: bold;")
+        evaluate_bars_desc = QLabel("Compare content to color bars for validation")
+        evaluate_bars_desc.setIndent(20)
+
+        self.thumb_export_cb = QCheckBox("Thumbnail Export")
+        self.thumb_export_cb.setStyleSheet("font-weight: bold;")
+        thumb_export_desc = QLabel("Export thumbnails of failed frames for review")
+        thumb_export_desc.setIndent(20)
+
         # Content Filter
         content_filter_label = QLabel("Content Detection")
+        content_filter_label.setStyleSheet("font-weight: bold;")
+        content_filter_desc = QLabel("Select type of content to detect in the video")
+        content_filter_desc.setIndent(20)
         self.content_filter_combo = QComboBox()
         self.content_filter_combo.addItem("Select options...", None)  # Store None as data
 
@@ -302,6 +381,9 @@ class ConfigWindow(QWidget):
                 
         # Profile
         profile_label = QLabel("Profile")
+        profile_label.setStyleSheet("font-weight: bold;")
+        profile_desc = QLabel("Select tolerance profile for content analysis")
+        profile_desc.setIndent(20)
         self.profile_combo = QComboBox()
         self.profile_combo.addItem("Select options...", None)  # Store None as data
 
@@ -316,26 +398,32 @@ class ConfigWindow(QWidget):
         # Add items with display text and corresponding data value
         for display_text, value in profile_options.items():
             self.profile_combo.addItem(display_text, value)
+
+        # Add all widgets to the qct layout
+        qct_layout.addWidget(self.run_qctparse_cb)
+        qct_layout.addWidget(run_qctparse_desc)
+        qct_layout.addWidget(self.bars_detection_cb)
+        qct_layout.addWidget(bars_detection_desc)
+        qct_layout.addWidget(self.evaluate_bars_cb)
+        qct_layout.addWidget(evaluate_bars_desc)
+        qct_layout.addWidget(self.thumb_export_cb)
+        qct_layout.addWidget(thumb_export_desc)
+        qct_layout.addWidget(content_filter_label)
+        qct_layout.addWidget(content_filter_desc)
+        qct_layout.addWidget(self.content_filter_combo)
+        qct_layout.addWidget(profile_label)
+        qct_layout.addWidget(profile_desc)
+        qct_layout.addWidget(self.profile_combo)
+
+        qct_group.setLayout(qct_layout)
+        tools_layout.addWidget(qct_group)
         
         # Tagname
         tagname_label = QLabel("tagname")
         self.tagname_input = QLineEdit()
         self.tagname_input.setPlaceholderText("None")
-        
-        # Add widgets to layout
-        qct_layout.addWidget(self.run_qctparse_cb)
-        qct_layout.addWidget(self.bars_detection_cb)
-        qct_layout.addWidget(self.evaluate_bars_cb)
-        qct_layout.addWidget(self.thumb_export_cb)
-        qct_layout.addWidget(content_filter_label)
-        qct_layout.addWidget(self.content_filter_combo)
-        qct_layout.addWidget(profile_label)
-        qct_layout.addWidget(self.profile_combo)
         qct_layout.addWidget(tagname_label)
         qct_layout.addWidget(self.tagname_input)
-        
-        qct_group.setLayout(qct_layout)
-        tools_layout.addWidget(qct_group)
         
         tools_group.setLayout(tools_layout)
         main_layout.addWidget(tools_group)
