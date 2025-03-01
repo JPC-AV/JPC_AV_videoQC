@@ -171,6 +171,22 @@ class ConfigWindow(QWidget):
     # Outputs Section
     def setup_outputs_section(self, main_layout):
         outputs_group = QGroupBox("Outputs")
+        outputs_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
         outputs_layout = QVBoxLayout()
         
         # Create widgets with descriptions on second line
@@ -204,6 +220,22 @@ class ConfigWindow(QWidget):
     # Fixity Section
     def setup_fixity_section(self, main_layout):
         fixity_group = QGroupBox("Fixity")
+        fixity_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
         fixity_layout = QVBoxLayout()
         
         # Create checkboxes with descriptions on second line
@@ -249,22 +281,23 @@ class ConfigWindow(QWidget):
         
     # Tools Section
     def setup_tools_section(self, main_layout):
+        # Main Tools group box with centered title
         tools_group = QGroupBox("Tools")
         tools_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
-                color: #333333;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-                background-color: #f0f0f0;
-            }
+        QGroupBox { 
+            font-weight: bold; 
+            font-size: 14px; 
+            color: #333333; 
+            border: 2px solid gray; 
+            border-radius: 5px; 
+            margin-top: 10px; 
+        } 
+        QGroupBox::title { 
+            subcontrol-origin: margin; 
+            subcontrol-position: top center; 
+            padding: 0 10px; 
+            background-color: #f0f0f0; 
+        }
         """)
         tools_layout = QVBoxLayout()
         
@@ -272,8 +305,25 @@ class ConfigWindow(QWidget):
         basic_tools = ['exiftool', 'ffprobe', 'mediainfo', 'mediatrace', 'qctools']
         self.tool_widgets = {}
         
+        # Individual tool group boxes with left-aligned titles
         for tool in basic_tools:
             tool_group = QGroupBox(tool)
+            tool_group.setStyleSheet("""
+            QGroupBox { 
+                font-weight: bold; 
+                font-size: 14px; 
+                color: #333333; 
+                border: 2px solid gray; 
+                border-radius: 5px; 
+                margin-top: 10px; 
+            } 
+            QGroupBox::title { 
+                subcontrol-origin: margin; 
+                subcontrol-position: top left; 
+                padding: 0 10px; 
+                background-color: #f0f0f0; 
+            }
+            """)
             tool_layout = QVBoxLayout()
             
             if tool.lower() == 'qctools':
@@ -337,7 +387,6 @@ class ConfigWindow(QWidget):
         policies_label.setStyleSheet("font-weight: bold;")
         self.import_policy_btn = QPushButton("Import New MediaConch Policy")
         import_policy_desc = QLabel("Import a custom policy file for MediaConch validation")
-        import_policy_desc.setIndent(20)
 
         policy_layout.addWidget(current_policy_widget)
         policy_layout.addWidget(policies_label)
@@ -885,42 +934,159 @@ class MainWindow(QMainWindow):
         # Vertical layout for the main content in "Checks"
         vertical_layout = QVBoxLayout(main_widget)
 
+        # Import directory section with styled group box
+        import_group = QGroupBox("Import")
+        import_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        import_layout = QVBoxLayout()
+        
         # Import directory button
         import_directories_button = QPushButton("Import Directory...")
         import_directories_button.clicked.connect(self.import_directories)
-        vertical_layout.addWidget(import_directories_button)
+        import_directories_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px;
+                background-color: #f0f0f0;
+                border: 1px solid gray;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        import_layout.addWidget(import_directories_button)
 
-        # Directory list
+        # Directory section
         directory_label = QLabel("Selected Directories:")
+        directory_label.setStyleSheet("font-weight: bold;")
         self.directory_list = DirectoryListWidget(self)
-        vertical_layout.addWidget(directory_label)
-        vertical_layout.addWidget(self.directory_list)
+        self.directory_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid gray;
+                border-radius: 3px;
+                background-color: white;
+            }
+        """)
+        import_layout.addWidget(directory_label)
+        import_layout.addWidget(self.directory_list)
 
         # Delete button
         delete_button = QPushButton("Delete Selected")
+        delete_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 6px;
+                background-color: #f0f0f0;
+                border: 1px solid gray;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
         delete_button.clicked.connect(self.delete_selected_directory)
-        vertical_layout.addWidget(delete_button)
+        import_layout.addWidget(delete_button)
+        
+        import_group.setLayout(import_layout)
+        vertical_layout.addWidget(import_group)
 
         # Command Profile section
-        command_profile_label = QLabel("Command profiles:")
+        profile_group = QGroupBox("Command Profiles")
+        profile_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        profile_layout = QVBoxLayout()
+        
+        command_profile_label = QLabel("Select a command profile:")
+        command_profile_label.setStyleSheet("font-weight: bold;")
+        command_profile_desc = QLabel("Choose a preset configuration profile")
+        
         self.command_profile_dropdown = QComboBox()
-        self.command_profile_dropdown.addItem("step1")
-        self.command_profile_dropdown.addItem("step2")
-        self.command_profile_dropdown.addItem("allOff")
+        self.command_profile_dropdown.setStyleSheet("""
+            QComboBox {
+                border: 1px solid gray;
+                border-radius: 3px;
+                padding: 4px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                border-left: 1px solid gray;
+            }
+        """)
+        self.command_profile_dropdown.addItem("Step 1")
+        self.command_profile_dropdown.addItem("Step 2")
+        self.command_profile_dropdown.addItem("All Off")
         
         # Set initial dropdown state
         if self.checks_config.tools.exiftool.run_tool == "yes":
-            self.command_profile_dropdown.setCurrentText("step1")
+            self.command_profile_dropdown.setCurrentText("Step 1")
         elif self.checks_config.tools.exiftool.run_tool == "no":
-            self.command_profile_dropdown.setCurrentText("step2")
+            self.command_profile_dropdown.setCurrentText("Step 2")
 
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
-        vertical_layout.addWidget(command_profile_label)
-        vertical_layout.addWidget(self.command_profile_dropdown)
+        profile_layout.addWidget(command_profile_label)
+        profile_layout.addWidget(command_profile_desc)
+        profile_layout.addWidget(self.command_profile_dropdown)
+        
+        profile_group.setLayout(profile_layout)
+        vertical_layout.addWidget(profile_group)
 
         # Config section
-        command_checks_label = QLabel("Command options:")
+        config_group = QGroupBox("Command Options")
+        config_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        config_layout = QVBoxLayout()
+        
         config_scroll_area = QScrollArea()
+        config_scroll_area.setStyleSheet("""
+            QScrollArea {
+                border: none;
+            }
+        """)
         self.config_widget = ConfigWindow(config_mgr=self.config_mgr)
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
@@ -928,9 +1094,9 @@ class MainWindow(QMainWindow):
         # Set a minimum width for the config widget to ensure legibility
         config_scroll_area.setMinimumWidth(400)
 
-        # Add checkboxes and label to the vertical layout
-        vertical_layout.addWidget(command_checks_label)
-        vertical_layout.addWidget(config_scroll_area)
+        config_layout.addWidget(config_scroll_area)
+        config_group.setLayout(config_layout)
+        vertical_layout.addWidget(config_group)
 
         # Add scroll area to main layout
         checks_layout.addWidget(main_scroll_area)
@@ -939,6 +1105,20 @@ class MainWindow(QMainWindow):
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
         self.check_spex_button = QPushButton("Check Spex!")
+        self.check_spex_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px 16px;
+                font-size: 14px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+        """)
         self.check_spex_button.clicked.connect(self.on_check_spex_clicked)
         bottom_row.addWidget(self.check_spex_button)
         checks_layout.addLayout(bottom_row)
@@ -1238,11 +1418,11 @@ class MainWindow(QMainWindow):
 
     def on_profile_selected(self, index):
         selected_profile = self.command_profile_dropdown.currentText()
-        if selected_profile == "step1":
+        if selected_profile == "Step 1":
             profile = edit_config.profile_step1
-        elif selected_profile == "step2":
+        elif selected_profile == "Step 2":
             profile = edit_config.profile_step2
-        elif selected_profile == "allOff":
+        elif selected_profile == "All Off":
             profile = edit_config.profile_allOff
         try:
             # Call the backend function to apply the selected profile
