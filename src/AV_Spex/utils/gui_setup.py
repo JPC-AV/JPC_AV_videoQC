@@ -192,27 +192,37 @@ class ConfigWindow(QWidget):
         # Create widgets with descriptions on second line
         self.access_file_cb = QCheckBox("Access File")
         self.access_file_cb.setStyleSheet("font-weight: bold;")
-        access_file_desc = QLabel("Creates a h264 access file of any .mkv file")
+        access_file_desc = QLabel("Creates a h264 access file of the input .mkv file")
         access_file_desc.setIndent(20)  # Indented to align with checkbox text
         
         self.report_cb = QCheckBox("HTML Report")
         self.report_cb.setStyleSheet("font-weight: bold;")
-        report_desc = QLabel("Creates a .html report of ....")
+        report_desc = QLabel("Creates a .html report containing the results of Spex Checks")
         report_desc.setIndent(20)
         
         self.qctools_ext_label = QLabel("QCTools File Extension")
         self.qctools_ext_label.setStyleSheet("font-weight: bold;")
-        qctools_ext_desc = QLabel("Set the extension for QCTools output:")
+        qctools_ext_desc = QLabel("Set the extension for QCTools output")
         self.qctools_ext_input = QLineEdit()
+
+        # Create a horizontal layout for the QCTools extension input
+        qctools_ext_layout = QHBoxLayout()
+        qctools_ext_layout.addWidget(self.qctools_ext_label)
+        qctools_ext_layout.addWidget(self.qctools_ext_input)
         
         # Add to layout
         outputs_layout.addWidget(self.access_file_cb)
         outputs_layout.addWidget(access_file_desc)
         outputs_layout.addWidget(self.report_cb)
         outputs_layout.addWidget(report_desc)
-        outputs_layout.addWidget(self.qctools_ext_label)
-        outputs_layout.addWidget(qctools_ext_desc)
-        outputs_layout.addWidget(self.qctools_ext_input)
+
+        # Create a vertical layout just for the QCTools section
+        qctools_section = QVBoxLayout()
+        qctools_section.addLayout(qctools_ext_layout)
+        qctools_ext_desc.setIndent(150)
+        qctools_section.addWidget(qctools_ext_desc)
+        # Add the QCTools section to the main outputs layout
+        outputs_layout.addLayout(qctools_section)
         
         outputs_group.setLayout(outputs_layout)
         main_layout.addWidget(outputs_group)
