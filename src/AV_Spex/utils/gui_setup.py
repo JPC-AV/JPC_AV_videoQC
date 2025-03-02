@@ -165,25 +165,34 @@ class ConfigWindow(QWidget):
         self.setup_outputs_section(main_layout)
         self.setup_fixity_section(main_layout)
         self.setup_tools_section(main_layout)
-
         self.connect_signals()
         
     # Outputs Section
     def setup_outputs_section(self, main_layout):
+        palette = self.palette()
+        dark_color = palette.color(palette.ColorRole.Dark).name()
+        text_color = palette.color(palette.ColorRole.Text).name()
+
         outputs_group = QGroupBox("Outputs")
-        outputs_group.setStyleSheet("""
-            QGroupBox {
+        outputs_group.setStyleSheet(f"""
+            QGroupBox {{
                 font-weight: bold;
                 font-size: 14px;
+                color: {text_color};
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
-            }
-            QGroupBox::title {
+                background-color: {dark_color};
+            }}
+            QGroupBox::title {{
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 0 10px;
-            }
+                border: 2px solid gray;
+                border-radius: 5px;
+                background-color: {dark_color};
+                color: {text_color};
+            }}
         """)
         outputs_layout = QVBoxLayout()
         
@@ -1029,7 +1038,6 @@ class MainWindow(QMainWindow):
             QListWidget {
                 border: 1px solid gray;
                 border-radius: 3px;
-                background-color: white;
             }
         """)
         import_layout.addWidget(directory_label)
@@ -1098,19 +1106,19 @@ class MainWindow(QMainWindow):
 
         # Config section
         config_group = QGroupBox("Checks Options")
-        config_group.setStyleSheet("""
-            QGroupBox {
+        config_group.setStyleSheet(f"""
+            QGroupBox {{
                 font-weight: bold;
                 font-size: 14px;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
-            }
-            QGroupBox::title {
+            }}
+            QGroupBox::title {{
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-            }
+            }}
         """)
         config_layout = QVBoxLayout()
         
