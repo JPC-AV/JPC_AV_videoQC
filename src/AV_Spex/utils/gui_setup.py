@@ -367,6 +367,13 @@ class ConfigWindow(QWidget):
 
         # MediaConch section
         mediaconch_group = QGroupBox("Mediaconch")
+        mediaconch_group.setStyleSheet("""
+        QGroupBox::title { 
+            subcontrol-origin: margin; 
+            subcontrol-position: top left; 
+            padding: 0 10px;  
+        }
+        """)
         mediaconch_layout = QVBoxLayout()
 
         self.run_mediaconch_cb = QCheckBox("Run Mediaconch")
@@ -412,6 +419,13 @@ class ConfigWindow(QWidget):
 
         # QCT Parse section
         qct_group = QGroupBox("qct-parse")
+        qct_group.setStyleSheet("""
+        QGroupBox::title { 
+            subcontrol-origin: margin; 
+            subcontrol-position: top left; 
+            padding: 0 10px;  
+        }
+        """)
         qct_layout = QVBoxLayout()
 
         # Checkboxes with descriptions on second line
