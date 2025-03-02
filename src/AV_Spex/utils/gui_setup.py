@@ -1037,53 +1037,9 @@ class MainWindow(QMainWindow):
         
         command_profile_label = QLabel("Select a command profile:")
         command_profile_label.setStyleSheet("font-weight: bold;")
-        command_profile_desc = QLabel("Choose a preset configuration profile")
+        command_profile_desc = QLabel("Choose a preset 'Checks' profile")
         
         self.command_profile_dropdown = QComboBox()
-        self.command_profile_dropdown.setStyleSheet("""
-            QComboBox {
-                border: 1px solid gray;
-                border-radius: 3px;
-                padding: 4px;
-                background-color: white;
-            }
-            QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                border-left: 1px solid gray;
-                width: 20px;
-            }
-            QComboBox::down-arrow {
-                image: url(path/to/your/arrow.png);  /* Optional: use your own arrow image */
-                width: 12px;
-                height: 12px;
-                /* If you don't want to use an image, you can keep the default arrow but change its color */
-                color: black;
-            }
-            QComboBox:hover {
-                border: 1px solid #0078d7;
-                background-color: #f0f8ff;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid gray;
-                border-radius: 3px;
-                background-color: white;
-                selection-background-color: #0078d7;
-                selection-color: white;
-            }
-            QComboBox QAbstractItemView::item {
-                min-height: 20px;
-                color: black;  /* Ensure text is always black by default */
-            }
-            QComboBox QAbstractItemView::item:hover {
-                background-color: #e5f3ff;
-                color: black;  /* Explicitly set text color to black on hover */
-            }
-            QComboBox QAbstractItemView::item:selected {
-                background-color: #0078d7;
-                color: white;  /* White text only for selected items */
-            }
-        """)
         self.command_profile_dropdown.addItem("Step 1")
         self.command_profile_dropdown.addItem("Step 2")
         self.command_profile_dropdown.addItem("All Off")
@@ -1217,25 +1173,6 @@ class MainWindow(QMainWindow):
         profile_label = QLabel("Expected filename profiles:")
         profile_label.setStyleSheet("font-weight: bold;")
         self.filename_profile_dropdown = QComboBox()
-        self.filename_profile_dropdown.setStyleSheet("""
-            QComboBox {
-                border: 1px solid gray;
-                border-radius: 3px;
-                padding: 4px;
-                background-color: white;
-            }
-            QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                border-left: 1px solid gray;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid gray;
-                selection-background-color: #4a6984;
-                selection-color: white;
-                background-color: white;
-            }
-        """)
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
         
@@ -1415,25 +1352,6 @@ class MainWindow(QMainWindow):
         signalflow_label = QLabel("Expected Signalflow profiles:")
         signalflow_label.setStyleSheet("font-weight: bold;")
         self.signalflow_profile_dropdown = QComboBox()
-        self.signalflow_profile_dropdown.setStyleSheet("""
-            QComboBox {
-                border: 1px solid gray;
-                border-radius: 3px;
-                padding: 4px;
-                background-color: white;
-            }
-            QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                border-left: 1px solid gray;
-            }
-            QComboBox QAbstractItemView {
-                border: 1px solid gray;
-                selection-background-color: #4a6984;
-                selection-color: white;
-                background-color: white;
-            }
-        """)
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
         
