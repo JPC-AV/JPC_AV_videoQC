@@ -1051,6 +1051,37 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: padding;
                 subcontrol-position: top right;
                 border-left: 1px solid gray;
+                width: 20px;
+            }
+            QComboBox::down-arrow {
+                image: url(path/to/your/arrow.png);  /* Optional: use your own arrow image */
+                width: 12px;
+                height: 12px;
+                /* If you don't want to use an image, you can keep the default arrow but change its color */
+                color: black;
+            }
+            QComboBox:hover {
+                border: 1px solid #0078d7;
+                background-color: #f0f8ff;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid gray;
+                border-radius: 3px;
+                background-color: white;
+                selection-background-color: #0078d7;
+                selection-color: white;
+            }
+            QComboBox QAbstractItemView::item {
+                min-height: 20px;
+                color: black;  /* Ensure text is always black by default */
+            }
+            QComboBox QAbstractItemView::item:hover {
+                background-color: #e5f3ff;
+                color: black;  /* Explicitly set text color to black on hover */
+            }
+            QComboBox QAbstractItemView::item:selected {
+                background-color: #0078d7;
+                color: white;  /* White text only for selected items */
             }
         """)
         self.command_profile_dropdown.addItem("Step 1")
@@ -1133,31 +1164,6 @@ class MainWindow(QMainWindow):
         bottom_row.addWidget(self.check_spex_button)
         checks_layout.addLayout(bottom_row)
 
-    # Second tab: "spex"
-    def setup_spex_tab(self):
-        spex_tab = QWidget()
-        spex_layout = QVBoxLayout(spex_tab)
-        self.tabs.addTab(spex_tab, "Spex")
-
-        filename_section_group = self.setup_filename_section()
-        spex_layout.addWidget(filename_section_group)
-
-        mediainfo_section_group = self.setup_mediainfo_section()
-        spex_layout.addWidget(mediainfo_section_group)
-
-        exiftool_section_group = self.setup_exiftool_section()
-        spex_layout.addWidget(exiftool_section_group)
-
-        ffprobe_section_group = self.setup_ffprobe_section()
-        spex_layout.addWidget(ffprobe_section_group)
-
-        mediatrace_section_group = self.setup_mediatrace_section()
-        spex_layout.addWidget(mediatrace_section_group)
-
-        qct_section_group = self.setup_qct_section()
-        spex_layout.addWidget(qct_section_group)
-    
-    
     # Main layout
     def setup_main_layout(self):
         """Set up the main window layout structure"""
@@ -1172,17 +1178,64 @@ class MainWindow(QMainWindow):
         self.main_layout.setContentsMargins(10, 10, 10, 10)
         self.main_layout.setSpacing(10)
 
-    # File name section
-    def setup_filename_section(self):
-        group = QGroupBox()
-        layout = QVBoxLayout()
-        
-        # Section label
-        layout.addWidget(QLabel("<b>Filename Values</b>"))
+    # Second tab: "spex"
+    def setup_spex_tab(self):
+        spex_tab = QWidget()
+        spex_layout = QVBoxLayout(spex_tab)
+        self.tabs.addTab(spex_tab, "Spex")
+
+        # Scroll Area for Vertical Scrolling in "Spex" Tab
+        main_scroll_area = QScrollArea(self)
+        main_scroll_area.setWidgetResizable(True)
+        main_widget = QWidget(self)
+        main_scroll_area.setWidget(main_widget)
+
+        # Vertical layout for the main content in "Spex"
+        vertical_layout = QVBoxLayout(main_widget)
+
+        # Filename section with styled group box
+        filename_group = QGroupBox("Filename Values")
+        filename_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        filename_layout = QVBoxLayout()
         
         # Profile dropdown
-        layout.addWidget(QLabel("Expected filename profiles:"))
+        profile_label = QLabel("Expected filename profiles:")
+        profile_label.setStyleSheet("font-weight: bold;")
         self.filename_profile_dropdown = QComboBox()
+        self.filename_profile_dropdown.setStyleSheet("""
+            QComboBox {
+                border: 1px solid gray;
+                border-radius: 3px;
+                padding: 4px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                border-left: 1px solid gray;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid gray;
+                selection-background-color: #4a6984;
+                selection-color: white;
+                background-color: white;
+            }
+        """)
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
         
@@ -1193,77 +1246,194 @@ class MainWindow(QMainWindow):
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
             
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
-        layout.addWidget(self.filename_profile_dropdown)
         
         # Open section button
-        button = QPushButton("Open Section")
-        button.clicked.connect(
+        open_button = QPushButton("Open Section")
+        open_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px;
+                background-color: #f0f0f0;
+                border: 1px solid gray;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        open_button.clicked.connect(
             lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values))
         )
-        layout.addWidget(button)
         
-        group.setLayout(layout)
-        group.setFixedHeight(150)
-        return group
+        filename_layout.addWidget(profile_label)
+        filename_layout.addWidget(self.filename_profile_dropdown)
+        filename_layout.addWidget(open_button)
+        filename_group.setLayout(filename_layout)
+        vertical_layout.addWidget(filename_group)
 
-    # Section setup functions for each tool (mediainfo, exiftool, ffprobe)
-    def setup_mediainfo_section(self):
-        group = QGroupBox()
-        layout = QVBoxLayout()
+        # MediaInfo section
+        mediainfo_group = QGroupBox("MediaInfo Values")
+        mediainfo_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        mediainfo_layout = QVBoxLayout()
         
-        # Section label
-        layout.addWidget(QLabel("<b>MediaInfo Values</b>"))
-        # Create a toggle button to open a new window
-        button = QPushButton("Open Section")
-        button.clicked.connect(
+        mediainfo_button = QPushButton("Open Section")
+        mediainfo_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px;
+                background-color: #f0f0f0;
+                border: 1px solid gray;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        mediainfo_button.clicked.connect(
             lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values)
         )
-        layout.addWidget(button)
+        mediainfo_layout.addWidget(mediainfo_button)
+        mediainfo_group.setLayout(mediainfo_layout)
+        vertical_layout.addWidget(mediainfo_group)
+
+        # Exiftool section
+        exiftool_group = QGroupBox("Exiftool Values")
+        exiftool_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        exiftool_layout = QVBoxLayout()
         
-        group.setLayout(layout)
-        group.setFixedHeight(100)
-        return group
-    
-    def setup_exiftool_section(self):
-        group = QGroupBox()
-        layout = QVBoxLayout()
-        
-        layout.addWidget(QLabel("<b>Exiftool Values</b>"))
-        button = QPushButton("Open Section")
-        button.clicked.connect(
+        exiftool_button = QPushButton("Open Section")
+        exiftool_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px;
+                background-color: #f0f0f0;
+                border: 1px solid gray;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        exiftool_button.clicked.connect(
             lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values))
         )
-        layout.addWidget(button)
+        exiftool_layout.addWidget(exiftool_button)
+        exiftool_group.setLayout(exiftool_layout)
+        vertical_layout.addWidget(exiftool_group)
+
+        # FFprobe section
+        ffprobe_group = QGroupBox("FFprobe Values")
+        ffprobe_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        ffprobe_layout = QVBoxLayout()
         
-        group.setLayout(layout)
-        group.setFixedHeight(100)
-        return group
-    
-    def setup_ffprobe_section(self):
-        group = QGroupBox()
-        layout = QVBoxLayout()
-        
-        layout.addWidget(QLabel("<b>FFprobe Values</b>"))
-        button = QPushButton("Open Section")
-        button.clicked.connect(
+        ffprobe_button = QPushButton("Open Section")
+        ffprobe_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px;
+                background-color: #f0f0f0;
+                border: 1px solid gray;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        ffprobe_button.clicked.connect(
             lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values)
         )
-        layout.addWidget(button)
-        
-        group.setLayout(layout)
-        group.setFixedHeight(100)
-        return group
-    
-    # Mediatrace section has custom dropdowns
-    def setup_mediatrace_section(self):
-        group = QGroupBox()
-        layout = QVBoxLayout()
-        
-        layout.addWidget(QLabel("<b>Mediatrace Values</b>"))
+        ffprobe_layout.addWidget(ffprobe_button)
+        ffprobe_group.setLayout(ffprobe_layout)
+        vertical_layout.addWidget(ffprobe_group)
+
+        # Mediatrace section
+        mediatrace_group = QGroupBox("Mediatrace Values")
+        mediatrace_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        mediatrace_layout = QVBoxLayout()
         
         # Signalflow profile dropdown
-        layout.addWidget(QLabel("Expected Signalflow profiles:"))
+        signalflow_label = QLabel("Expected Signalflow profiles:")
+        signalflow_label.setStyleSheet("font-weight: bold;")
         self.signalflow_profile_dropdown = QComboBox()
+        self.signalflow_profile_dropdown.setStyleSheet("""
+            QComboBox {
+                border: 1px solid gray;
+                border-radius: 3px;
+                padding: 4px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                subcontrol-origin: padding;
+                subcontrol-position: top right;
+                border-left: 1px solid gray;
+            }
+            QComboBox QAbstractItemView {
+                border: 1px solid gray;
+                selection-background-color: #4a6984;
+                selection-color: white;
+                background-color: white;
+            }
+        """)
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
         
@@ -1280,32 +1450,72 @@ class MainWindow(QMainWindow):
             self.signalflow_profile_dropdown.setCurrentText("BVH3100 Signal Flow")
             
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
-        layout.addWidget(self.signalflow_profile_dropdown)
         
-        button = QPushButton("Open Section")
-        button.clicked.connect(
+        mediatrace_button = QPushButton("Open Section")
+        mediatrace_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px;
+                background-color: #f0f0f0;
+                border: 1px solid gray;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        mediatrace_button.clicked.connect(
             lambda: self.open_new_window('Mediatrace Values', asdict(self.spex_config.mediatrace_values))
         )
-        layout.addWidget(button)
         
-        group.setLayout(layout)
-        group.setFixedHeight(150)
-        return group
-    
-    def setup_qct_section(self):
-        group = QGroupBox()
-        layout = QVBoxLayout()
+        mediatrace_layout.addWidget(signalflow_label)
+        mediatrace_layout.addWidget(self.signalflow_profile_dropdown)
+        mediatrace_layout.addWidget(mediatrace_button)
+        mediatrace_group.setLayout(mediatrace_layout)
+        vertical_layout.addWidget(mediatrace_group)
+
+        # QCT section
+        qct_group = QGroupBox("qct-parse Values")
+        qct_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold;
+                font-size: 14px;
+                color: #333333;
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                subcontrol-position: top center;
+                padding: 0 10px;
+                background-color: #f0f0f0;
+            }
+        """)
+        qct_layout = QVBoxLayout()
         
-        layout.addWidget(QLabel("<b>qct-parse Values</b>"))
-        button = QPushButton("Open Section")
-        button.clicked.connect(
+        qct_button = QPushButton("Open Section")
+        qct_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px;
+                background-color: #f0f0f0;
+                border: 1px solid gray;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+        """)
+        qct_button.clicked.connect(
             lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values))
         )
-        layout.addWidget(button)
-        
-        group.setLayout(layout)
-        group.setFixedHeight(100)
-        return group
+        qct_layout.addWidget(qct_button)
+        qct_group.setLayout(qct_layout)
+        vertical_layout.addWidget(qct_group)
+
+        # Add scroll area to main layout
+        spex_layout.addWidget(main_scroll_area)
     
     def add_image_to_top(self, logo_path):
         """Add image to the top of the main layout."""
