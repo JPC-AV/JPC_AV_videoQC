@@ -955,6 +955,12 @@ class MainWindow(QMainWindow):
             QTabBar::tab:selected {
                 border-bottom: 2px solid #0066cc;
             }
+                                
+            /* Reset the tab widget's background to default */
+            QTabWidget::pane {
+                border: 1px solid lightgray;
+                background-color: none;
+            }
         """)
         self.main_layout.addWidget(self.tabs)
 
