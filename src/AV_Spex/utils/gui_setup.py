@@ -182,7 +182,7 @@ class ConfigWindow(QWidget):
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
-                subcontrol-position: top center;
+                subcontrol-position: top left;
                 padding: 0 10px;
                 background-color: #f0f0f0;
             }
@@ -241,7 +241,7 @@ class ConfigWindow(QWidget):
             }
             QGroupBox::title {
                 subcontrol-origin: margin;
-                subcontrol-position: top center;
+                subcontrol-position: top left;
                 padding: 0 10px;
                 background-color: #f0f0f0;
             }
@@ -938,6 +938,24 @@ class MainWindow(QMainWindow):
     # Create a QTabWidget for tabs
     def setup_tabs(self):
         self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("""
+            QTabBar::tab {
+                padding: 8px 12px;
+                margin-right: 2px;
+                font-size: 14px;
+                background-color: darkgray;
+                color: white;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            
+            QTabBar::tab:selected, QTabBar::tab:hover {
+                background-color: gray;
+            }
+            QTabBar::tab:selected {
+                border-bottom: 2px solid #0066cc;
+            }
+        """)
         self.main_layout.addWidget(self.tabs)
 
         self.setup_checks_tab()
@@ -1030,7 +1048,7 @@ class MainWindow(QMainWindow):
         vertical_layout.addWidget(import_group)
 
         # Command Profile section
-        profile_group = QGroupBox("Command Profiles")
+        profile_group = QGroupBox("Checks Profiles")
         profile_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
@@ -1049,9 +1067,9 @@ class MainWindow(QMainWindow):
         """)
         profile_layout = QVBoxLayout()
         
-        command_profile_label = QLabel("Select a command profile:")
+        command_profile_label = QLabel("Select a Checks profile:")
         command_profile_label.setStyleSheet("font-weight: bold;")
-        command_profile_desc = QLabel("Choose a preset 'Checks' profile")
+        command_profile_desc = QLabel("Choose from a preset Checks profile to apply a set of Checks to run on your Spex")
         
         self.command_profile_dropdown = QComboBox()
         self.command_profile_dropdown.addItem("Step 1")
@@ -1073,7 +1091,7 @@ class MainWindow(QMainWindow):
         vertical_layout.addWidget(profile_group)
 
         # Config section
-        config_group = QGroupBox("Command Options")
+        config_group = QGroupBox("Checks Options")
         config_group.setStyleSheet("""
             QGroupBox {
                 font-weight: bold;
