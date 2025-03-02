@@ -175,7 +175,6 @@ class ConfigWindow(QWidget):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -184,7 +183,6 @@ class ConfigWindow(QWidget):
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         outputs_layout = QVBoxLayout()
@@ -234,7 +232,6 @@ class ConfigWindow(QWidget):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -243,7 +240,6 @@ class ConfigWindow(QWidget):
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         fixity_layout = QVBoxLayout()
@@ -297,7 +293,6 @@ class ConfigWindow(QWidget):
         QGroupBox { 
             font-weight: bold; 
             font-size: 14px; 
-            color: #333333; 
             border: 2px solid gray; 
             border-radius: 5px; 
             margin-top: 10px; 
@@ -306,7 +301,6 @@ class ConfigWindow(QWidget):
             subcontrol-origin: margin; 
             subcontrol-position: top center; 
             padding: 0 10px; 
-            background-color: #f0f0f0; 
         }
         """)
         tools_layout = QVBoxLayout()
@@ -322,7 +316,6 @@ class ConfigWindow(QWidget):
             QGroupBox { 
                 font-weight: bold; 
                 font-size: 14px; 
-                color: #333333; 
                 border: 2px solid gray; 
                 border-radius: 5px; 
                 margin-top: 10px; 
@@ -331,7 +324,6 @@ class ConfigWindow(QWidget):
                 subcontrol-origin: margin; 
                 subcontrol-position: top left; 
                 padding: 0 10px; 
-                background-color: #f0f0f0; 
             }
             """)
             tool_layout = QVBoxLayout()
@@ -937,9 +929,14 @@ class MainWindow(QMainWindow):
 
     # Create a QTabWidget for tabs
     def setup_tabs(self):
+        # Get colors from the system palette
+        palette = self.palette()
+        highlight_color = palette.color(palette.ColorRole.Highlight).name()
+        highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
+
         self.tabs = QTabWidget()
-        self.tabs.setStyleSheet("""
-            QTabBar::tab {
+        self.tabs.setStyleSheet(f"""
+            QTabBar::tab {{
                 padding: 8px 12px;
                 margin-right: 2px;
                 font-size: 14px;
@@ -947,21 +944,23 @@ class MainWindow(QMainWindow):
                 color: white;
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
-            }
+            }}
             
-            QTabBar::tab:selected, QTabBar::tab:hover {
-                background-color: gray;
-            }
-            QTabBar::tab:selected {
+            QTabBar::tab:selected, QTabBar::tab:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
+            QTabBar::tab:selected {{
                 border-bottom: 2px solid #0066cc;
-            }
+            }}
                                 
             /* Reset the tab widget's background to default */
-            QTabWidget::pane {
+            QTabWidget::pane {{
                 border: 1px solid lightgray;
                 background-color: none;
-            }
+            }}
         """)
+
         self.main_layout.addWidget(self.tabs)
 
         self.setup_checks_tab()
@@ -988,7 +987,6 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -997,25 +995,29 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         import_layout = QVBoxLayout()
+
+         # Get colors from the system palette
+        palette = self.palette()
+        highlight_color = palette.color(palette.ColorRole.Highlight).name()
+        highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
         
         # Import directory button
         import_directories_button = QPushButton("Import Directory...")
         import_directories_button.clicked.connect(self.import_directories)
-        import_directories_button.setStyleSheet("""
-            QPushButton {
+        import_directories_button.setStyleSheet(f"""
+            QPushButton {{
                 font-weight: bold;
                 padding: 8px;
-                background-color: #f0f0f0;
                 border: 1px solid gray;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
         """)
         import_layout.addWidget(import_directories_button)
 
@@ -1035,17 +1037,17 @@ class MainWindow(QMainWindow):
 
         # Delete button
         delete_button = QPushButton("Delete Selected")
-        delete_button.setStyleSheet("""
-            QPushButton {
+        delete_button.setStyleSheet(f"""
+            QPushButton {{
                 font-weight: bold;
                 padding: 6px;
-                background-color: #f0f0f0;
                 border: 1px solid gray;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
         """)
         delete_button.clicked.connect(self.delete_selected_directory)
         import_layout.addWidget(delete_button)
@@ -1059,7 +1061,6 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -1068,7 +1069,6 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         profile_layout = QVBoxLayout()
@@ -1102,7 +1102,6 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -1111,7 +1110,6 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         config_layout = QVBoxLayout()
@@ -1193,7 +1191,6 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -1202,7 +1199,6 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         filename_layout = QVBoxLayout()
@@ -1221,20 +1217,25 @@ class MainWindow(QMainWindow):
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
             
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
+
+        # Get colors from the system palette
+        palette = self.palette()
+        highlight_color = palette.color(palette.ColorRole.Highlight).name()
+        highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
         
         # Open section button
         open_button = QPushButton("Open Section")
-        open_button.setStyleSheet("""
-            QPushButton {
+        open_button.setStyleSheet(f"""
+            QPushButton {{
                 font-weight: bold;
                 padding: 8px;
-                background-color: #f0f0f0;
                 border: 1px solid gray;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
         """)
         open_button.clicked.connect(
             lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values))
@@ -1252,7 +1253,6 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -1261,23 +1261,22 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         mediainfo_layout = QVBoxLayout()
         
         mediainfo_button = QPushButton("Open Section")
-        mediainfo_button.setStyleSheet("""
-            QPushButton {
+        mediainfo_button.setStyleSheet(f"""
+            QPushButton {{
                 font-weight: bold;
                 padding: 8px;
-                background-color: #f0f0f0;
                 border: 1px solid gray;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
         """)
         mediainfo_button.clicked.connect(
             lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values)
@@ -1292,7 +1291,6 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -1301,23 +1299,22 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         exiftool_layout = QVBoxLayout()
         
         exiftool_button = QPushButton("Open Section")
-        exiftool_button.setStyleSheet("""
-            QPushButton {
+        exiftool_button.setStyleSheet(f"""
+            QPushButton {{
                 font-weight: bold;
                 padding: 8px;
-                background-color: #f0f0f0;
                 border: 1px solid gray;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
         """)
         exiftool_button.clicked.connect(
             lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values))
@@ -1332,7 +1329,6 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -1341,23 +1337,22 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         ffprobe_layout = QVBoxLayout()
         
         ffprobe_button = QPushButton("Open Section")
-        ffprobe_button.setStyleSheet("""
-            QPushButton {
+        ffprobe_button.setStyleSheet(f"""
+            QPushButton {{
                 font-weight: bold;
                 padding: 8px;
-                background-color: #f0f0f0;
                 border: 1px solid gray;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
         """)
         ffprobe_button.clicked.connect(
             lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values)
@@ -1372,7 +1367,6 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -1381,7 +1375,6 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         mediatrace_layout = QVBoxLayout()
@@ -1408,17 +1401,17 @@ class MainWindow(QMainWindow):
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
         
         mediatrace_button = QPushButton("Open Section")
-        mediatrace_button.setStyleSheet("""
-            QPushButton {
+        mediatrace_button.setStyleSheet(f"""
+            QPushButton {{
                 font-weight: bold;
                 padding: 8px;
-                background-color: #f0f0f0;
                 border: 1px solid gray;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
         """)
         mediatrace_button.clicked.connect(
             lambda: self.open_new_window('Mediatrace Values', asdict(self.spex_config.mediatrace_values))
@@ -1436,7 +1429,7 @@ class MainWindow(QMainWindow):
             QGroupBox {
                 font-weight: bold;
                 font-size: 14px;
-                color: #333333;
+
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
@@ -1445,23 +1438,22 @@ class MainWindow(QMainWindow):
                 subcontrol-origin: margin;
                 subcontrol-position: top center;
                 padding: 0 10px;
-                background-color: #f0f0f0;
             }
         """)
         qct_layout = QVBoxLayout()
         
         qct_button = QPushButton("Open Section")
-        qct_button.setStyleSheet("""
-            QPushButton {
+        qct_button.setStyleSheet(f"""
+            QPushButton {{
                 font-weight: bold;
                 padding: 8px;
-                background-color: #f0f0f0;
                 border: 1px solid gray;
                 border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #e0e0e0;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
         """)
         qct_button.clicked.connect(
             lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values))
