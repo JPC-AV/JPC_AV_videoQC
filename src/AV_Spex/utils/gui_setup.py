@@ -1044,20 +1044,51 @@ class MainWindow(QMainWindow):
         self.main_layout.insertLayout(0, image_layout)  # Insert at index 0 (top)
 
     # Create a QTabWidget for tabs
-    def setup_tabs(self):
+    def setup_tabs(self, update_existing=False):
         # Get colors from the system palette
-        palette = self.palette()
+        palette = QApplication.instance().palette()
         highlight_color = palette.color(palette.ColorRole.Highlight).name()
         highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
+        dark_color = palette.color(palette.ColorRole.Mid).name()
 
+        # If updating an existing group box
+        if update_existing and hasattr(self, 'tabs'):
+            self.tabs.setStyleSheet(f"""
+                QTabBar::tab {{
+                    padding: 8px 12px;
+                    margin-right: 2px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    background-color: {dark_color};
+                    border-top-left-radius: 4px;
+                    border-top-right-radius: 4px;
+                }}
+                
+                QTabBar::tab:selected, QTabBar::tab:hover {{
+                    background-color: {highlight_color};
+                    color: {highlight_text_color};
+                }}
+                QTabBar::tab:selected {{
+                    border-bottom: 2px solid #0066cc;
+                }}
+                                    
+                /* Reset the tab widget's background to default */
+                QTabWidget::pane {{
+                    border: 1px solid lightgray;
+                    background-color: none;
+                }}
+            """)
+            return
+
+        # Create the tabs and tab bar styling
         self.tabs = QTabWidget()
         self.tabs.setStyleSheet(f"""
             QTabBar::tab {{
                 padding: 8px 12px;
                 margin-right: 2px;
+                font-weight: bold;
                 font-size: 14px;
-                background-color: darkgray;
-                color: white;
+                background-color: {dark_color};
                 border-top-left-radius: 4px;
                 border-top-right-radius: 4px;
             }}
@@ -1815,6 +1846,9 @@ class MainWindow(QMainWindow):
         # Update processing window if open
         if self.processing_window:
             self.processing_window.update_palette(palette)
+
+        # Update tabs styling
+        self.setup_tabs(update_existing=True)
         
         # Update Spex tab group boxes and buttons
         # Make sure this happens AFTER setup_spex_tab
