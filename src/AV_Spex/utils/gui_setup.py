@@ -103,6 +103,19 @@ class ProcessingWindow(QMainWindow):
         # Call the parent class's closeEvent to properly handle window closure
         super().closeEvent(event)
 
+    # Add this to the ProcessingWindow class
+    def update_palette(self, palette):
+        """Update the palette when the system theme changes"""
+        self.setPalette(palette)
+        
+        # Update all child widgets
+        for child in self.findChildren(QWidget):
+            if hasattr(child, 'setPalette'):
+                child.setPalette(palette)
+        
+        # Force repaint
+        self.update()
+
 
 class DirectoryListWidget(QListWidget):
     def __init__(self, parent=None):
@@ -168,13 +181,36 @@ class ConfigWindow(QWidget):
         self.connect_signals()
         
     # Outputs Section
-    def setup_outputs_section(self, main_layout):
+    def setup_outputs_section(self, main_layout, update_existing=False):
+        """Set up the outputs section with palette-aware styling"""
         palette = self.palette()
-        dark_color = palette.color(palette.ColorRole.Dark).name()
+        midlight_color = palette.color(palette.ColorRole.Midlight).name()
         text_color = palette.color(palette.ColorRole.Text).name()
 
-        outputs_group = QGroupBox("Outputs")
-        outputs_group.setStyleSheet(f"""
+        # If updating an existing group box
+        if update_existing and hasattr(self, 'outputs_group'):
+            self.outputs_group.setStyleSheet(f"""
+                QGroupBox {{
+                    font-weight: bold;
+                    font-size: 14px;
+                    color: {text_color};
+                    border: 2px solid gray;
+                    border-radius: 5px;
+                    margin-top: 10px;
+                    background-color: {midlight_color};
+                }}
+                QGroupBox::title {{
+                    subcontrol-origin: margin;
+                    subcontrol-position: top left;
+                    padding: 0 10px;
+                    color: {text_color};
+                }}
+            """)
+            return
+
+        # Creating a new outputs group
+        self.outputs_group = QGroupBox("Outputs")
+        self.outputs_group.setStyleSheet(f"""
             QGroupBox {{
                 font-weight: bold;
                 font-size: 14px;
@@ -182,15 +218,12 @@ class ConfigWindow(QWidget):
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
-                background-color: {dark_color};
+                background-color: {midlight_color};
             }}
             QGroupBox::title {{
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 0 10px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                background-color: {dark_color};
                 color: {text_color};
             }}
         """)
@@ -231,25 +264,55 @@ class ConfigWindow(QWidget):
         # Add the QCTools section to the main outputs layout
         outputs_layout.addLayout(qctools_section)
         
-        outputs_group.setLayout(outputs_layout)
-        main_layout.addWidget(outputs_group)
+        self.outputs_group.setLayout(outputs_layout)
+        main_layout.addWidget(self.outputs_group)
     
     # Fixity Section
-    def setup_fixity_section(self, main_layout):
-        fixity_group = QGroupBox("Fixity")
-        fixity_group.setStyleSheet("""
-            QGroupBox {
+    def setup_fixity_section(self, main_layout, update_existing=False):
+        """Set up the fixity section with palette-aware styling"""
+        palette = self.palette()
+        midlight_color = palette.color(palette.ColorRole.Midlight).name()
+        text_color = palette.color(palette.ColorRole.Text).name()
+        
+        # If updating an existing group box
+        if update_existing and hasattr(self, 'fixity_group'):
+            self.fixity_group.setStyleSheet(f"""
+                QGroupBox {{
+                    font-weight: bold;
+                    font-size: 14px;
+                    color: {text_color};
+                    border: 2px solid gray;
+                    border-radius: 5px;
+                    margin-top: 10px;
+                    background-color: {midlight_color};
+                }}
+                QGroupBox::title {{
+                    subcontrol-origin: margin;
+                    subcontrol-position: top left;
+                    padding: 0 10px;
+                    color: {text_color};
+                }}
+            """)
+            return
+        
+        # Creating a new fixity group
+        self.fixity_group = QGroupBox("Fixity")
+        self.fixity_group.setStyleSheet(f"""
+            QGroupBox {{
                 font-weight: bold;
                 font-size: 14px;
+                color: {text_color};
                 border: 2px solid gray;
                 border-radius: 5px;
                 margin-top: 10px;
-            }
-            QGroupBox::title {
+                background-color: {midlight_color};
+            }}
+            QGroupBox::title {{
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 0 10px;
-            }
+                color: {text_color};
+            }}
         """)
         fixity_layout = QVBoxLayout()
         
@@ -291,28 +354,37 @@ class ConfigWindow(QWidget):
         fixity_layout.addWidget(self.validate_stream_cb)
         fixity_layout.addWidget(validate_stream_desc)
         
-        fixity_group.setLayout(fixity_layout)
-        main_layout.addWidget(fixity_group)
+        self.fixity_group.setLayout(fixity_layout)
+        main_layout.addWidget(self.fixity_group)
         
     # Tools Section
-    def setup_tools_section(self, main_layout):
+    def setup_tools_section(self, main_layout, update_existing=False):
+        # If we're just updating existing group boxes
+        if update_existing and hasattr(self, 'tools_group'):
+            # Update main tools group box
+            self.update_groupbox_style(self.tools_group, "top center")
+            
+            # Update all tool-specific group boxes
+            for tool_name, group_box in self.tool_group_boxes.items():
+                self.update_groupbox_style(group_box, "top left")
+            
+            # Update mediaconch group
+            if hasattr(self, 'mediaconch_group'):
+                self.update_groupbox_style(self.mediaconch_group, "top left")
+                
+            # Update qct group
+            if hasattr(self, 'qct_group'):
+                self.update_groupbox_style(self.qct_group, "top left")
+            
+            return
+    
         # Main Tools group box with centered title
-        tools_group = QGroupBox("Tools")
-        tools_group.setStyleSheet("""
-        QGroupBox { 
-            font-weight: bold; 
-            font-size: 14px; 
-            border: 2px solid gray; 
-            border-radius: 5px; 
-            margin-top: 10px; 
-        } 
-        QGroupBox::title { 
-            subcontrol-origin: margin; 
-            subcontrol-position: top center; 
-            padding: 0 10px; 
-        }
-        """)
+        self.tools_group = QGroupBox("Tools")
+        self.update_groupbox_style(self.tools_group, "top center")
         tools_layout = QVBoxLayout()
+        
+        # Dictionary to store references to all tool group boxes
+        self.tool_group_boxes = {}
         
         # Setup basic tools
         basic_tools = ['exiftool', 'ffprobe', 'mediainfo', 'mediatrace', 'qctools']
@@ -320,22 +392,19 @@ class ConfigWindow(QWidget):
         
         # Individual tool group boxes with left-aligned titles
         for tool in basic_tools:
+            # If updating existing group boxes
+            if update_existing:
+                if tool in self.tool_group_boxes:
+                    self.update_groupbox_style(self.tool_group_boxes[tool], "top left")
+                continue  # Skip the rest as we're just updating styles
+                
+            # Create new group box for this tool
             tool_group = QGroupBox(tool)
-            tool_group.setStyleSheet("""
-            QGroupBox { 
-                font-weight: bold; 
-                font-size: 14px; 
-                border: 2px solid gray; 
-                border-radius: 5px; 
-                margin-top: 10px; 
-            } 
-            QGroupBox::title { 
-                subcontrol-origin: margin; 
-                subcontrol-position: top left; 
-                padding: 0 10px; 
-            }
-            """)
+            self.update_groupbox_style(tool_group, "top left")
             tool_layout = QVBoxLayout()
+            
+            # Store reference to this group box
+            self.tool_group_boxes[tool] = tool_group
             
             if tool.lower() == 'qctools':
                 run_cb = QCheckBox("Run Tool")
@@ -367,14 +436,8 @@ class ConfigWindow(QWidget):
             tools_layout.addWidget(tool_group)
 
         # MediaConch section
-        mediaconch_group = QGroupBox("Mediaconch")
-        mediaconch_group.setStyleSheet("""
-        QGroupBox::title { 
-            subcontrol-origin: margin; 
-            subcontrol-position: top left; 
-            padding: 0 10px;  
-        }
-        """)
+        self.mediaconch_group = QGroupBox("Mediaconch")
+        self.update_groupbox_style(self.mediaconch_group, "top left")
         mediaconch_layout = QVBoxLayout()
 
         self.run_mediaconch_cb = QCheckBox("Run Mediaconch")
@@ -415,18 +478,12 @@ class ConfigWindow(QWidget):
         mediaconch_layout.addWidget(self.run_mediaconch_cb)
         mediaconch_layout.addWidget(run_mediaconch_desc)
         mediaconch_layout.addWidget(policy_container)
-        mediaconch_group.setLayout(mediaconch_layout)
-        tools_layout.addWidget(mediaconch_group)
+        self.mediaconch_group.setLayout(mediaconch_layout)
+        tools_layout.addWidget(self.mediaconch_group)
 
         # QCT Parse section
-        qct_group = QGroupBox("qct-parse")
-        qct_group.setStyleSheet("""
-        QGroupBox::title { 
-            subcontrol-origin: margin; 
-            subcontrol-position: top left; 
-            padding: 0 10px;  
-        }
-        """)
+        self.qct_group = QGroupBox("qct-parse")
+        self.update_groupbox_style(self.qct_group, "top left")
         qct_layout = QVBoxLayout()
 
         # Checkboxes with descriptions on second line
@@ -502,8 +559,8 @@ class ConfigWindow(QWidget):
         qct_layout.addWidget(profile_desc)
         qct_layout.addWidget(self.profile_combo)
 
-        qct_group.setLayout(qct_layout)
-        tools_layout.addWidget(qct_group)
+        self.qct_group.setLayout(qct_layout)
+        tools_layout.addWidget(self.qct_group)
         
         # Tagname
         tagname_label = QLabel("Tag Name")
@@ -515,8 +572,8 @@ class ConfigWindow(QWidget):
         qct_layout.addWidget(tagname_desc)
         qct_layout.addWidget(self.tagname_input)
         
-        tools_group.setLayout(tools_layout)
-        main_layout.addWidget(tools_group)
+        self.tools_group.setLayout(tools_layout)
+        main_layout.addWidget(self.tools_group)
 
     def connect_signals(self):
         """Connect all widget signals to their handlers"""
@@ -736,6 +793,53 @@ class ConfigWindow(QWidget):
                         "Failed to import MediaConch policy file. Check logs for details."
                     )
 
+    def update_palette(self, palette):
+        """Update the palette when the system theme changes"""
+        self.setPalette(palette)
+        
+        # Update all styled sections
+        self.setup_outputs_section(None, update_existing=True)
+        self.setup_fixity_section(None, update_existing=True)
+        self.setup_tools_section(None, update_existing=True)
+        
+        # Update all child widgets
+        for child in self.findChildren(QWidget):
+            if hasattr(child, 'setPalette'):
+                child.setPalette(palette)
+        
+        # Force repaint
+        self.update()
+
+    def update_groupbox_style(self, group_box, title_position="top left"):
+        """
+        Update a group box style with current palette colors
+        
+        Parameters:
+        - group_box: The QGroupBox to update
+        - title_position: The position of the title (e.g., "top left", "top center")
+        """
+        palette = self.palette()
+        midlight_color = palette.color(palette.ColorRole.Midlight).name()
+        text_color = palette.color(palette.ColorRole.Text).name()
+        
+        group_box.setStyleSheet(f"""
+            QGroupBox {{
+                font-weight: bold;
+                font-size: 14px;
+                color: {text_color};
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+                background-color: {midlight_color};
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: {title_position};
+                padding: 0 10px;
+                color: {text_color};
+            }}
+        """)
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -751,6 +855,9 @@ class MainWindow(QMainWindow):
         
         # Setup UI
         self.setup_ui()
+    
+        # Setup theme change detection
+        self.setup_theme_handling()
 
     def setup_signal_connections(self):
         """Setup all signal connections"""
@@ -1179,10 +1286,27 @@ class MainWindow(QMainWindow):
         self.main_layout.setSpacing(10)
 
     # Second tab: "spex"
-    def setup_spex_tab(self):
+    def setup_spex_tab(self, update_existing=False):
+        # If we're updating existing group boxes
+        if update_existing and hasattr(self, 'spex_tab_group_boxes') and self.spex_tab_group_boxes:
+            # Update all group boxes in the Spex tab
+            for group_box in self.spex_tab_group_boxes:
+                self.update_groupbox_style(group_box)
+            
+            # Also update button styles
+            self.update_button_styles_in_spex_tab()
+            return
+        
+        # If we're here, it means either we're initializing or 
+        # we need to recreate the group boxes collection
+        self.spex_tab_group_boxes = []
+        
         spex_tab = QWidget()
         spex_layout = QVBoxLayout(spex_tab)
         self.tabs.addTab(spex_tab, "Spex")
+
+        # Initialize list to store references to all group boxes
+        self.spex_tab_group_boxes = []
 
         # Scroll Area for Vertical Scrolling in "Spex" Tab
         main_scroll_area = QScrollArea(self)
@@ -1194,21 +1318,10 @@ class MainWindow(QMainWindow):
         vertical_layout = QVBoxLayout(main_widget)
 
         # Filename section with styled group box
-        filename_group = QGroupBox("Filename Values")
-        filename_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }
-        """)
+        self.filename_group = QGroupBox("Filename Values")
+        self.update_groupbox_style(self.filename_group)
+        self.spex_tab_group_boxes.append(self.filename_group)
+        
         filename_layout = QVBoxLayout()
         
         # Profile dropdown
@@ -1230,6 +1343,8 @@ class MainWindow(QMainWindow):
         palette = self.palette()
         highlight_color = palette.color(palette.ColorRole.Highlight).name()
         highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
+        button_color = palette.color(palette.ColorRole.Button).name()
+        button_text_color = palette.color(palette.ColorRole.ButtonText).name()
         
         # Open section button
         open_button = QPushButton("Open Section")
@@ -1239,6 +1354,8 @@ class MainWindow(QMainWindow):
                 padding: 8px;
                 border: 1px solid gray;
                 border-radius: 4px;
+                background-color: {button_color};
+                color: {button_text_color};
             }}
             QPushButton:hover {{
                 background-color: {highlight_color};
@@ -1252,25 +1369,14 @@ class MainWindow(QMainWindow):
         filename_layout.addWidget(profile_label)
         filename_layout.addWidget(self.filename_profile_dropdown)
         filename_layout.addWidget(open_button)
-        filename_group.setLayout(filename_layout)
-        vertical_layout.addWidget(filename_group)
+        self.filename_group.setLayout(filename_layout)
+        vertical_layout.addWidget(self.filename_group)
 
         # MediaInfo section
-        mediainfo_group = QGroupBox("MediaInfo Values")
-        mediainfo_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }
-        """)
+        self.mediainfo_group = QGroupBox("MediaInfo Values")
+        self.update_groupbox_style(self.mediainfo_group)
+        self.spex_tab_group_boxes.append(self.mediainfo_group)
+
         mediainfo_layout = QVBoxLayout()
         
         mediainfo_button = QPushButton("Open Section")
@@ -1280,6 +1386,8 @@ class MainWindow(QMainWindow):
                 padding: 8px;
                 border: 1px solid gray;
                 border-radius: 4px;
+                background-color: {button_color};
+                color: {button_text_color};
             }}
             QPushButton:hover {{
                 background-color: {highlight_color};
@@ -1290,25 +1398,14 @@ class MainWindow(QMainWindow):
             lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values)
         )
         mediainfo_layout.addWidget(mediainfo_button)
-        mediainfo_group.setLayout(mediainfo_layout)
-        vertical_layout.addWidget(mediainfo_group)
+        self.mediainfo_group.setLayout(mediainfo_layout)
+        vertical_layout.addWidget(self.mediainfo_group)
 
         # Exiftool section
-        exiftool_group = QGroupBox("Exiftool Values")
-        exiftool_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }
-        """)
+        self.exiftool_group = QGroupBox("Exiftool Values")
+        self.update_groupbox_style(self.exiftool_group)
+        self.spex_tab_group_boxes.append(self.exiftool_group)
+
         exiftool_layout = QVBoxLayout()
         
         exiftool_button = QPushButton("Open Section")
@@ -1318,6 +1415,8 @@ class MainWindow(QMainWindow):
                 padding: 8px;
                 border: 1px solid gray;
                 border-radius: 4px;
+                background-color: {button_color};
+                color: {button_text_color};
             }}
             QPushButton:hover {{
                 background-color: {highlight_color};
@@ -1328,25 +1427,14 @@ class MainWindow(QMainWindow):
             lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values))
         )
         exiftool_layout.addWidget(exiftool_button)
-        exiftool_group.setLayout(exiftool_layout)
-        vertical_layout.addWidget(exiftool_group)
+        self.exiftool_group.setLayout(exiftool_layout)
+        vertical_layout.addWidget(self.exiftool_group)
 
         # FFprobe section
-        ffprobe_group = QGroupBox("FFprobe Values")
-        ffprobe_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }
-        """)
+        self.ffprobe_group = QGroupBox("FFprobe Values")
+        self.update_groupbox_style(self.ffprobe_group)
+        self.spex_tab_group_boxes.append(self.ffprobe_group)
+
         ffprobe_layout = QVBoxLayout()
         
         ffprobe_button = QPushButton("Open Section")
@@ -1356,6 +1444,8 @@ class MainWindow(QMainWindow):
                 padding: 8px;
                 border: 1px solid gray;
                 border-radius: 4px;
+                background-color: {button_color};
+                color: {button_text_color};
             }}
             QPushButton:hover {{
                 background-color: {highlight_color};
@@ -1365,26 +1455,16 @@ class MainWindow(QMainWindow):
         ffprobe_button.clicked.connect(
             lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values)
         )
+        
         ffprobe_layout.addWidget(ffprobe_button)
-        ffprobe_group.setLayout(ffprobe_layout)
-        vertical_layout.addWidget(ffprobe_group)
+        self.ffprobe_group.setLayout(ffprobe_layout)
+        vertical_layout.addWidget(self.ffprobe_group)
 
         # Mediatrace section
-        mediatrace_group = QGroupBox("Mediatrace Values")
-        mediatrace_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }
-        """)
+        self.mediatrace_group = QGroupBox("Mediatrace Values")
+        self.update_groupbox_style(self.mediatrace_group)
+        self.spex_tab_group_boxes.append(self.mediatrace_group)
+
         mediatrace_layout = QVBoxLayout()
         
         # Signalflow profile dropdown
@@ -1415,6 +1495,8 @@ class MainWindow(QMainWindow):
                 padding: 8px;
                 border: 1px solid gray;
                 border-radius: 4px;
+                background-color: {button_color};
+                color: {button_text_color};
             }}
             QPushButton:hover {{
                 background-color: {highlight_color};
@@ -1428,26 +1510,14 @@ class MainWindow(QMainWindow):
         mediatrace_layout.addWidget(signalflow_label)
         mediatrace_layout.addWidget(self.signalflow_profile_dropdown)
         mediatrace_layout.addWidget(mediatrace_button)
-        mediatrace_group.setLayout(mediatrace_layout)
-        vertical_layout.addWidget(mediatrace_group)
+        self.mediatrace_group.setLayout(mediatrace_layout)
+        vertical_layout.addWidget(self.mediatrace_group)
 
         # QCT section
-        qct_group = QGroupBox("qct-parse Values")
-        qct_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
+        self.qct_group = QGroupBox("qct-parse Values")
+        self.update_groupbox_style(self.qct_group)
+        self.spex_tab_group_boxes.append(self.qct_group)
 
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }
-        """)
         qct_layout = QVBoxLayout()
         
         qct_button = QPushButton("Open Section")
@@ -1457,6 +1527,8 @@ class MainWindow(QMainWindow):
                 padding: 8px;
                 border: 1px solid gray;
                 border-radius: 4px;
+                background-color: {button_color};
+                color: {button_text_color};
             }}
             QPushButton:hover {{
                 background-color: {highlight_color};
@@ -1467,8 +1539,8 @@ class MainWindow(QMainWindow):
             lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values))
         )
         qct_layout.addWidget(qct_button)
-        qct_group.setLayout(qct_layout)
-        vertical_layout.addWidget(qct_group)
+        self.qct_group.setLayout(qct_layout)
+        vertical_layout.addWidget(self.qct_group)
 
         # Add scroll area to main layout
         spex_layout.addWidget(main_scroll_area)
@@ -1527,31 +1599,6 @@ class MainWindow(QMainWindow):
                 if directory not in self.selected_directories:
                     self.selected_directories.append(directory)
                     self.directory_list.addItem(directory)
-
-    def add_network_drive(self, file_dialog):
-        """
-        Open a dialog to add a network drive manually
-        """
-        network_dialog = QInputDialog(self)
-        network_dialog.setWindowTitle("Add Network Drive")
-        network_dialog.setLabelText("Enter network path (e.g., //servername/share):")
-        network_dialog.setTextValue("//")
-        
-        if network_dialog.exec():
-            network_path = network_dialog.textValue()
-            
-            # Basic validation of network path
-            if network_path.startswith("//"):
-                # Check if the network path exists and is accessible
-                if os.path.exists(network_path):
-                    file_dialog.setDirectory(network_path)
-                else:
-                    QMessageBox.warning(self, "Network Drive", 
-                                        "Cannot access the specified network path. "
-                                        "Please check the path and your network connection.")
-            else:
-                QMessageBox.warning(self, "Invalid Path", 
-                                    "Please enter a valid network path starting with //")
 
 
     def update_selected_directories(self):
@@ -1747,4 +1794,126 @@ class MainWindow(QMainWindow):
         self.config_mgr.save_last_used_config('checks')
         self.config_mgr.save_last_used_config('spex')
         self.close()  # Close the GUI
+
+    def setup_theme_handling(self):
+        """Setup handling for system theme changes"""
+        # Connect to the application's palette changed signal
+        QApplication.instance().paletteChanged.connect(self.on_system_theme_changed)
+        
+    def on_system_theme_changed(self, palette):
+        """Handle system theme changes"""
+        # Update application palette
+        QApplication.instance().setPalette(palette)
+        
+        # Force update all widgets by recursively applying the new palette
+        self.update_widget_themes(self)
+        
+        # Explicitly update ConfigWindow if it exists
+        if hasattr(self, 'config_widget') and self.config_widget:
+            self.config_widget.update_palette(palette)
+        
+        # Update processing window if open
+        if self.processing_window:
+            self.processing_window.update_palette(palette)
+        
+        # Update Spex tab group boxes and buttons
+        # Make sure this happens AFTER setup_spex_tab
+        self.setup_spex_tab(update_existing=True)
+        self.update_button_styles_in_spex_tab()
+        
+        # Process events to ensure UI updates take effect
+        QApplication.processEvents()
+        
+    def update_widget_themes(self, parent_widget):
+        """Recursively update palette for all child widgets"""
+        for child in parent_widget.children():
+            # Update this widget's palette if it has setPalette method
+            if hasattr(child, 'setPalette'):
+                child.setPalette(QApplication.instance().palette())
+            
+            # Update styled widgets that need explicit style refresh
+            if hasattr(child, 'style') and hasattr(child.style(), 'unpolish'):
+                child.style().unpolish(child)
+                child.style().polish(child)
+            
+            # Process children recursively
+            self.update_widget_themes(child)
+        
+        # Force repaint
+        if hasattr(parent_widget, 'update'):
+            parent_widget.update()
+
+    def update_groupbox_style(self, group_box, title_position="top center"):
+        """
+        Update a group box style with current palette colors
+        
+        Parameters:
+        - group_box: The QGroupBox to update
+        - title_position: The position of the title (e.g., "top left", "top center")
+        """
+        # Always get the most current palette
+        palette = QApplication.instance().palette()
+        midlight_color = palette.color(palette.ColorRole.Midlight).name()
+        text_color = palette.color(palette.ColorRole.Text).name()
+        
+        group_box.setStyleSheet(f"""
+            QGroupBox {{
+                font-weight: bold;
+                font-size: 14px;
+                color: {text_color};
+                border: 2px solid gray;
+                border-radius: 5px;
+                margin-top: 10px;
+                background-color: {midlight_color};
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                subcontrol-position: {title_position};
+                padding: 0 10px;
+                color: {text_color};
+            }}
+        """)
+
+    def update_button_styles_in_spex_tab(self):
+        """Update styles specifically for buttons in the Spex tab"""
+        if not hasattr(self, 'spex_tab_group_boxes') or not self.spex_tab_group_boxes:
+            return
+            
+        # Always use the application palette for the most current colors
+        palette = QApplication.instance().palette()
+        highlight_color = palette.color(palette.ColorRole.Highlight).name()
+        highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
+        button_color = palette.color(palette.ColorRole.Button).name()
+        button_text_color = palette.color(palette.ColorRole.ButtonText).name()
+        
+        button_style = f"""
+            QPushButton {{
+                font-weight: bold;
+                padding: 8px;
+                border: 1px solid gray;
+                border-radius: 4px;
+                background-color: {button_color};
+                color: {button_text_color};
+            }}
+            QPushButton:hover {{
+                background-color: {highlight_color};
+                color: {highlight_text_color};
+            }}
+        """
+        
+        # Debug: print how many buttons we're updating
+        button_count = 0
+        
+        for group_box in self.spex_tab_group_boxes:
+            buttons = group_box.findChildren(QPushButton)
+            button_count += len(buttons)
+            for button in buttons:
+                button.setStyleSheet(button_style)
+                # Force button to refresh its appearance
+                button.style().unpolish(button)
+                button.style().polish(button)
+                button.update()
+                
+        # Debug: print how many buttons we updated
+        # print(f"Updated styles for {button_count} buttons in Spex tab")
         
