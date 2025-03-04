@@ -699,8 +699,12 @@ class MainWindow(QMainWindow):
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
 
-        self.resize(800, 900)
+        # Set minimum size to ensure controls remain accessible
+        self.setMinimumSize(600, 500)
         
+        # Enable window to be resized
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
+
          # Initialize settings
         self.settings = QSettings('NMAAHC', 'AVSpex')
         self.selected_directories = []
