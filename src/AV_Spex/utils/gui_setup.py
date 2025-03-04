@@ -21,7 +21,9 @@ from ..processing.worker_thread import ProcessingWorker
 from ..processing.avspex_processor import AVSpexProcessor
 from ..utils.signals import ProcessingSignals
 
-class ProcessingWindow(QMainWindow):
+from ..utils.theme_manager import ThemeManager, ThemeableMixin
+
+class ProcessingWindow(QMainWindow, ThemeableMixin):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Processing Status")
@@ -59,6 +61,12 @@ class ProcessingWindow(QMainWindow):
 
         # Center the window on screen
         self._center_on_screen()  # Changed to use the defined method
+        
+       # Setup theme handling
+        self.setup_theme_handling()
+        
+        # Center the window on screen
+        self._center_on_screen()
         
         # Force window to update
         self.update()
@@ -103,18 +111,10 @@ class ProcessingWindow(QMainWindow):
         # Call the parent class's closeEvent to properly handle window closure
         super().closeEvent(event)
 
-    # Add this to the ProcessingWindow class
-    def update_palette(self, palette):
-        """Update the palette when the system theme changes"""
-        self.setPalette(palette)
-        
-        # Update all child widgets
-        for child in self.findChildren(QWidget):
-            if hasattr(child, 'setPalette'):
-                child.setPalette(palette)
-        
-        # Force repaint
-        self.update()
+    # Override the on_theme_changed method if needed
+    def on_theme_changed(self, palette):
+        """Handle theme changes"""
+        super().on_theme_changed(palette)
 
 
 class DirectoryListWidget(QListWidget):
@@ -183,50 +183,17 @@ class ConfigWindow(QWidget):
     # Outputs Section
     def setup_outputs_section(self, main_layout, update_existing=False):
         """Set up the outputs section with palette-aware styling"""
-        palette = self.palette()
-        midlight_color = palette.color(palette.ColorRole.Midlight).name()
-        text_color = palette.color(palette.ColorRole.Text).name()
-
+        theme_manager = ThemeManager()
+        
         # If updating an existing group box
         if update_existing and hasattr(self, 'outputs_group'):
-            self.outputs_group.setStyleSheet(f"""
-                QGroupBox {{
-                    font-weight: bold;
-                    font-size: 14px;
-                    color: {text_color};
-                    border: 2px solid gray;
-                    border-radius: 5px;
-                    margin-top: 10px;
-                    background-color: {midlight_color};
-                }}
-                QGroupBox::title {{
-                    subcontrol-origin: margin;
-                    subcontrol-position: top left;
-                    padding: 0 10px;
-                    color: {text_color};
-                }}
-            """)
+            theme_manager.style_groupbox(self.outputs_group, "top left")
             return
-
+        
         # Creating a new outputs group
         self.outputs_group = QGroupBox("Outputs")
-        self.outputs_group.setStyleSheet(f"""
-            QGroupBox {{
-                font-weight: bold;
-                font-size: 14px;
-                color: {text_color};
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-                background-color: {midlight_color};
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 10px;
-                color: {text_color};
-            }}
-        """)
+        theme_manager.style_groupbox(self.outputs_group, "top left")
+
         outputs_layout = QVBoxLayout()
         
         # Create widgets with descriptions on second line
@@ -849,15 +816,75 @@ class MainWindow(QMainWindow):
 
         # Connect all signals
         self.setup_signal_connections()
-
-        # Init processing window
-        self.processing_window = None
         
         # Setup UI
         self.setup_ui()
     
         # Setup theme change detection
         self.setup_theme_handling()
+
+        # Store references to group boxes that need theme updates
+        self.themeable_group_boxes = []
+
+    # Override the on_theme_changed method for custom handling
+    def on_theme_changed(self, palette):
+        """
+        Handle theme changes throughout the application.
+        This method is called automatically when the system theme changes
+        because we're using the ThemeableMixin.
+        """
+        # Call the parent class implementation first
+        # This applies the palette to this window and its direct children
+        super().on_theme_changed(palette)
+        
+        # Get theme manager for any additional styling
+        theme_manager = ThemeManager()
+        
+        # Update tab styling
+        if hasattr(self, 'tabs'):
+            self.tabs.setStyleSheet(theme_manager.get_tab_style())
+        
+        # Update Spex tab components
+        if hasattr(self, 'spex_tab_group_boxes'):
+            self.setup_spex_tab(update_existing=True)
+        
+        # Update Checks tab components
+        # If you have a similar pattern of group boxes in the checks tab
+        if hasattr(self, 'checks_tab_group_boxes'):
+            for group_box in self.checks_tab_group_boxes:
+                theme_manager.style_groupbox(group_box)
+        
+        # Style any special buttons like the check_spex_button
+        if hasattr(self, 'check_spex_button'):
+            self.check_spex_button.setStyleSheet("""
+                QPushButton {
+                    font-weight: bold;
+                    padding: 8px 16px;
+                    font-size: 14px;
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #45a049;
+                }
+            """)
+        
+        # Update child windows that might be open
+        # ConfigWindow
+        if hasattr(self, 'config_widget') and self.config_widget:
+            # If ConfigWindow is using ThemeableMixin
+            self.config_widget.on_theme_changed(palette)
+        
+        # ProcessingWindow
+        if hasattr(self, 'processing_window') and self.processing_window:
+            # If ProcessingWindow is using ThemeableMixin
+            self.processing_window.on_theme_changed(palette)
+        
+        # Force UI update to ensure all changes are visible
+        self.update()
+        QApplication.processEvents()
 
     def setup_signal_connections(self):
         """Setup all signal connections"""
@@ -1045,73 +1072,37 @@ class MainWindow(QMainWindow):
 
     # Create a QTabWidget for tabs
     def setup_tabs(self, update_existing=False):
-        # Get colors from the system palette
-        palette = QApplication.instance().palette()
-        highlight_color = palette.color(palette.ColorRole.Highlight).name()
-        highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
-        dark_color = palette.color(palette.ColorRole.Mid).name()
-
-        # If updating an existing group box
+        """Set up or update tab styling"""
+        theme_manager = ThemeManager()
+        
+        # If updating existing tabs
         if update_existing and hasattr(self, 'tabs'):
-            self.tabs.setStyleSheet(f"""
-                QTabBar::tab {{
-                    padding: 8px 12px;
-                    margin-right: 2px;
-                    font-size: 14px;
-                    font-weight: bold;
-                    background-color: {dark_color};
-                    border-top-left-radius: 4px;
-                    border-top-right-radius: 4px;
-                }}
-                
-                QTabBar::tab:selected, QTabBar::tab:hover {{
-                    background-color: {highlight_color};
-                    color: {highlight_text_color};
-                }}
-                QTabBar::tab:selected {{
-                    border-bottom: 2px solid #0066cc;
-                }}
-                                    
-                /* Reset the tab widget's background to default */
-                QTabWidget::pane {{
-                    border: 1px solid lightgray;
-                    background-color: none;
-                }}
-            """)
+            self.tabs.setStyleSheet(theme_manager.get_tab_style())
             return
 
-        # Create the tabs and tab bar styling
+        # Create new tabs
         self.tabs = QTabWidget()
-        self.tabs.setStyleSheet(f"""
-            QTabBar::tab {{
-                padding: 8px 12px;
-                margin-right: 2px;
-                font-weight: bold;
-                font-size: 14px;
-                background-color: {dark_color};
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-            }}
-            
-            QTabBar::tab:selected, QTabBar::tab:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-            QTabBar::tab:selected {{
-                border-bottom: 2px solid #0066cc;
-            }}
-                                
-            /* Reset the tab widget's background to default */
-            QTabWidget::pane {{
-                border: 1px solid lightgray;
-                background-color: none;
-            }}
-        """)
+        self.tabs.setStyleSheet(theme_manager.get_tab_style())
 
         self.main_layout.addWidget(self.tabs)
 
         self.setup_checks_tab()
         self.setup_spex_tab()
+
+    def update_spex_tab_themes(self):
+        """Update themes for all components in the Spex tab"""
+        if not hasattr(self, 'spex_tab_group_boxes') or not self.spex_tab_group_boxes:
+            return
+            
+        theme_manager = ThemeManager()
+        
+        # Update all group boxes
+        for group_box in self.spex_tab_group_boxes:
+            theme_manager.style_groupbox(group_box)
+        
+        # Update all buttons in the Spex tab
+        for group_box in self.spex_tab_group_boxes:
+            theme_manager.style_buttons(group_box)
 
     # First tab: "checks"
     def setup_checks_tab(self):
@@ -1318,39 +1309,51 @@ class MainWindow(QMainWindow):
 
     # Second tab: "spex"
     def setup_spex_tab(self, update_existing=False):
-        # If we're updating existing group boxes
+        """Set up or update the Spex tab with theme-aware styling"""
+        # Get the theme manager instance
+        theme_manager = ThemeManager()
+        
+        # If we're just updating existing components
         if update_existing and hasattr(self, 'spex_tab_group_boxes') and self.spex_tab_group_boxes:
             # Update all group boxes in the Spex tab
             for group_box in self.spex_tab_group_boxes:
-                self.update_groupbox_style(group_box)
+                theme_manager.style_groupbox(group_box)
             
-            # Also update button styles
-            self.update_button_styles_in_spex_tab()
+            # Update button styles 
+            for group_box in self.spex_tab_group_boxes:
+                theme_manager.style_buttons(group_box)
+            
             return
         
-        # If we're here, it means either we're initializing or 
-        # we need to recreate the group boxes collection
+        # If we're here, we're creating the tab from scratch or recreating it
+        # Initialize or reset the group boxes collection
         self.spex_tab_group_boxes = []
         
-        spex_tab = QWidget()
-        spex_layout = QVBoxLayout(spex_tab)
-        self.tabs.addTab(spex_tab, "Spex")
-
-        # Initialize list to store references to all group boxes
-        self.spex_tab_group_boxes = []
-
-        # Scroll Area for Vertical Scrolling in "Spex" Tab
+        # Create the tab if it doesn't exist
+        if not hasattr(self, 'spex_tab') or not self.spex_tab:
+            spex_tab = QWidget()
+            spex_layout = QVBoxLayout(spex_tab)
+            self.tabs.addTab(spex_tab, "Spex")
+            self.spex_tab = spex_tab
+        else:
+            spex_tab = self.spex_tab
+            spex_layout = spex_tab.layout()
+            # Clear existing layout if needed
+            while spex_layout.count():
+                item = spex_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
+        
+        # Create scroll area for vertical scrolling
         main_scroll_area = QScrollArea(self)
         main_scroll_area.setWidgetResizable(True)
         main_widget = QWidget(self)
         main_scroll_area.setWidget(main_widget)
-
-        # Vertical layout for the main content in "Spex"
         vertical_layout = QVBoxLayout(main_widget)
-
-        # Filename section with styled group box
+        
+        # 1. Filename section
         self.filename_group = QGroupBox("Filename Values")
-        self.update_groupbox_style(self.filename_group)
+        theme_manager.style_groupbox(self.filename_group)
         self.spex_tab_group_boxes.append(self.filename_group)
         
         filename_layout = QVBoxLayout()
@@ -1362,127 +1365,76 @@ class MainWindow(QMainWindow):
         self.filename_profile_dropdown.addItem("Bowser file names")
         self.filename_profile_dropdown.addItem("JPC file names")
         
-        # Set initial state
+        # Set initial state based on config
         if self.spex_config.filename_values.Collection == "JPC":
             self.filename_profile_dropdown.setCurrentText("JPC file names")
         elif self.spex_config.filename_values.Collection == "2012_79":
             self.filename_profile_dropdown.setCurrentText("Bowser file names")
-            
+        
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
-
-        # Get colors from the system palette
-        palette = self.palette()
-        highlight_color = palette.color(palette.ColorRole.Highlight).name()
-        highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
-        button_color = palette.color(palette.ColorRole.Button).name()
-        button_text_color = palette.color(palette.ColorRole.ButtonText).name()
         
         # Open section button
         open_button = QPushButton("Open Section")
-        open_button.setStyleSheet(f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid gray;
-                border-radius: 4px;
-                background-color: {button_color};
-                color: {button_text_color};
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """)
         open_button.clicked.connect(
             lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values))
         )
         
+        # Add widgets to layout
         filename_layout.addWidget(profile_label)
         filename_layout.addWidget(self.filename_profile_dropdown)
         filename_layout.addWidget(open_button)
         self.filename_group.setLayout(filename_layout)
         vertical_layout.addWidget(self.filename_group)
-
-        # MediaInfo section
+        
+        # Style the button using theme manager
+        theme_manager.style_buttons(self.filename_group)
+        
+        # 2. MediaInfo section
         self.mediainfo_group = QGroupBox("MediaInfo Values")
-        self.update_groupbox_style(self.mediainfo_group)
+        theme_manager.style_groupbox(self.mediainfo_group)
         self.spex_tab_group_boxes.append(self.mediainfo_group)
-
+        
         mediainfo_layout = QVBoxLayout()
         
         mediainfo_button = QPushButton("Open Section")
-        mediainfo_button.setStyleSheet(f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid gray;
-                border-radius: 4px;
-                background-color: {button_color};
-                color: {button_text_color};
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """)
         mediainfo_button.clicked.connect(
             lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values)
         )
+        
         mediainfo_layout.addWidget(mediainfo_button)
         self.mediainfo_group.setLayout(mediainfo_layout)
         vertical_layout.addWidget(self.mediainfo_group)
-
-        # Exiftool section
+        
+        # Style the button
+        theme_manager.style_buttons(self.mediainfo_group)
+        
+        # 3. Exiftool section
         self.exiftool_group = QGroupBox("Exiftool Values")
-        self.update_groupbox_style(self.exiftool_group)
+        theme_manager.style_groupbox(self.exiftool_group)
         self.spex_tab_group_boxes.append(self.exiftool_group)
-
+        
         exiftool_layout = QVBoxLayout()
         
         exiftool_button = QPushButton("Open Section")
-        exiftool_button.setStyleSheet(f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid gray;
-                border-radius: 4px;
-                background-color: {button_color};
-                color: {button_text_color};
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """)
         exiftool_button.clicked.connect(
             lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values))
         )
+        
         exiftool_layout.addWidget(exiftool_button)
         self.exiftool_group.setLayout(exiftool_layout)
         vertical_layout.addWidget(self.exiftool_group)
-
-        # FFprobe section
+        
+        # Style the button
+        theme_manager.style_buttons(self.exiftool_group)
+        
+        # 4. FFprobe section
         self.ffprobe_group = QGroupBox("FFprobe Values")
-        self.update_groupbox_style(self.ffprobe_group)
+        theme_manager.style_groupbox(self.ffprobe_group)
         self.spex_tab_group_boxes.append(self.ffprobe_group)
-
+        
         ffprobe_layout = QVBoxLayout()
         
         ffprobe_button = QPushButton("Open Section")
-        ffprobe_button.setStyleSheet(f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid gray;
-                border-radius: 4px;
-                background-color: {button_color};
-                color: {button_text_color};
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """)
         ffprobe_button.clicked.connect(
             lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values)
         )
@@ -1490,12 +1442,15 @@ class MainWindow(QMainWindow):
         ffprobe_layout.addWidget(ffprobe_button)
         self.ffprobe_group.setLayout(ffprobe_layout)
         vertical_layout.addWidget(self.ffprobe_group)
-
-        # Mediatrace section
+        
+        # Style the button
+        theme_manager.style_buttons(self.ffprobe_group)
+        
+        # 5. Mediatrace section
         self.mediatrace_group = QGroupBox("Mediatrace Values")
-        self.update_groupbox_style(self.mediatrace_group)
+        theme_manager.style_groupbox(self.mediatrace_group)
         self.spex_tab_group_boxes.append(self.mediatrace_group)
-
+        
         mediatrace_layout = QVBoxLayout()
         
         # Signalflow profile dropdown
@@ -1505,7 +1460,7 @@ class MainWindow(QMainWindow):
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
         
-        # Set initial state
+        # Set initial state based on config
         encoder_settings = self.spex_config.mediatrace_values.ENCODER_SETTINGS
         if isinstance(encoder_settings, dict):
             source_vtr = encoder_settings.get('Source_VTR', [])
@@ -1520,20 +1475,6 @@ class MainWindow(QMainWindow):
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
         
         mediatrace_button = QPushButton("Open Section")
-        mediatrace_button.setStyleSheet(f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid gray;
-                border-radius: 4px;
-                background-color: {button_color};
-                color: {button_text_color};
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """)
         mediatrace_button.clicked.connect(
             lambda: self.open_new_window('Mediatrace Values', asdict(self.spex_config.mediatrace_values))
         )
@@ -1543,36 +1484,29 @@ class MainWindow(QMainWindow):
         mediatrace_layout.addWidget(mediatrace_button)
         self.mediatrace_group.setLayout(mediatrace_layout)
         vertical_layout.addWidget(self.mediatrace_group)
-
-        # QCT section
+        
+        # Style the button
+        theme_manager.style_buttons(self.mediatrace_group)
+        
+        # 6. QCT section
         self.qct_group = QGroupBox("qct-parse Values")
-        self.update_groupbox_style(self.qct_group)
+        theme_manager.style_groupbox(self.qct_group)
         self.spex_tab_group_boxes.append(self.qct_group)
-
+        
         qct_layout = QVBoxLayout()
         
         qct_button = QPushButton("Open Section")
-        qct_button.setStyleSheet(f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid gray;
-                border-radius: 4px;
-                background-color: {button_color};
-                color: {button_text_color};
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """)
         qct_button.clicked.connect(
             lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values))
         )
+        
         qct_layout.addWidget(qct_button)
         self.qct_group.setLayout(qct_layout)
         vertical_layout.addWidget(self.qct_group)
-
+        
+        # Style the button
+        theme_manager.style_buttons(self.qct_group)
+        
         # Add scroll area to main layout
         spex_layout.addWidget(main_scroll_area)
     
