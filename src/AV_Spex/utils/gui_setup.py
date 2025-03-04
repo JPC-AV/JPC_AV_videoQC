@@ -703,6 +703,8 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(600, 500)
         
         # Enable window to be resized
+        ## self.windowFlags() retrieves the current window flags
+        ## Qt.WindowType.WindowMaximizeButtonHint enables the maximize button in the window's title bar.
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
 
          # Initialize settings
