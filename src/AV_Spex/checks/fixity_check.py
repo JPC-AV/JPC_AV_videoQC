@@ -2,6 +2,7 @@ import os
 import sys
 import hashlib
 import shutil
+import re
 from datetime import datetime
 from ..utils.log_setup import logger
 
@@ -18,24 +19,35 @@ def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None
     # Walk files of the source directory looking for file with '_checksums.md5' or '_fixity.txt' suffix
     for root, dirs, files in os.walk(directory):
         for file in files:
+            # Look for date pattern before "_fixity.txt" or "_checksums.md5"
             if file.endswith('_checksums.md5') or file.endswith('_fixity.txt'):
                 checksum_file_path = os.path.join(root, file)
                 try:
-                    # Extract date from filename (YYYY_MM_DD or YYYY_MM_DD_HH_MM format)
-                    file_date_str = file.split('_')[3:6]  # First try to get the date part (YYYY_MM_DD)
-
-                    # Try parsing the date with only the date part (YYYY_MM_DD)
-                    try:
-                        file_date = datetime.strptime("_".join(file_date_str), "%Y_%m_%d").date()
-                    except ValueError:
-                        # If it fails, try with the full date and time (YYYY_MM_DD_HH_MM)
-                        file_date_str = file.split('_')[3:8]  # Now include time part (YYYY_MM_DD_HH_MM)
-                        file_date = datetime.strptime("_".join(file_date_str), "%Y_%m_%d_%H_%M").date()
-
+                    # Remove the suffix first
+                    if file.endswith('_checksums.md5'):
+                        base_name = file.replace('_checksums.md5', '')
+                    else:  # file.endswith('_fixity.txt')
+                        base_name = file.replace('_fixity.txt', '')
+                    
+                    # Use regex to find date patterns at the end of the base name
+                    # Pattern 1: YYYY_MM_DD_HH_MM at the end of string ($ is a special character in regex that matches the end of the string)
+                    date_match = re.search(r'(\d{4}_\d{2}_\d{2}_\d{2}_\d{2})$', base_name)
+                    if date_match:
+                        date_str = date_match.group(1)
+                        file_date = datetime.strptime(date_str, "%Y_%m_%d_%H_%M").date()
+                    else:
+                        # Pattern 2: YYYY_MM_DD at the end of string
+                        date_match = re.search(r'(\d{4}_\d{2}_\d{2})$', base_name)
+                        if date_match:
+                            date_str = date_match.group(1)
+                            file_date = datetime.strptime(date_str, "%Y_%m_%d").date()
+                        else:
+                            raise ValueError(f"No date pattern found in filename: {file}")
+                    
                     checksum_files.append((checksum_file_path, file_date))
                 
-                except (ValueError, IndexError):
-                    logger.warning(f"Skipping checksum file with invalid date format: {file}")
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"Skipping checksum file with invalid date format: {file}. Error: {str(e)}")
 
     # Sort checksum files by date (descending)
     checksum_files.sort(key=lambda x: x[1], reverse=True)
