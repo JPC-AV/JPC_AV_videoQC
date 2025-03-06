@@ -1230,7 +1230,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # 1. Filename section
         self.filename_group = QGroupBox("Filename Values")
-        theme_manager.style_groupbox(self.filename_group)
+        theme_manager.style_groupbox(self.filename_group, "top center")
         self.spex_tab_group_boxes.append(self.filename_group)
         
         filename_layout = QVBoxLayout()
@@ -1268,7 +1268,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # 2. MediaInfo section
         self.mediainfo_group = QGroupBox("MediaInfo Values")
-        theme_manager.style_groupbox(self.mediainfo_group)
+        theme_manager.style_groupbox(self.mediainfo_group, "top center")
         self.spex_tab_group_boxes.append(self.mediainfo_group)
         
         mediainfo_layout = QVBoxLayout()
@@ -1287,7 +1287,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # 3. Exiftool section
         self.exiftool_group = QGroupBox("Exiftool Values")
-        theme_manager.style_groupbox(self.exiftool_group)
+        theme_manager.style_groupbox(self.exiftool_group, "top center")
         self.spex_tab_group_boxes.append(self.exiftool_group)
         
         exiftool_layout = QVBoxLayout()
@@ -1306,7 +1306,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # 4. FFprobe section
         self.ffprobe_group = QGroupBox("FFprobe Values")
-        theme_manager.style_groupbox(self.ffprobe_group)
+        theme_manager.style_groupbox(self.ffprobe_group, "top center")
         self.spex_tab_group_boxes.append(self.ffprobe_group)
         
         ffprobe_layout = QVBoxLayout()
@@ -1325,7 +1325,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # 5. Mediatrace section
         self.mediatrace_group = QGroupBox("Mediatrace Values")
-        theme_manager.style_groupbox(self.mediatrace_group)
+        theme_manager.style_groupbox(self.mediatrace_group, "top center")
         self.spex_tab_group_boxes.append(self.mediatrace_group)
         
         mediatrace_layout = QVBoxLayout()
@@ -1367,7 +1367,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # 6. QCT section
         self.qct_group = QGroupBox("qct-parse Values")
-        theme_manager.style_groupbox(self.qct_group)
+        theme_manager.style_groupbox(self.qct_group, "top center")
         self.spex_tab_group_boxes.append(self.qct_group)
         
         qct_layout = QVBoxLayout()
