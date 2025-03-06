@@ -199,7 +199,7 @@ class ConfigWindow(QWidget, ThemeableMixin):
         self.connect_signals()
         
     # Outputs Section
-    def setup_outputs_section(self, main_layout, update_existing=False):
+    def setup_outputs_section(self, main_layout):
         """Set up the outputs section with palette-aware styling"""
         theme_manager = ThemeManager()
         
@@ -302,7 +302,7 @@ class ConfigWindow(QWidget, ThemeableMixin):
         main_layout.addWidget(self.fixity_group)
         
     # Tools Section
-    def setup_tools_section(self, main_layout, update_existing=False):
+    def setup_tools_section(self, main_layout):
         """Set up the tools section with palette-aware styling"""
         theme_manager = ThemeManager()
     
@@ -1040,14 +1040,10 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
 
     # First tab: "checks"
-    def setup_checks_tab(self, update_existing=False):
+    def setup_checks_tab(self):
         """Set up or update the Checks tab with theme-aware styling"""
         # Get the theme manager instance
         theme_manager = ThemeManager()
-
-        # Skip creation if we're just updating themes
-        if update_existing:
-            return
         
         # If we're here, we're creating the tab from scratch or recreating it
         # Initialize or reset the group boxes collection
@@ -1201,14 +1197,10 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.main_layout.setSpacing(10)
 
     # Second tab: "spex"
-    def setup_spex_tab(self, update_existing=False):
+    def setup_spex_tab(self):
         """Set up or update the Spex tab with theme-aware styling"""
         # Get the theme manager instance
         theme_manager = ThemeManager()
-        
-        # Skip creation if we're just updating themes
-        if update_existing:
-            return
         
         # If we're here, we're creating the tab from scratch or recreating it
         # Initialize or reset the group boxes collection
