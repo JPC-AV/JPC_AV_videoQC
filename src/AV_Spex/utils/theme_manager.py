@@ -47,17 +47,36 @@ class ThemeManager(QObject):
         """Handle system palette changes and propagate to connected widgets."""
         self.themeChanged.emit(palette)
     
-    # Rest of the class remains the same
-    def style_groupbox(self, group_box, title_position="top left"):
-        """Apply consistent styling to a group box based on current theme."""
+    def style_groupbox(self, group_box, title_position=None):
+        """
+        Apply consistent styling to a group box based on current theme.
+        
+        Args:
+            group_box: The QGroupBox to style
+            title_position: Position of the title ("top left", "top center", etc.)
+                            If None, maintains the group box's current title position
+        """
         if not isinstance(group_box, QGroupBox) or not self.app:
             return
             
+        # Get the current palette
         palette = self.app.palette()
         midlight_color = palette.color(palette.ColorRole.Midlight).name()
         text_color = palette.color(palette.ColorRole.Text).name()
         
-        # Apply style based on current palette
+        # If title_position is None, attempt to extract the current position from the stylesheet
+        if title_position is None:
+            current_style = group_box.styleSheet()
+            # Look for the subcontrol-position property
+            import re
+            position_match = re.search(r'subcontrol-position:\s*(top \w+)', current_style)
+            if position_match:
+                title_position = position_match.group(1)
+            else:
+                # Default if we can't find it
+                title_position = "top left"
+        
+        # Apply style based on current palette with specified or preserved title position
         group_box.setStyleSheet(f"""
             QGroupBox {{
                 font-weight: bold;
