@@ -184,7 +184,7 @@ class ThemeableMixin:
         self._theme_manager = ThemeManager.instance()
         self._theme_manager.themeChanged.connect(
             self.on_theme_changed, 
-            type=Qt.ConnectionType.DirectConnection
+            type=Qt.ConnectionType.QueuedConnection
         )
         
         # Mark as set up

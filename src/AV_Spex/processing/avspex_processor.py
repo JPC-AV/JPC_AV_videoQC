@@ -10,7 +10,7 @@ from ..processing.processing_mgmt import ProcessingManager
 from ..utils import dir_setup
 from ..utils.log_setup import logger
 from ..utils.deps_setup import required_commands, check_external_dependency, check_py_version
-from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_setup import ChecksConfig, SpexConfig
 from ..utils.config_manager import ConfigManager
 
 config_mgr = ConfigManager()
