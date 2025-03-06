@@ -14,10 +14,10 @@ from ..gui.gui_processing_gui import ProcessingWindow, DirectoryListWidget
 from ..gui.gui_checks_window import ChecksWindow
 from ..gui.gui_theme_manager import ThemeManager, ThemeableMixin
 
-from ..utils.setup_config import SpexConfig, ChecksConfig
+from ..utils.config_setup import SpexConfig, ChecksConfig
 from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
-from ..utils import edit_config
+from ..utils import config_edit
 
 from ..processing.worker_thread import ProcessingWorker
 from ..processing.avspex_processor import AVSpexProcessor
@@ -745,14 +745,14 @@ class MainWindow(QMainWindow, ThemeableMixin):
         """Handle profile selection from dropdown."""
         selected_profile = self.command_profile_dropdown.currentText()
         if selected_profile == "Step 1":
-            profile = edit_config.profile_step1
+            profile = config_edit.profile_step1
         elif selected_profile == "Step 2":
-            profile = edit_config.profile_step2
+            profile = config_edit.profile_step2
         elif selected_profile == "All Off":
-            profile = edit_config.profile_allOff
+            profile = config_edit.profile_allOff
         try:
             # Call the backend function to apply the selected profile
-            edit_config.apply_profile(profile)
+            config_edit.apply_profile(profile)
             logger.debug(f"Profile '{selected_profile}' applied successfully.")
             self.config_mgr.save_last_used_config('checks')
         except ValueError as e:
@@ -795,9 +795,9 @@ class MainWindow(QMainWindow, ThemeableMixin):
         logger.debug(f"Selected signal flow profile: {selected_option}")
 
         if selected_option == "JPC_AV_SVHS Signal Flow":
-            sn_config_changes = edit_config.JPC_AV_SVHS
+            sn_config_changes = config_edit.JPC_AV_SVHS
         elif selected_option == "BVH3100 Signal Flow":
-            sn_config_changes = edit_config.BVH3100
+            sn_config_changes = config_edit.BVH3100
         else:
             logger.error("Signal flow identifier not recognized, config not updated")
             return

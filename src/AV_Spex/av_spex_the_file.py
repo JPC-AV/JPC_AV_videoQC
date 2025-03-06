@@ -12,9 +12,9 @@ from typing import List, Optional, Any
 from .processing import processing_mgmt
 from .processing.avspex_processor import AVSpexProcessor
 from .utils import dir_setup
-from .utils import edit_config
+from .utils import config_edit
 from .utils.log_setup import logger
-from .utils.setup_config import SpexConfig
+from .utils.config_setup import SpexConfig
 from .utils.config_manager import ConfigManager
 from .utils.config_io import ConfigIO
 
@@ -69,32 +69,32 @@ class ParsedArguments:
 
 
 PROFILE_MAPPING = {
-    "step1": edit_config.profile_step1,
-    "step2": edit_config.profile_step2,
-    "off": edit_config.profile_allOff
+    "step1": config_edit.profile_step1,
+    "step2": config_edit.profile_step2,
+    "off": config_edit.profile_allOff
 }
 
 
 SIGNALFLOW_MAPPING = {
-    "JPC_AV_SVHS": edit_config.JPC_AV_SVHS,
-    "BVH3100": edit_config.BVH3100
+    "JPC_AV_SVHS": config_edit.JPC_AV_SVHS,
+    "BVH3100": config_edit.BVH3100
 }
 
 
 FILENAME_MAPPING = {
-    "jpc": edit_config.JPCAV_filename,
-    "bowser": edit_config.bowser_filename
+    "jpc": config_edit.JPCAV_filename,
+    "bowser": config_edit.bowser_filename
 }
 
 
 SIGNAL_FLOW_CONFIGS = {
     "JPC_AV_SVHS": {
-        "format_tags": {"ENCODER_SETTINGS": edit_config.JPC_AV_SVHS},
-        "mediatrace": {"ENCODER_SETTINGS": edit_config.JPC_AV_SVHS}
+        "format_tags": {"ENCODER_SETTINGS": config_edit.JPC_AV_SVHS},
+        "mediatrace": {"ENCODER_SETTINGS": config_edit.JPC_AV_SVHS}
     },
     "BVH3100": {
-        "format_tags": {"ENCODER_SETTINGS": edit_config.BVH3100}, 
-        "mediatrace": {"ENCODER_SETTINGS": edit_config.BVH3100}
+        "format_tags": {"ENCODER_SETTINGS": config_edit.BVH3100}, 
+        "mediatrace": {"ENCODER_SETTINGS": config_edit.BVH3100}
     }
 }
 
@@ -160,9 +160,9 @@ The scripts will confirm that the digital files conform to predetermined specifi
     input_paths = args.paths if args.paths else []
     source_directories = dir_setup.validate_input_paths(input_paths, args.file)
 
-    selected_profile = edit_config.resolve_config(args.profile, PROFILE_MAPPING)
-    sn_config_changes = edit_config.resolve_config(args.signalflow, SIGNALFLOW_MAPPING)
-    fn_config_changes = edit_config.resolve_config(args.filename, FILENAME_MAPPING)
+    selected_profile = config_edit.resolve_config(args.profile, PROFILE_MAPPING)
+    sn_config_changes = config_edit.resolve_config(args.signalflow, SIGNALFLOW_MAPPING)
+    fn_config_changes = config_edit.resolve_config(args.filename, FILENAME_MAPPING)
 
     if args.use_default_config:
         try:
@@ -241,13 +241,13 @@ def run_cli_mode(args):
 
     # Update checks config
     if args.selected_profile:
-        edit_config.apply_profile(args.selected_profile)
+        config_edit.apply_profile(args.selected_profile)
         config_mgr.save_last_used_config('checks')
     if args.tools_on_names:
-        edit_config.toggle_on(args.tools_on_names)
+        config_edit.toggle_on(args.tools_on_names)
         config_mgr.save_last_used_config('checks')
     if args.tools_off_names:
-        edit_config.toggle_off(args.tools_off_names)
+        config_edit.toggle_off(args.tools_off_names)
         config_mgr.save_last_used_config('checks')
 
     if args.mediaconch_policy:
@@ -274,7 +274,7 @@ def run_cli_mode(args):
         print(f"Configs imported from: {args.import_config}")
 
     if args.print_config_profile:
-        edit_config.print_config(args.print_config_profile)
+        config_edit.print_config(args.print_config_profile)
 
     if args.dry_run_only:
         logger.critical("Dry run selected. Exiting now.")
