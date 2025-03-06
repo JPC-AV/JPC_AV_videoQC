@@ -840,6 +840,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 for group_box in group_boxes:
                     # Apply new style (removed buttons styling)
                     theme_manager.style_groupbox(group_box)
+                    # Update all buttons too
+                    theme_manager.style_buttons(group_box)
         
         # 3. Special styling for green button
         if hasattr(self, 'check_spex_button'):
@@ -1691,79 +1693,3 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.config_mgr.save_last_used_config('checks')
         self.config_mgr.save_last_used_config('spex')
         self.close()  # Close the GUI
-
-
-    def update_groupbox_style(self, group_box, title_position="top center"):
-        """
-        Update a group box style with current palette colors
-        
-        Parameters:
-        - group_box: The QGroupBox to update
-        - title_position: The position of the title (e.g., "top left", "top center")
-        """
-        # Always get the most current palette
-        palette = QApplication.instance().palette()
-        midlight_color = palette.color(palette.ColorRole.Midlight).name()
-        text_color = palette.color(palette.ColorRole.Text).name()
-        
-        group_box.setStyleSheet(f"""
-            QGroupBox {{
-                font-weight: bold;
-                font-size: 14px;
-                color: {text_color};
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-                background-color: {midlight_color};
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                subcontrol-position: {title_position};
-                padding: 0 10px;
-                color: {text_color};
-            }}
-        """)
-
-    def update_button_styles_in_spex_tab(self):
-        """Update styles specifically for buttons in the Spex tab"""
-        if not hasattr(self, 'spex_tab_group_boxes') or not self.spex_tab_group_boxes:
-            return
-            
-        # Always use the application palette for the most current colors
-        palette = QApplication.instance().palette()
-        highlight_color = palette.color(palette.ColorRole.Highlight).name()
-        highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
-        button_color = palette.color(palette.ColorRole.Button).name()
-        button_text_color = palette.color(palette.ColorRole.ButtonText).name()
-        
-        button_style = f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid gray;
-                border-radius: 4px;
-                background-color: {button_color};
-                color: {button_text_color};
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """
-        
-        # Debug: print how many buttons we're updating
-        button_count = 0
-        
-        for group_box in self.spex_tab_group_boxes:
-            buttons = group_box.findChildren(QPushButton)
-            button_count += len(buttons)
-            for button in buttons:
-                button.setStyleSheet(button_style)
-                # Force button to refresh its appearance
-                button.style().unpolish(button)
-                button.style().polish(button)
-                button.update()
-                
-        # Debug: print how many buttons we updated
-        # print(f"Updated styles for {button_count} buttons in Spex tab")
-        
