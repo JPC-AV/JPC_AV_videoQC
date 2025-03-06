@@ -21,7 +21,7 @@ from ..utils import edit_config
 
 from ..processing.worker_thread import ProcessingWorker
 from ..processing.avspex_processor import AVSpexProcessor
-from ..utils.signals import ProcessingSignals
+from ..gui.gui_signals import ProcessingSignals
 
 class MainWindow(QMainWindow, ThemeableMixin):
     """Main application window with tabs for configuration and settings."""
