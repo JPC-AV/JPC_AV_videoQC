@@ -113,24 +113,16 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
 
     # Override the on_theme_changed method if needed
     def on_theme_changed(self, palette):
-        """Handle theme changes for ProcessingWindow"""
-        # Call parent implementation to apply basic palette changes
-        super().on_theme_changed(palette)
+        """Handle theme changes"""
+        # Apply palette to all components
+        self.setPalette(palette)
+        self.details_text.setPalette(palette)
+        self.status_label.setPalette(palette)
         
-        # Update specific components
-        theme_manager = ThemeManager()
+        # Style the cancel button
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_buttons(self)
         
-        # Style buttons
-        if hasattr(self, 'cancel_button'):
-            theme_manager.style_buttons(self)
-        
-        # Update text areas with new palette colors
-        if hasattr(self, 'details_text'):
-            self.details_text.setPalette(palette)
-        
-        if hasattr(self, 'status_label'):
-            self.status_label.setPalette(palette)
-            
         # Force repaint
         self.update()
 
@@ -515,18 +507,13 @@ class ConfigWindow(QWidget, ThemeableMixin):
         # Style all buttons
         theme_manager.style_buttons(self)
 
-    # Similarly in ConfigWindow.on_theme_changed:
     def on_theme_changed(self, palette):
         """Handle theme changes for ConfigWindow"""
-        print(f"ConfigWindow.on_theme_changed called with palette: {palette}")
-        
-        # Don't call super() here since QWidget doesn't have on_theme_changed
-        # Instead, apply the palette directly
-        if hasattr(self, 'setPalette'):
-            self.setPalette(palette)
+        # Apply the palette directly
+        self.setPalette(palette)
         
         # Get the theme manager
-        theme_manager = ThemeManager()
+        theme_manager = ThemeManager.instance()
         
         # Update all tracked group boxes
         for key, group_box in self.themed_group_boxes.items():
@@ -765,7 +752,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
     def __init__(self):
         super().__init__()
         self.signals = ProcessingSignals()
-        self.worker = None  # Initialize worker as None
+        self.worker = None
         self.processing_window = None
 
         # Initialize collections for theme-aware components
@@ -778,72 +765,28 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Setup UI
         self.setup_ui()
         
-        # QTimer to delay theme setup until after application is fully initialized
-        QTimer.singleShot(100, self.delayed_theme_setup)
-    
-    def delayed_theme_setup(self):
-        """Setup theme handling after a short delay to ensure QApplication exists"""
-        print("MainWindow: Delayed theme setup")
-        
-        # Setup theme change detection
+        # Setup theme handling
         self.setup_theme_handling()
-
-        # Direct connection to palette changes if QApplication exists
-        app = QApplication.instance()
-        if app:
-            # Use the correct method name that exists in your class
-            # If your method is named differently, use that name instead
-            if hasattr(self, '_debug_palette_changed'):
-                app.paletteChanged.connect(self._debug_palette_changed)
-            elif hasattr(self, 'on_palette_changed'):
-                app.paletteChanged.connect(self.on_palette_changed)
-            else:
-                # Create the method if it doesn't exist
-                def debug_palette_changed(palette):
-                    print("Direct palette change detected in MainWindow")
-                    # Ensure that theme manager connections are active
-                    theme_manager = ThemeManager.instance()
-                    theme_manager.ensure_connections()
-                
-                self._debug_palette_changed = debug_palette_changed
-                app.paletteChanged.connect(self._debug_palette_changed)
-            
-            # Force ThemeManager to initialize and connect
-            theme_manager = ThemeManager.instance()
-            theme_manager._ensure_initialized()
-            theme_manager.ensure_connections()
-
+    
     def on_theme_changed(self, palette):
-        """Handle theme changes across the application with thorough refresh"""
-        print(f"MainWindow.on_theme_changed called with palette: {palette}")
-        
-        # Don't call super() since it's causing the error
-        # Instead, apply the palette directly
-        if hasattr(self, 'setPalette'):
-            self.setPalette(palette)
-        
-        print(f"Theme changed event triggered in MainWindow")
+        """Handle theme changes across the application."""
+        # Apply palette to main window
+        self.setPalette(palette)
         
         # Get the theme manager
-        theme_manager = ThemeManager()
+        theme_manager = ThemeManager.instance()
         
-        # 1. Update the tabs
+        # Update the tabs
         if hasattr(self, 'tabs'):
-            tab_style = theme_manager.get_tab_style()
-            self.tabs.setStyleSheet(tab_style)
-            self.tabs.update()
+            self.tabs.setStyleSheet(theme_manager.get_tab_style())
         
-        # 2. Update all groupboxes in both tabs
-        for collection_name in ['checks_tab_group_boxes', 'spex_tab_group_boxes']:
-            if hasattr(self, collection_name):
-                group_boxes = getattr(self, collection_name)
-                for group_box in group_boxes:
-                    # Apply new style (removed buttons styling)
-                    theme_manager.style_groupbox(group_box)
-                    # Update all buttons too
-                    theme_manager.style_buttons(group_box)
+        # Update all groupboxes in both tabs
+        for group_box in self.checks_tab_group_boxes + self.spex_tab_group_boxes:
+            theme_manager.style_groupbox(group_box)
+            # Style buttons inside the group box
+            theme_manager.style_buttons(group_box)
         
-        # 3. Special styling for green button
+        # Special styling for green button
         if hasattr(self, 'check_spex_button'):
             self.check_spex_button.setStyleSheet("""
                 QPushButton {
@@ -860,18 +803,47 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 }
             """)
         
-        # 4. Update child windows with careful error handling
-        for child_window in ['config_widget', 'processing_window']:
-            if hasattr(self, child_window):
-                child = getattr(self, child_window)
-                if child and hasattr(child, 'on_theme_changed'):
-                    try:
-                        child.on_theme_changed(palette)
-                    except Exception as e:
-                        print(f"Error updating {child_window}: {e}")
+        # Update child windows
+        for child_name in ['config_widget', 'processing_window']:
+            child = getattr(self, child_name, None)
+            if child and hasattr(child, 'on_theme_changed'):
+                child.on_theme_changed(palette)
         
-        # 5. Force a repaint
+        # Force repaint
         self.update()
+
+    def closeEvent(self, event):
+        # Clean up theme connections
+        self.cleanup_theme_handling()
+        
+        # Clean up child windows
+        for child_name in ['config_widget', 'processing_window']:
+            child = getattr(self, child_name, None)
+            if child and hasattr(child, 'cleanup_theme_handling'):
+                child.cleanup_theme_handling()
+        
+        # Stop worker if running
+        if self.worker and self.worker.isRunning():
+            self.worker.cancel()
+            self.worker.wait()
+        
+        # Call quit handling method
+        self.on_quit_clicked()
+        super().closeEvent(event)
+
+    # When setting up tabs or other UI components
+    def setup_tabs(self):
+        """Set up tab styling"""
+        theme_manager = ThemeManager.instance()
+        
+        # Create new tabs
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet(theme_manager.get_tab_style())
+
+        self.main_layout.addWidget(self.tabs)
+
+        self.setup_checks_tab()
+        self.setup_spex_tab()
 
     def setup_signal_connections(self):
         """Setup all signal connections"""
@@ -980,8 +952,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         QMessageBox.information(self, "Cancelled", "Processing was cancelled.")
 
     def closeEvent(self, event):
-        print(f"MainWindow.closeEvent called")
-        
         # Clean up child windows with theme connections
         for child_window in ['config_widget', 'processing_window']:
             if hasattr(self, child_window) and getattr(self, child_window):
@@ -1067,25 +1037,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         logo_path = self.config_mgr.get_logo_path('JPCA_H_Branding_011025.png')
         image_layout = self.add_image_to_top(logo_path)
         self.main_layout.insertLayout(0, image_layout)  # Insert at index 0 (top)
-
-    # Create a QTabWidget for tabs
-    def setup_tabs(self, update_existing=False):
-        """Set up or update tab styling"""
-        theme_manager = ThemeManager.instance()
-        print(f"setup_tabs called, ThemeManager connection count: {len(ThemeManager._connected_slots)}")
-        
-        # Skip creation if we're just updating themes
-        if update_existing:
-            return
-
-        # Create new tabs
-        self.tabs = QTabWidget()
-        self.tabs.setStyleSheet(theme_manager.get_tab_style())
-
-        self.main_layout.addWidget(self.tabs)
-
-        self.setup_checks_tab()
-        self.setup_spex_tab()
 
 
     # First tab: "checks"
