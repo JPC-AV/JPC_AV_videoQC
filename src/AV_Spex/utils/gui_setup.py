@@ -113,8 +113,26 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
 
     # Override the on_theme_changed method if needed
     def on_theme_changed(self, palette):
-        """Handle theme changes"""
+        """Handle theme changes for ProcessingWindow"""
+        # Call parent implementation to apply basic palette changes
         super().on_theme_changed(palette)
+        
+        # Update specific components
+        theme_manager = ThemeManager()
+        
+        # Style buttons
+        if hasattr(self, 'cancel_button'):
+            theme_manager.style_buttons(self)
+        
+        # Update text areas with new palette colors
+        if hasattr(self, 'details_text'):
+            self.details_text.setPalette(palette)
+        
+        if hasattr(self, 'status_label'):
+            self.status_label.setPalette(palette)
+            
+        # Force repaint
+        self.update()
 
 
 class DirectoryListWidget(QListWidget):
@@ -163,11 +181,19 @@ class DirectoryListWidget(QListWidget):
             event.acceptProposedAction()
 
 
-class ConfigWindow(QWidget):
+class ConfigWindow(QWidget, ThemeableMixin):
     def __init__(self, config_mgr=None):
         super().__init__()
         self.config_mgr = config_mgr or ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
+
+        # Setup theme handling
+        self.setup_theme_handling()
+        
+        # Track theme-aware components
+        self.themed_group_boxes = {}
+        
+        # Setup UI and load config
         self.setup_ui()
         self.load_config_values()
 
@@ -185,14 +211,10 @@ class ConfigWindow(QWidget):
         """Set up the outputs section with palette-aware styling"""
         theme_manager = ThemeManager()
         
-        # If updating an existing group box
-        if update_existing and hasattr(self, 'outputs_group'):
-            theme_manager.style_groupbox(self.outputs_group, "top left")
-            return
-        
         # Creating a new outputs group
         self.outputs_group = QGroupBox("Outputs")
         theme_manager.style_groupbox(self.outputs_group, "top left")
+        self.themed_group_boxes['outputs'] = self.outputs_group
 
         outputs_layout = QVBoxLayout()
         
@@ -235,52 +257,15 @@ class ConfigWindow(QWidget):
         main_layout.addWidget(self.outputs_group)
     
     # Fixity Section
-    def setup_fixity_section(self, main_layout, update_existing=False):
+    def setup_fixity_section(self, main_layout):
         """Set up the fixity section with palette-aware styling"""
-        palette = self.palette()
-        midlight_color = palette.color(palette.ColorRole.Midlight).name()
-        text_color = palette.color(palette.ColorRole.Text).name()
-        
-        # If updating an existing group box
-        if update_existing and hasattr(self, 'fixity_group'):
-            self.fixity_group.setStyleSheet(f"""
-                QGroupBox {{
-                    font-weight: bold;
-                    font-size: 14px;
-                    color: {text_color};
-                    border: 2px solid gray;
-                    border-radius: 5px;
-                    margin-top: 10px;
-                    background-color: {midlight_color};
-                }}
-                QGroupBox::title {{
-                    subcontrol-origin: margin;
-                    subcontrol-position: top left;
-                    padding: 0 10px;
-                    color: {text_color};
-                }}
-            """)
-            return
+        theme_manager = ThemeManager()
         
         # Creating a new fixity group
         self.fixity_group = QGroupBox("Fixity")
-        self.fixity_group.setStyleSheet(f"""
-            QGroupBox {{
-                font-weight: bold;
-                font-size: 14px;
-                color: {text_color};
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-                background-color: {midlight_color};
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 10px;
-                color: {text_color};
-            }}
-        """)
+        theme_manager.style_groupbox(self.fixity_group, "top left")
+        self.themed_group_boxes['fixity'] = self.fixity_group
+        
         fixity_layout = QVBoxLayout()
         
         # Create checkboxes with descriptions on second line
@@ -326,28 +311,14 @@ class ConfigWindow(QWidget):
         
     # Tools Section
     def setup_tools_section(self, main_layout, update_existing=False):
-        # If we're just updating existing group boxes
-        if update_existing and hasattr(self, 'tools_group'):
-            # Update main tools group box
-            self.update_groupbox_style(self.tools_group, "top center")
-            
-            # Update all tool-specific group boxes
-            for tool_name, group_box in self.tool_group_boxes.items():
-                self.update_groupbox_style(group_box, "top left")
-            
-            # Update mediaconch group
-            if hasattr(self, 'mediaconch_group'):
-                self.update_groupbox_style(self.mediaconch_group, "top left")
-                
-            # Update qct group
-            if hasattr(self, 'qct_group'):
-                self.update_groupbox_style(self.qct_group, "top left")
-            
-            return
+        """Set up the tools section with palette-aware styling"""
+        theme_manager = ThemeManager()
     
         # Main Tools group box with centered title
         self.tools_group = QGroupBox("Tools")
-        self.update_groupbox_style(self.tools_group, "top center")
+        theme_manager.style_groupbox(self.tools_group, "top center")
+        self.themed_group_boxes['tools'] = self.tools_group
+
         tools_layout = QVBoxLayout()
         
         # Dictionary to store references to all tool group boxes
@@ -359,19 +330,14 @@ class ConfigWindow(QWidget):
         
         # Individual tool group boxes with left-aligned titles
         for tool in basic_tools:
-            # If updating existing group boxes
-            if update_existing:
-                if tool in self.tool_group_boxes:
-                    self.update_groupbox_style(self.tool_group_boxes[tool], "top left")
-                continue  # Skip the rest as we're just updating styles
-                
             # Create new group box for this tool
             tool_group = QGroupBox(tool)
-            self.update_groupbox_style(tool_group, "top left")
+            theme_manager.style_groupbox(tool_group, "top left")
             tool_layout = QVBoxLayout()
             
             # Store reference to this group box
             self.tool_group_boxes[tool] = tool_group
+            self.themed_group_boxes[f'tool_{tool}'] = tool_group
             
             if tool.lower() == 'qctools':
                 run_cb = QCheckBox("Run Tool")
@@ -404,7 +370,9 @@ class ConfigWindow(QWidget):
 
         # MediaConch section
         self.mediaconch_group = QGroupBox("Mediaconch")
-        self.update_groupbox_style(self.mediaconch_group, "top left")
+        theme_manager.style_groupbox(self.mediaconch_group, "top left")
+        self.themed_group_boxes['mediaconch'] = self.mediaconch_group
+
         mediaconch_layout = QVBoxLayout()
 
         self.run_mediaconch_cb = QCheckBox("Run Mediaconch")
@@ -450,7 +418,9 @@ class ConfigWindow(QWidget):
 
         # QCT Parse section
         self.qct_group = QGroupBox("qct-parse")
-        self.update_groupbox_style(self.qct_group, "top left")
+        theme_manager.style_groupbox(self.qct_group, "top left")
+        self.themed_group_boxes['qct'] = self.qct_group
+
         qct_layout = QVBoxLayout()
 
         # Checkboxes with descriptions on second line
@@ -541,6 +511,36 @@ class ConfigWindow(QWidget):
         
         self.tools_group.setLayout(tools_layout)
         main_layout.addWidget(self.tools_group)
+
+        # Style all buttons
+        theme_manager.style_buttons(self)
+
+    # Similarly in ConfigWindow.on_theme_changed:
+    def on_theme_changed(self, palette):
+        """Handle theme changes for ConfigWindow"""
+        print(f"ConfigWindow.on_theme_changed called with palette: {palette}")
+        
+        # Don't call super() here since QWidget doesn't have on_theme_changed
+        # Instead, apply the palette directly
+        if hasattr(self, 'setPalette'):
+            self.setPalette(palette)
+        
+        # Get the theme manager
+        theme_manager = ThemeManager()
+        
+        # Update all tracked group boxes
+        for key, group_box in self.themed_group_boxes.items():
+            # Main tools group has center-aligned title
+            if key == 'tools':
+                theme_manager.style_groupbox(group_box, "top center")
+            else:
+                theme_manager.style_groupbox(group_box, "top left")
+        
+        # Style all buttons
+        theme_manager.style_buttons(self)
+        
+        # Force repaint
+        self.update()
 
     def connect_signals(self):
         """Connect all widget signals to their handlers"""
@@ -760,101 +760,88 @@ class ConfigWindow(QWidget):
                         "Failed to import MediaConch policy file. Check logs for details."
                     )
 
-    def update_palette(self, palette):
-        """Update the palette when the system theme changes"""
-        self.setPalette(palette)
-        
-        # Update all styled sections
-        self.setup_outputs_section(None, update_existing=True)
-        self.setup_fixity_section(None, update_existing=True)
-        self.setup_tools_section(None, update_existing=True)
-        
-        # Update all child widgets
-        for child in self.findChildren(QWidget):
-            if hasattr(child, 'setPalette'):
-                child.setPalette(palette)
-        
-        # Force repaint
-        self.update()
 
-    def update_groupbox_style(self, group_box, title_position="top left"):
-        """
-        Update a group box style with current palette colors
-        
-        Parameters:
-        - group_box: The QGroupBox to update
-        - title_position: The position of the title (e.g., "top left", "top center")
-        """
-        palette = self.palette()
-        midlight_color = palette.color(palette.ColorRole.Midlight).name()
-        text_color = palette.color(palette.ColorRole.Text).name()
-        
-        group_box.setStyleSheet(f"""
-            QGroupBox {{
-                font-weight: bold;
-                font-size: 14px;
-                color: {text_color};
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-                background-color: {midlight_color};
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                subcontrol-position: {title_position};
-                padding: 0 10px;
-                color: {text_color};
-            }}
-        """)
-
-class MainWindow(QMainWindow):
+class MainWindow(QMainWindow, ThemeableMixin):
     def __init__(self):
         super().__init__()
         self.signals = ProcessingSignals()
         self.worker = None  # Initialize worker as None
         self.processing_window = None
 
+        # Initialize collections for theme-aware components
+        self.spex_tab_group_boxes = []
+        self.checks_tab_group_boxes = []
+
         # Connect all signals
         self.setup_signal_connections()
         
         # Setup UI
         self.setup_ui()
+        
+        # QTimer to delay theme setup until after application is fully initialized
+        QTimer.singleShot(100, self.delayed_theme_setup)
     
+    def delayed_theme_setup(self):
+        """Setup theme handling after a short delay to ensure QApplication exists"""
+        print("MainWindow: Delayed theme setup")
+        
         # Setup theme change detection
         self.setup_theme_handling()
 
-        # Store references to group boxes that need theme updates
-        self.themeable_group_boxes = []
+        # Direct connection to palette changes if QApplication exists
+        app = QApplication.instance()
+        if app:
+            # Use the correct method name that exists in your class
+            # If your method is named differently, use that name instead
+            if hasattr(self, '_debug_palette_changed'):
+                app.paletteChanged.connect(self._debug_palette_changed)
+            elif hasattr(self, 'on_palette_changed'):
+                app.paletteChanged.connect(self.on_palette_changed)
+            else:
+                # Create the method if it doesn't exist
+                def debug_palette_changed(palette):
+                    print("Direct palette change detected in MainWindow")
+                    # Ensure that theme manager connections are active
+                    theme_manager = ThemeManager.instance()
+                    theme_manager.ensure_connections()
+                
+                self._debug_palette_changed = debug_palette_changed
+                app.paletteChanged.connect(self._debug_palette_changed)
+            
+            # Force ThemeManager to initialize and connect
+            theme_manager = ThemeManager.instance()
+            theme_manager._ensure_initialized()
+            theme_manager.ensure_connections()
 
-    # Override the on_theme_changed method for custom handling
     def on_theme_changed(self, palette):
-        """
-        Handle theme changes throughout the application.
-        This method is called automatically when the system theme changes
-        because we're using the ThemeableMixin.
-        """
-        # Call the parent class implementation first
-        # This applies the palette to this window and its direct children
-        super().on_theme_changed(palette)
+        """Handle theme changes across the application with thorough refresh"""
+        print(f"MainWindow.on_theme_changed called with palette: {palette}")
         
-        # Get theme manager for any additional styling
+        # Don't call super() since it's causing the error
+        # Instead, apply the palette directly
+        if hasattr(self, 'setPalette'):
+            self.setPalette(palette)
+        
+        print(f"Theme changed event triggered in MainWindow")
+        
+        # Get the theme manager
         theme_manager = ThemeManager()
         
-        # Update tab styling
+        # 1. Update the tabs
         if hasattr(self, 'tabs'):
-            self.tabs.setStyleSheet(theme_manager.get_tab_style())
+            tab_style = theme_manager.get_tab_style()
+            self.tabs.setStyleSheet(tab_style)
+            self.tabs.update()
         
-        # Update Spex tab components
-        if hasattr(self, 'spex_tab_group_boxes'):
-            self.setup_spex_tab(update_existing=True)
+        # 2. Update all groupboxes in both tabs
+        for collection_name in ['checks_tab_group_boxes', 'spex_tab_group_boxes']:
+            if hasattr(self, collection_name):
+                group_boxes = getattr(self, collection_name)
+                for group_box in group_boxes:
+                    # Apply new style (removed buttons styling)
+                    theme_manager.style_groupbox(group_box)
         
-        # Update Checks tab components
-        # If you have a similar pattern of group boxes in the checks tab
-        if hasattr(self, 'checks_tab_group_boxes'):
-            for group_box in self.checks_tab_group_boxes:
-                theme_manager.style_groupbox(group_box)
-        
-        # Style any special buttons like the check_spex_button
+        # 3. Special styling for green button
         if hasattr(self, 'check_spex_button'):
             self.check_spex_button.setStyleSheet("""
                 QPushButton {
@@ -871,20 +858,18 @@ class MainWindow(QMainWindow):
                 }
             """)
         
-        # Update child windows that might be open
-        # ConfigWindow
-        if hasattr(self, 'config_widget') and self.config_widget:
-            # If ConfigWindow is using ThemeableMixin
-            self.config_widget.on_theme_changed(palette)
+        # 4. Update child windows with careful error handling
+        for child_window in ['config_widget', 'processing_window']:
+            if hasattr(self, child_window):
+                child = getattr(self, child_window)
+                if child and hasattr(child, 'on_theme_changed'):
+                    try:
+                        child.on_theme_changed(palette)
+                    except Exception as e:
+                        print(f"Error updating {child_window}: {e}")
         
-        # ProcessingWindow
-        if hasattr(self, 'processing_window') and self.processing_window:
-            # If ProcessingWindow is using ThemeableMixin
-            self.processing_window.on_theme_changed(palette)
-        
-        # Force UI update to ensure all changes are visible
+        # 5. Force a repaint
         self.update()
-        QApplication.processEvents()
 
     def setup_signal_connections(self):
         """Setup all signal connections"""
@@ -993,9 +978,20 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Cancelled", "Processing was cancelled.")
 
     def closeEvent(self, event):
+        print(f"MainWindow.closeEvent called")
+        
+        # Clean up child windows with theme connections
+        for child_window in ['config_widget', 'processing_window']:
+            if hasattr(self, child_window) and getattr(self, child_window):
+                child = getattr(self, child_window)
+                if hasattr(child, 'cleanup_theme_handling'):
+                    child.cleanup_theme_handling()
+        
+        # Existing code
         if self.worker and self.worker.isRunning():
             self.worker.cancel()
             self.worker.wait()
+        
         # Call our quit handling method
         self.on_quit_clicked()
         super().closeEvent(event)
@@ -1073,11 +1069,11 @@ class MainWindow(QMainWindow):
     # Create a QTabWidget for tabs
     def setup_tabs(self, update_existing=False):
         """Set up or update tab styling"""
-        theme_manager = ThemeManager()
+        theme_manager = ThemeManager.instance()
+        print(f"setup_tabs called, ThemeManager connection count: {len(ThemeManager._connected_slots)}")
         
-        # If updating existing tabs
-        if update_existing and hasattr(self, 'tabs'):
-            self.tabs.setStyleSheet(theme_manager.get_tab_style())
+        # Skip creation if we're just updating themes
+        if update_existing:
             return
 
         # Create new tabs
@@ -1089,23 +1085,22 @@ class MainWindow(QMainWindow):
         self.setup_checks_tab()
         self.setup_spex_tab()
 
-    def update_spex_tab_themes(self):
-        """Update themes for all components in the Spex tab"""
-        if not hasattr(self, 'spex_tab_group_boxes') or not self.spex_tab_group_boxes:
-            return
-            
-        theme_manager = ThemeManager()
-        
-        # Update all group boxes
-        for group_box in self.spex_tab_group_boxes:
-            theme_manager.style_groupbox(group_box)
-        
-        # Update all buttons in the Spex tab
-        for group_box in self.spex_tab_group_boxes:
-            theme_manager.style_buttons(group_box)
 
     # First tab: "checks"
-    def setup_checks_tab(self):
+    def setup_checks_tab(self, update_existing=False):
+        """Set up or update the Checks tab with theme-aware styling"""
+        # Get the theme manager instance
+        theme_manager = ThemeManager()
+
+        # Skip creation if we're just updating themes
+        if update_existing:
+            return
+        
+        # If we're here, we're creating the tab from scratch or recreating it
+        # Initialize or reset the group boxes collection
+        self.checks_tab_group_boxes = []
+    
+        # Create the tab
         checks_tab = QWidget()
         checks_layout = QVBoxLayout(checks_tab)
         self.tabs.addTab(checks_tab, "Checks")
@@ -1119,46 +1114,17 @@ class MainWindow(QMainWindow):
         # Vertical layout for the main content in "Checks"
         vertical_layout = QVBoxLayout(main_widget)
 
-        # Import directory section with styled group box
-        import_group = QGroupBox("Import")
-        import_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }
-        """)
+        # 1. Import directory section
+        self.import_group = QGroupBox("Import")
+        theme_manager.style_groupbox(self.import_group, "top center")
+        self.checks_tab_group_boxes.append(self.import_group)
+        
         import_layout = QVBoxLayout()
 
-         # Get colors from the system palette
-        palette = self.palette()
-        highlight_color = palette.color(palette.ColorRole.Highlight).name()
-        highlight_text_color = palette.color(palette.ColorRole.HighlightedText).name()
-        
         # Import directory button
         import_directories_button = QPushButton("Import Directory...")
         import_directories_button.clicked.connect(self.import_directories)
-        import_directories_button.setStyleSheet(f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 8px;
-                border: 1px solid gray;
-                border-radius: 4px;
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """)
-        import_layout.addWidget(import_directories_button)
-
+        
         # Directory section
         directory_label = QLabel("Selected Directories:")
         directory_label.setStyleSheet("font-weight: bold;")
@@ -1169,45 +1135,28 @@ class MainWindow(QMainWindow):
                 border-radius: 3px;
             }
         """)
-        import_layout.addWidget(directory_label)
-        import_layout.addWidget(self.directory_list)
-
+        
         # Delete button
         delete_button = QPushButton("Delete Selected")
-        delete_button.setStyleSheet(f"""
-            QPushButton {{
-                font-weight: bold;
-                padding: 6px;
-                border: 1px solid gray;
-                border-radius: 4px;
-            }}
-            QPushButton:hover {{
-                background-color: {highlight_color};
-                color: {highlight_text_color};
-            }}
-        """)
         delete_button.clicked.connect(self.delete_selected_directory)
+        
+        # Add widgets to layout
+        import_layout.addWidget(import_directories_button)
+        import_layout.addWidget(directory_label)
+        import_layout.addWidget(self.directory_list)
         import_layout.addWidget(delete_button)
         
-        import_group.setLayout(import_layout)
-        vertical_layout.addWidget(import_group)
+        self.import_group.setLayout(import_layout)
+        vertical_layout.addWidget(self.import_group)
+        
+        # Style all buttons in the section
+        theme_manager.style_buttons(self.import_group)
 
-        # Command Profile section
-        profile_group = QGroupBox("Checks Profiles")
-        profile_group.setStyleSheet("""
-            QGroupBox {
-                font-weight: bold;
-                font-size: 14px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }
-        """)
+        # 2. Command Profile section
+        self.profile_group = QGroupBox("Checks Profiles")
+        theme_manager.style_groupbox(self.profile_group, "top center")
+        self.checks_tab_group_boxes.append(self.profile_group)
+        
         profile_layout = QVBoxLayout()
         
         command_profile_label = QLabel("Select a Checks profile:")
@@ -1226,29 +1175,20 @@ class MainWindow(QMainWindow):
             self.command_profile_dropdown.setCurrentText("Step 2")
 
         self.command_profile_dropdown.currentIndexChanged.connect(self.on_profile_selected)
+
+        # Add widgets to layout
         profile_layout.addWidget(command_profile_label)
         profile_layout.addWidget(command_profile_desc)
         profile_layout.addWidget(self.command_profile_dropdown)
         
-        profile_group.setLayout(profile_layout)
-        vertical_layout.addWidget(profile_group)
+        self.profile_group.setLayout(profile_layout)
+        vertical_layout.addWidget(self.profile_group)
 
-        # Config section
-        config_group = QGroupBox("Checks Options")
-        config_group.setStyleSheet(f"""
-            QGroupBox {{
-                font-weight: bold;
-                font-size: 14px;
-                border: 2px solid gray;
-                border-radius: 5px;
-                margin-top: 10px;
-            }}
-            QGroupBox::title {{
-                subcontrol-origin: margin;
-                subcontrol-position: top center;
-                padding: 0 10px;
-            }}
-        """)
+        # 3. Config section
+        self.config_group = QGroupBox("Checks Options")
+        theme_manager.style_groupbox(self.config_group, "top center")
+        self.checks_tab_group_boxes.append(self.config_group)
+        
         config_layout = QVBoxLayout()
         
         config_scroll_area = QScrollArea()
@@ -1265,8 +1205,8 @@ class MainWindow(QMainWindow):
         config_scroll_area.setMinimumWidth(400)
 
         config_layout.addWidget(config_scroll_area)
-        config_group.setLayout(config_layout)
-        vertical_layout.addWidget(config_group)
+        self.config_group.setLayout(config_layout)
+        vertical_layout.addWidget(self.config_group)
 
         # Add scroll area to main layout
         checks_layout.addWidget(main_scroll_area)
@@ -1313,16 +1253,8 @@ class MainWindow(QMainWindow):
         # Get the theme manager instance
         theme_manager = ThemeManager()
         
-        # If we're just updating existing components
-        if update_existing and hasattr(self, 'spex_tab_group_boxes') and self.spex_tab_group_boxes:
-            # Update all group boxes in the Spex tab
-            for group_box in self.spex_tab_group_boxes:
-                theme_manager.style_groupbox(group_box)
-            
-            # Update button styles 
-            for group_box in self.spex_tab_group_boxes:
-                theme_manager.style_buttons(group_box)
-            
+        # Skip creation if we're just updating themes
+        if update_existing:
             return
         
         # If we're here, we're creating the tab from scratch or recreating it
@@ -1760,56 +1692,6 @@ class MainWindow(QMainWindow):
         self.config_mgr.save_last_used_config('spex')
         self.close()  # Close the GUI
 
-    def setup_theme_handling(self):
-        """Setup handling for system theme changes"""
-        # Connect to the application's palette changed signal
-        QApplication.instance().paletteChanged.connect(self.on_system_theme_changed)
-        
-    def on_system_theme_changed(self, palette):
-        """Handle system theme changes"""
-        # Update application palette
-        QApplication.instance().setPalette(palette)
-        
-        # Force update all widgets by recursively applying the new palette
-        self.update_widget_themes(self)
-        
-        # Explicitly update ConfigWindow if it exists
-        if hasattr(self, 'config_widget') and self.config_widget:
-            self.config_widget.update_palette(palette)
-        
-        # Update processing window if open
-        if self.processing_window:
-            self.processing_window.update_palette(palette)
-
-        # Update tabs styling
-        self.setup_tabs(update_existing=True)
-        
-        # Update Spex tab group boxes and buttons
-        # Make sure this happens AFTER setup_spex_tab
-        self.setup_spex_tab(update_existing=True)
-        self.update_button_styles_in_spex_tab()
-        
-        # Process events to ensure UI updates take effect
-        QApplication.processEvents()
-        
-    def update_widget_themes(self, parent_widget):
-        """Recursively update palette for all child widgets"""
-        for child in parent_widget.children():
-            # Update this widget's palette if it has setPalette method
-            if hasattr(child, 'setPalette'):
-                child.setPalette(QApplication.instance().palette())
-            
-            # Update styled widgets that need explicit style refresh
-            if hasattr(child, 'style') and hasattr(child.style(), 'unpolish'):
-                child.style().unpolish(child)
-                child.style().polish(child)
-            
-            # Process children recursively
-            self.update_widget_themes(child)
-        
-        # Force repaint
-        if hasattr(parent_widget, 'update'):
-            parent_widget.update()
 
     def update_groupbox_style(self, group_box, title_position="top center"):
         """
