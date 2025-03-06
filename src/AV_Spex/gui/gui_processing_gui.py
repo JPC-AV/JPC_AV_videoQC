@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPalette
 
 import os
-from ..utils.gui_theme_manager import ThemeManager, ThemeableMixin
+from ..gui.gui_theme_manager import ThemeManager, ThemeableMixin
 
 class ProcessingWindow(QMainWindow, ThemeableMixin):
     """Window to display processing status and progress."""

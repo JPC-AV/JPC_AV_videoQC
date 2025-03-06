@@ -10,14 +10,14 @@ import os
 import sys
 from dataclasses import asdict
 
-from ..utils.gui_processing_gui import ProcessingWindow, DirectoryListWidget
-from ..utils.gui_checks_window import ChecksWindow
+from ..gui.gui_processing_gui import ProcessingWindow, DirectoryListWidget
+from ..gui.gui_checks_window import ChecksWindow
+from ..gui.gui_theme_manager import ThemeManager, ThemeableMixin
 
 from ..utils.setup_config import SpexConfig, ChecksConfig
 from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 from ..utils import edit_config
-from ..utils.gui_theme_manager import ThemeManager, ThemeableMixin
 
 from ..processing.worker_thread import ProcessingWorker
 from ..processing.avspex_processor import AVSpexProcessor

@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPalette
 
-from ..utils.gui_theme_manager import ThemeManager, ThemeableMixin
+from ..gui.gui_theme_manager import ThemeManager, ThemeableMixin
 from ..utils.setup_config import ChecksConfig
 from ..utils.config_manager import ConfigManager
 
