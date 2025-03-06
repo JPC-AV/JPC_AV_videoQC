@@ -21,16 +21,19 @@ from .utils.config_io import ConfigIO
 # Create lazy loader for GUI components
 class LazyGUILoader:
     _app = None
-    _ConfigWindow = None
+    _ChecksWindow = None
     _MainWindow = None
     _QApplication = None
+    
     @classmethod
     def load_gui_components(cls):
         if cls._QApplication is None:
             from PyQt6.QtWidgets import QApplication
-            from .utils.gui_setup import ConfigWindow, MainWindow
+            # Update imports to use the new UI modules
+            from .utils.gui_checks_window import ChecksWindow
+            from .utils.gui_main_window import MainWindow
             cls._QApplication = QApplication
-            cls._ConfigWindow = ConfigWindow
+            cls._ChecksWindow = ChecksWindow
             cls._MainWindow = MainWindow
             
     @classmethod
@@ -39,11 +42,12 @@ class LazyGUILoader:
         if cls._app is None:
             cls._app = cls._QApplication(sys.argv)
         return cls._app
+    
     @classmethod
     def get_main_window(cls):
         cls.load_gui_components()
         return cls._MainWindow()
-
+    
 config_mgr = ConfigManager()
 
 @dataclass

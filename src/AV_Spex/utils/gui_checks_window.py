@@ -5,13 +5,13 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPalette
 
-from ..utils.theme_manager import ThemeManager, ThemeableMixin
+from ..utils.gui_theme_manager import ThemeManager, ThemeableMixin
 from ..utils.setup_config import ChecksConfig
 from ..utils.config_manager import ConfigManager
 
 from ..processing.processing_mgmt import setup_mediaconch_policy
 
-class ConfigWindow(QWidget, ThemeableMixin):
+class ChecksWindow(QWidget, ThemeableMixin):
     """Configuration window for managing application settings."""
     
     def __init__(self, config_mgr=None):
@@ -349,7 +349,7 @@ class ConfigWindow(QWidget, ThemeableMixin):
         theme_manager.style_buttons(self)
 
     def on_theme_changed(self, palette):
-        """Handle theme changes for ConfigWindow"""
+        """Handle theme changes for ChecksWindow"""
         # Apply the palette directly
         self.setPalette(palette)
         

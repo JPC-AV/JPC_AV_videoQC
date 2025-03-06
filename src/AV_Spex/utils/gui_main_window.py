@@ -10,14 +10,14 @@ import os
 import sys
 from dataclasses import asdict
 
-from .processing_ui import ProcessingWindow, DirectoryListWidget
-from .config_ui import ConfigWindow
+from ..utils.gui_processing_gui import ProcessingWindow, DirectoryListWidget
+from ..utils.gui_checks_window import ChecksWindow
 
 from ..utils.setup_config import SpexConfig, ChecksConfig
 from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 from ..utils import edit_config
-from ..utils.theme_manager import ThemeManager, ThemeableMixin
+from ..utils.gui_theme_manager import ThemeManager, ThemeableMixin
 
 from ..processing.worker_thread import ProcessingWorker
 from ..processing.avspex_processor import AVSpexProcessor
@@ -413,7 +413,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 border: none;
             }
         """)
-        self.config_widget = ConfigWindow(config_mgr=self.config_mgr)
+        self.config_widget = ChecksWindow(config_mgr=self.config_mgr)
         config_scroll_area.setWidgetResizable(True)
         config_scroll_area.setWidget(self.config_widget)
 
