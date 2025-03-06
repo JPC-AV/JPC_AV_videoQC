@@ -64,17 +64,17 @@ class ThemeManager(QObject):
         midlight_color = palette.color(palette.ColorRole.Midlight).name()
         text_color = palette.color(palette.ColorRole.Text).name()
         
-        # If title_position is None, attempt to extract the current position from the stylesheet
+         # If title_position is None, use a simpler approach
         if title_position is None:
-            current_style = group_box.styleSheet()
-            # Look for the subcontrol-position property
-            import re
-            position_match = re.search(r'subcontrol-position:\s*(top \w+)', current_style)
-            if position_match:
-                title_position = position_match.group(1)
+            # Store the group title position in the widget property if not already set
+            title_pos = group_box.property("title_position")
+            if title_pos:
+                title_position = title_pos
             else:
-                # Default if we can't find it
-                title_position = "top left"
+                title_position = "top left"  # Default
+        else:
+            # Store position for future reference
+            group_box.setProperty("title_position", title_position)
         
         # Apply style based on current palette with specified or preserved title position
         group_box.setStyleSheet(f"""

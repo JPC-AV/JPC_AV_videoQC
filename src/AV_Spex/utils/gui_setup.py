@@ -59,22 +59,16 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.cancel_button = QPushButton("Cancel")
         layout.addWidget(self.cancel_button)
 
-        # Center the window on screen
-        self._center_on_screen()  # Changed to use the defined method
-        
-       # Setup theme handling
-        self.setup_theme_handling()
+        # Detailed status
+        self.detailed_status = QLabel("")
+        self.detailed_status.setWordWrap(True)
+        layout.addWidget(self.detailed_status)
         
         # Center the window on screen
         self._center_on_screen()
         
-        # Force window to update
-        self.update()
-        self.repaint()
-
-        self.detailed_status = QLabel("")
-        self.detailed_status.setWordWrap(True)
-        layout.addWidget(self.detailed_status)
+        # Setup theme handling (only once)
+        self.setup_theme_handling()
 
     def update_detailed_status(self, message):
         self.detailed_status.setText(message)
