@@ -50,7 +50,9 @@ exe = EXE(
     console=False,
     codesign_identity=None,
     entitlements_file=None, 
-    icon=os.path.join(spec_dir, 'av_spex_the_logo.icns')
+    target_arch=None,  # Build for the current architecture
+    universal2=True,   # Build a universal binary (both Intel and Apple Silicon)
+    icon='av_spex_the_logo.icns'
 )
 
 coll = COLLECT(
