@@ -303,7 +303,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def _load_logo(self):
         """Load and display the logo"""
-        logo_path = self.config_mgr.get_logo_path('JPCA_H_Branding_011025.png')
+        logo_path = self.config_mgr.get_logo_path('Branding_avspex_noJPC_030725.png')
         image_layout = self.add_image_to_top(logo_path)
         self.main_layout.insertLayout(0, image_layout)  # Insert at index 0 (top)
 
