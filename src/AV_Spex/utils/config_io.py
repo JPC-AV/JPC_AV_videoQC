@@ -3,8 +3,8 @@ import json
 import os
 from typing import Optional, Union, List
 from datetime import datetime
-from .setup_config import SpexConfig, ChecksConfig
-from .config_manager import ConfigManager
+from ..utils.config_setup import SpexConfig, ChecksConfig
+from ..utils.config_manager import ConfigManager
 
 class ConfigIO:
     def __init__(self, config_mgr: ConfigManager):

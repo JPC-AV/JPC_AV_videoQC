@@ -6,7 +6,7 @@ import sys
 from dataclasses import asdict
 
 from ..utils.log_setup import logger
-from ..utils.setup_config import ChecksConfig, SpexConfig
+from ..utils.config_setup import ChecksConfig, SpexConfig
 from ..utils.config_manager import ConfigManager
 
 config_mgr = ConfigManager()

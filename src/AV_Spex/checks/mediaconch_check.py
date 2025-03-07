@@ -5,7 +5,7 @@ import os
 import csv
 import subprocess
 from ..utils.log_setup import logger
-from ..utils.setup_config import ChecksConfig
+from ..utils.config_setup import ChecksConfig
 from ..utils.config_manager import ConfigManager
 
 config_mgr = ConfigManager()
