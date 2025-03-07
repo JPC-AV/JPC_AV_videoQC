@@ -265,7 +265,11 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
         self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
 
-        self.resize(800, 900)
+        self.setMinimumSize(600, 500)
+
+        ## self.windowFlags() retrieves the current window flags
+        ## Qt.WindowType.WindowMaximizeButtonHint enables the maximize button in the window's title bar.
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowMaximizeButtonHint)
         
         # Initialize settings
         self.settings = QSettings('NMAAHC', 'AVSpex')
