@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
     QLabel, QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, 
-    QComboBox, QTabWidget, QTextEdit, QMessageBox
+    QComboBox, QTabWidget, QTextEdit, QMessageBox, QDialog
 )
-from PyQt6.QtCore import Qt, QSettings, QDir, QTimer
+from PyQt6.QtCore import Qt, QSettings, QDir, QTimer, QSize
 from PyQt6.QtGui import QPixmap, QPalette
 
 import os
@@ -22,6 +22,9 @@ from ..utils import config_edit
 from ..processing.worker_thread import ProcessingWorker
 from ..processing.avspex_processor import AVSpexProcessor
 from ..gui.gui_signals import ProcessingSignals
+
+from AV_Spex import __version__
+version_string = __version__
 
 class MainWindow(QMainWindow, ThemeableMixin):
     """Main application window with tabs for configuration and settings."""
@@ -281,12 +284,22 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Set up menu bar
         self.menu_bar = QMenuBar(self)
         self.setMenuBar(self.menu_bar)
+        # App menu 
+        self.app_menu = self.menu_bar.addMenu("AV Spex")
+        self.about_action = self.app_menu.addAction("About AV Spex")
+        self.about_action.triggered.connect(self.show_about_dialog)
+        
+        # Add a separator
+        self.app_menu.addSeparator()
+        
+        # Add Quit action to the app menu
+        self.quit_action = self.app_menu.addAction("Quit")
+        self.quit_action.triggered.connect(self.on_quit_clicked)
+        
+        # File menu (comes after the app menu)
         self.file_menu = self.menu_bar.addMenu("File")
         self.import_action = self.file_menu.addAction("Import Directory")
         self.import_action.triggered.connect(self.import_directories)
-        # Quit action
-        self.quit_action = self.file_menu.addAction("Quit")
-        self.quit_action.triggered.connect(self.on_quit_clicked)
 
         self.setup_main_layout()
         
@@ -900,3 +913,49 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.config_mgr.save_last_used_config('checks')
         self.config_mgr.save_last_used_config('spex')
         self.close()  # Close the GUI
+
+    def show_about_dialog(self):
+        """Show the About dialog with version information and logo."""
+        # Create a dialog
+        about_dialog = QDialog(self)
+        about_dialog.setWindowTitle("About AV Spex")
+        about_dialog.setMinimumWidth(400)
+        
+        # Create layout
+        layout = QVBoxLayout(about_dialog)
+        
+        # Add logo
+        logo_label = QLabel()
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Get the logo path
+        logo_path = self.config_mgr.get_logo_path('av_spex_the_logo.png')
+        
+        if logo_path and os.path.exists(logo_path):
+            pixmap = QPixmap(logo_path)
+            if not pixmap.isNull():
+                # Scale pixmap to a reasonable size for the dialog
+                scaled_pixmap = pixmap.scaled(QSize(300, 150), 
+                                            Qt.AspectRatioMode.KeepAspectRatio, 
+                                            Qt.TransformationMode.SmoothTransformation)
+                logo_label.setPixmap(scaled_pixmap)
+        
+        layout.addWidget(logo_label)
+        
+        # Add version information
+        version_label = QLabel(f"Version: {version_string}")
+        version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        version_label.setStyleSheet("font-weight: bold; font-size: 14px; margin: 10px;")
+        layout.addWidget(version_label)
+        
+        # Add additional information if needed
+        info_label = QLabel("AV Spex - Audio/Video Specification Checker")
+        info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(info_label)
+        
+        copyright_label = QLabel("GNU General Public License v3.0")
+        copyright_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(copyright_label)
+        
+        # Show the dialog
+        about_dialog.exec()
