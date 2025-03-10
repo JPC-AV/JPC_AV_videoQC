@@ -1,12 +1,16 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QListWidget, QPushButton, QAbstractItemView, QTextEdit, QProgressBar
+    QListWidget, QListWidgetItem, QPushButton, QAbstractItemView, QTextEdit, 
+    QProgressBar
 )
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPalette
+from PyQt6.QtGui import QPalette, QFont
 
 import os
 from ..gui.gui_theme_manager import ThemeManager, ThemeableMixin
+
+from ..utils.config_manager import ConfigManager
+from ..utils.config_setup import ChecksConfig
 
 class ProcessingWindow(QMainWindow, ThemeableMixin):
     """Window to display processing status and progress."""
@@ -14,13 +18,13 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Processing Status")
-        self.resize(500, 200)
+        self.resize(600, 400)
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
         
-        # Central widget and layout
+        # Central widget and main_layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        layout = QVBoxLayout(central_widget)
+        main_layout = QVBoxLayout(central_widget)
         
         # Status label with larger font
         self.status_label = QLabel("Initializing...")
@@ -28,34 +32,115 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         font.setPointSize(12)
         self.status_label.setFont(font)
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.status_label)
+        main_layout.addWidget(self.status_label)
         
         # Progress bar
         self.progress_bar = QProgressBar()
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setMinimum(0)
         self.progress_bar.setMaximum(0)  # This makes it into a "bouncing ball" progress bar
-        layout.addWidget(self.progress_bar)
+        main_layout.addWidget(self.progress_bar)
 
+        # Create a horizontal layout for steps list and details text
+        h_layout = QHBoxLayout()
+        main_layout.addLayout(h_layout, 1)  # stretch factor of 1 allows for window to stretch
+        
+        # Steps list widget - shows steps that will be executed
+        self.steps_list = QListWidget()
+        self.steps_list.setMinimumWidth(200)
+        self.steps_list.setAlternatingRowColors(True)
+        h_layout.addWidget(self.steps_list)
+
+        # Details text
         self.details_text = QTextEdit()
         self.details_text.setReadOnly(True)
-        self.details_text.setMinimumHeight(100)
-        layout.addWidget(self.details_text, 1) # stretch factor of 1
+        h_layout.addWidget(self.details_text, 1)  # stretch factor of 1
 
         # Add cancel button
         self.cancel_button = QPushButton("Cancel")
-        layout.addWidget(self.cancel_button)
+        main_layout.addWidget(self.cancel_button)
+
 
         # Detailed status
         self.detailed_status = QLabel("")
         self.detailed_status.setWordWrap(True)
-        layout.addWidget(self.detailed_status)
+        main_layout.addWidget(self.detailed_status)
         
         # Center the window on screen
         self._center_on_screen()
+
+        # Load the configuration and populate steps
+        self.config_mgr = ConfigManager()
+        self.populate_steps_list()
         
         # Setup theme handling (only once)
         self.setup_theme_handling()
+
+    def populate_steps_list(self):
+        """Populate the steps list with enabled checks from config."""
+        try:
+            # Get checks config
+            checks_config = self.config_mgr.get_config('checks', ChecksConfig)
+            if not checks_config:
+                self.update_status("Warning: Could not load checks configuration")
+                return
+
+            # Add steps based on configuration
+            # First add outputs
+            if checks_config.outputs.access_file == "yes":
+                self._add_step_item("Generate Access File")
+            if checks_config.outputs.report == "yes":
+                self._add_step_item("Generate Report")
+            
+            # Add fixity
+            if checks_config.fixity.check_fixity == "yes":
+                self._add_step_item("Check Fixity")
+            if checks_config.fixity.validate_stream_fixity == "yes":
+                self._add_step_item("Validate Stream Fixity")
+            if checks_config.fixity.embed_stream_fixity == "yes":
+                self._add_step_item("Embed Stream Fixity")
+            if checks_config.fixity.output_fixity == "yes":
+                self._add_step_item("Output Fixity")
+            
+            # Add tools
+            tools_config = checks_config.tools
+            
+            # Handle mediaconch specifically
+            if tools_config.mediaconch.run_mediaconch == "yes":
+                self._add_step_item("MediaConch Validation")
+            
+            # Handle other tools
+            if tools_config.exiftool.run_tool == "yes":
+                self._add_step_item("Exiftool")
+            if tools_config.ffprobe.run_tool == "yes":
+                self._add_step_item("Ffprobe")
+            if tools_config.mediainfo.run_tool == "yes":
+                self._add_step_item("Mediainfo")
+            if tools_config.mediatrace.run_tool == "yes":
+                self._add_step_item("Mediatrace")
+            if tools_config.qctools.run_tool == "yes":
+                self._add_step_item("Qctools")
+            if tools_config.qct_parse.run_tool == "yes":
+                self._add_step_item("Qct_parse")
+            
+        except Exception as e:
+            self.update_status(f"Error loading steps: {str(e)}")
+    
+    def _add_step_item(self, step_name):
+        """Add a step item to the list."""
+        item = QListWidgetItem(f"⬜ {step_name}")
+        self.steps_list.addItem(item)
+    
+    def mark_step_complete(self, step_name):
+        """Mark a step as complete in the list."""
+        # Find and update the item
+        for i in range(self.steps_list.count()):
+            item = self.steps_list.item(i)
+            # Check if this item contains our step name
+            if step_name.lower() in item.text().lower():
+                item.setText(f"✅ {step_name}")
+                item.setFont(QFont("Arial", weight=QFont.Weight.Bold))
+                break
 
     def update_detailed_status(self, message):
         """Update the detailed status message."""
@@ -69,6 +154,26 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Scroll to bottom
         scrollbar = self.details_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+
+        # Check if this message indicates a step completion
+        self._check_step_completion(message)
+
+    def _check_step_completion(self, message):
+        """Check if the message indicates a step has been completed."""
+        # Define message patterns that indicate step completion
+        completion_indicators = {
+            "fixity processing complete": "Check Fixity",
+            "mediaconch validation complete": "MediaConch Validation",
+            "metadata tools complete": "Metadata Tools",
+            "outputs complete": "Generate Access File"
+        }
+        
+        # Look for completion indicators in the message
+        message_lower = message.lower()
+        for indicator, step_name in completion_indicators.items():
+            if indicator in message_lower:
+                self.mark_step_complete(step_name)
+                break
 
     def _center_on_screen(self):
         """Centers the window on the screen"""
@@ -87,8 +192,8 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Get a reference to the parent (MainWindow)
         parent = self.parent()
         
-        # If parent exists and has a cancel_processing method, call it
-        if parent and hasattr(parent, 'cancel_processing'):
+        # If parent exists and has a cancel_processing method AND processing is still active, call it
+        if parent and hasattr(parent, 'cancel_processing') and parent.worker is not None:
             parent.cancel_processing()
         
         # Call the parent class's closeEvent to properly handle window closure

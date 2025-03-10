@@ -5,6 +5,7 @@ import os
 os.environ["PATH"] = "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 import time
 from art import art, text2art
+from dataclasses import asdict
 
 from ..processing.processing_mgmt import ProcessingManager
 from ..utils import dir_setup
@@ -101,6 +102,8 @@ class AVSpexProcessor:
         
         if self.signals:
             self.signals.status_update.emit("All dependencies identified successfully.")
+            # Signal that dependency checking is complete
+            self.signals.step_completed.emit("Dependencies Check")
         
         return True
 
@@ -123,7 +126,13 @@ class AVSpexProcessor:
             self.process_single_directory(source_directory)
 
         overall_end_time = time.time()
-        return log_overall_time(overall_start_time, overall_end_time)
+        formatted_time =  log_overall_time(overall_start_time, overall_end_time)
+
+        if self.signals:
+            # Signal that all processing is complete
+            self.signals.step_completed.emit("All Processing")
+            
+        return formatted_time
 
     def process_single_directory(self, source_directory):
         if self.check_cancelled():
@@ -147,47 +156,113 @@ class AVSpexProcessor:
         if self.signals:
             self.signals.tool_started.emit("Fixity...")
 
-        processing_mgmt.process_fixity(source_directory, video_path, video_id)
+        # Check if fixity is enabled in config
+        fixity_enabled = False
+        fixity_config = self.checks_config.fixity
+
+        # Check each relevant attribute directly
+        if (fixity_config.check_fixity == "yes" or 
+            fixity_config.validate_stream_fixity == "yes" or 
+            fixity_config.embed_stream_fixity == "yes" or 
+            fixity_config.output_fixity == "yes"):
+            fixity_enabled = True
+            
+        if fixity_enabled:
+            processing_mgmt.process_fixity(source_directory, video_path, video_id)
+            if self.signals:
+                self.signals.tool_completed.emit("Fixity processing complete")
+                self.signals.step_completed.emit("Check Fixity")
+                self.signals.step_completed.emit("Embed Stream Fixity")
+                self.signals.step_completed.emit("Output Fixity")
 
         if self.check_cancelled():
             return False
 
-        if self.signals:
-            self.signals.tool_completed.emit("Fixity processing complete")
-            self.signals.tool_started.emit("MediaConch...")
+        # Check if mediaconch is enabled
+        mediaconch_enabled = self.checks_config.tools.mediaconch.run_mediaconch == "yes"
+        if mediaconch_enabled:
+            if self.signals:
+                self.signals.tool_started.emit("MediaConch")
+                
+            mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
+                video_path, destination_directory, video_id
+            )
+            
+            if self.signals:
+                self.signals.tool_completed.emit("MediaConch validation complete")
+                self.signals.step_completed.emit("MediaConch Validation")
 
-        mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
-            video_path, destination_directory, video_id
+        if self.check_cancelled():
+            return False
+
+         # Process metadata tools (mediainfo, ffprobe, exiftool, etc.)
+        metadata_tools_enabled = False
+        tools_config = self.checks_config.tools
+
+        # Check if any metadata tools are enabled
+        if (hasattr(tools_config.mediainfo, 'run_tool') and tools_config.mediainfo.run_tool == "yes" or
+            hasattr(tools_config.mediatrace, 'run_tool') and tools_config.mediatrace.run_tool == "yes" or
+            hasattr(tools_config.exiftool, 'run_tool') and tools_config.exiftool.run_tool == "yes" or
+            hasattr(tools_config.ffprobe, 'run_tool') and tools_config.ffprobe.run_tool == "yes"):
+            metadata_tools_enabled = True
+                    
+        if metadata_tools_enabled:
+            if self.signals:
+                self.signals.tool_started.emit("Metadata Tools")
+            
+            metadata_differences = processing_mgmt.process_video_metadata(
+                video_path, destination_directory, video_id
+            )
+            
+            if self.signals:
+                self.signals.tool_completed.emit("Metadata tools complete")
+                # Emit signals for each completed metadata tool
+                if self.checks_config.tools.mediainfo.run_tool == "yes":
+                    self.signals.step_completed.emit("Mediainfo")
+                if self.checks_config.tools.mediatrace.run_tool == "yes":
+                    self.signals.step_completed.emit("Mediatrace")
+                if self.checks_config.tools.exiftool.run_tool == "yes":
+                    self.signals.step_completed.emit("Exiftool")
+                if self.checks_config.tools.ffprobe.run_tool == "yes":
+                    self.signals.step_completed.emit("FFprobe")
+
+        if self.check_cancelled():
+            return False
+
+        # Process output tools (QCTools, report generation, etc.)
+        outputs_enabled = (
+            self.checks_config.outputs.access_file == "yes" or
+            self.checks_config.outputs.report == "yes" or
+            self.checks_config.tools.qctools.run_tool == "yes" or
+            self.checks_config.tools.qct_parse.run_tool == "yes"
         )
-
-        if self.check_cancelled():
-            return False
-
-        if self.signals:
-            self.signals.tool_completed.emit("MediaConch validation complete")
-            self.signals.tool_started.emit("video metadata tools...")
         
-        metadata_differences = processing_mgmt.process_video_metadata(
-            video_path, destination_directory, video_id
-        )
+        if outputs_enabled:
+            if self.signals:
+                self.signals.tool_started.emit("Output Processing")
+            
+            processing_results = processing_mgmt.process_video_outputs(
+                video_path, source_directory, destination_directory,
+                video_id, metadata_differences
+            )
+            
+            if self.signals:
+                self.signals.tool_completed.emit("Outputs complete")
+                # Emit signals for each completed output
+                if self.checks_config.outputs.access_file == "yes":
+                    self.signals.step_completed.emit("Generate Access File")
+                if self.checks_config.outputs.report == "yes":
+                    self.signals.step_completed.emit("Generate Report")
+                if self.checks_config.tools.qctools.run_tool == "yes":
+                    self.signals.step_completed.emit("QCTools")
+                if self.checks_config.tools.qct_parse.run_tool == "yes":
+                    self.signals.step_completed.emit("QCT Parse")
 
         if self.check_cancelled():
             return False
-
-        if self.signals:
-            self.signals.tool_completed.emit("Metadata tools complete")
-            self.signals.tool_started.emit("Output processing...")
         
-        processing_results = processing_mgmt.process_video_outputs(
-            video_path, source_directory, destination_directory,
-            video_id, metadata_differences
-        )
-
-        if self.check_cancelled():
-            return False
-
         if self.signals:
-            self.signals.tool_completed.emit("Outputs complete")
+            self.signals.tool_completed.emit("All processing for this directory complete")
         
         logger.debug('Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
         

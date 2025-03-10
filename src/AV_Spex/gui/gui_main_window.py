@@ -144,6 +144,23 @@ class MainWindow(QMainWindow, ThemeableMixin):
     def call_process_directories(self):
         """Initialize and start the worker thread"""
         try:
+            # Create the processing window if it doesn't exist
+            if not hasattr(self, 'processing_window') or self.processing_window is None:
+                self.processing_window = ProcessingWindow(self)
+                
+                # Connect signals to the processing window
+                self.signals.status_update.connect(self.processing_window.update_status)
+                self.signals.error.connect(self.processing_window.update_status)
+                self.signals.progress.connect(self.update_progress)
+                self.signals.tool_started.connect(lambda tool: self.processing_window.update_status(f"Starting {tool}..."))
+                self.signals.tool_completed.connect(self.processing_window.update_status)
+                
+                # Connect the new step_completed signal
+                self.signals.step_completed.connect(self.processing_window.mark_step_complete)
+                
+                # Connect the cancel button
+                self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
+            
             # Create and configure the worker
             self.worker = ProcessingWorker(self.source_directories, self.signals)
             
@@ -159,27 +176,72 @@ class MainWindow(QMainWindow, ThemeableMixin):
         except Exception as e:
             self.signals.error.emit(str(e))
 
-    def on_worker_finished(self):
-        """Handle worker thread completion"""
-        if self.processing_window:
-            self.processing_window.close()
-            self.processing_window = None
-        self.check_spex_button.setEnabled(True)
-        
-        # Clean up the worker
-        if self.worker:
-            self.worker.deleteLater()
-            self.worker = None
+    def update_progress(self, current, total):
+        """Update progress bar in the processing window."""
+        if hasattr(self, 'processing_window') and self.processing_window:
+            self.processing_window.progress_bar.setMaximum(total)
+            self.processing_window.progress_bar.setValue(current)
 
-    def on_processing_started(self, message):
+    def on_worker_finished(self):
+        """Handle worker thread completion."""
+        # Update UI to indicate processing is complete
+        if hasattr(self, 'processing_window') and self.processing_window:
+            self.processing_window.update_status("Processing completed successfully!")
+            self.processing_window.progress_bar.setMaximum(100)
+            self.processing_window.progress_bar.setValue(100)
+            
+            # Change the cancel button to a close button
+            self.processing_window.cancel_button.setText("Close")
+            
+            # Disconnect previous handler if any (use try/except in case it's not connected)
+            try:
+                self.processing_window.cancel_button.clicked.disconnect()
+            except TypeError:
+                # This catches the case where no connections exist
+                pass
+                
+            self.processing_window.cancel_button.clicked.connect(self.processing_window.close)
+        
+        # Re-enable any UI elements that were disabled during processing
+        # Instead of calling enable_ui(), re-enable specific UI elements as needed
+        # For example, if you have a check_spex_button that was disabled:
+        if hasattr(self, 'check_spex_button'):
+            self.check_spex_button.setEnabled(True)
+        
+        # If you have other buttons or UI elements that were disabled:
+        # self.some_other_button.setEnabled(True)
+        
+        # Clean up the worker (but don't close the window)
+        self.worker = None
+
+    def on_processing_started(self, message=None):
         """Handle processing start"""
+        # Create processing window if it doesn't exist
         if self.processing_window is None:
             self.processing_window = ProcessingWindow(self)
             self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
-        self.processing_window.update_status(message)
+            
+            # Connect signals to the processing window if not already connected
+            self.signals.status_update.connect(self.processing_window.update_status)
+            self.signals.error.connect(self.processing_window.update_status)
+            self.signals.progress.connect(self.update_progress)
+            self.signals.tool_started.connect(lambda tool: self.processing_window.update_status(f"Starting {tool}..."))
+            self.signals.tool_completed.connect(self.processing_window.update_status)
+            
+            # Connect the new step_completed signal
+            self.signals.step_completed.connect(self.processing_window.mark_step_complete)
+        
+        # Update status if a message was provided
+        if message:
+            self.processing_window.update_status(message)
+        
+        # Show and raise the window
         self.processing_window.show()
         self.processing_window.raise_()
+        
+        # Disable Check Spex button
         self.check_spex_button.setEnabled(False)
+        
         QApplication.processEvents()
         
     def on_processing_completed(self, message):
@@ -191,16 +253,27 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.check_spex_button.setEnabled(True)
         QMessageBox.information(self, "Complete", message)
     
-    def on_processing_time(self, formatted_time):
+    def on_processing_time(self, processing_time):
         """Handle processing time message from worker"""
-        QMessageBox.information(self, "Complete", f"Processing completed in {formatted_time}!")
+        if self.processing_window:
+            self.processing_window.update_status(f"Total processing time: {processing_time}")
+            
+        QMessageBox.information(self, "Complete", f"Processing completed in {processing_time}!")
 
     def on_error(self, error_message):
         """Handle errors"""
+        # Log the error
+        logger.error(f"Processing error: {error_message}")
         if self.processing_window:
-            self.processing_window.close()
-            self.processing_window = None
+            self.processing_window.update_status(f"ERROR: {error_message}")
+            # Commented these out to keep window open 
+            # self.processing_window.close()
+            # self.processing_window = None
+
+        # Re-enable the Check Spex button
         self.check_spex_button.setEnabled(True)
+
+        # Show error message box to the user
         QMessageBox.critical(self, "Error", error_message)
         
         # Clean up worker if it exists
@@ -217,10 +290,23 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def cancel_processing(self):
         """Cancel ongoing processing"""
-        if self.worker and self.worker.isRunning():
+        if hasattr(self, 'worker') and self.worker and self.worker.isRunning():
+            # Update the processing window
+            if self.processing_window:
+                self.processing_window.update_status("Cancelling processing...")
+                
+                # Update UI to indicate cancellation state
+                self.processing_window.progress_bar.setMaximum(100)
+                self.processing_window.progress_bar.setValue(0)
+                
+                # Disable the cancel button to prevent multiple clicks
+                self.processing_window.cancel_button.setEnabled(False)
+            
+            # Call the worker's cancel method
             self.worker.cancel()
-            self.processing_window.update_status("Cancelling processing...")
-            self.processing_window.cancel_button.setEnabled(False)
+            
+            # Re-enable the Check Spex button
+            self.check_spex_button.setEnabled(True)
 
     def on_processing_cancelled(self):
         """Handle processing cancellation"""
