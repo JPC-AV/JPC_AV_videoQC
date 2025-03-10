@@ -25,7 +25,7 @@ def get_total_frames(video_path):
     return total_frames
 
 
-def make_stream_hash(video_path, check_cancelled=None):
+def make_stream_hash(video_path, check_cancelled=None, signals=None):
     """Calculate MD5 checksum of video and audio streams using ffmpeg."""
 
     total_frames = get_total_frames(video_path)
@@ -56,7 +56,10 @@ def make_stream_hash(video_path, check_cancelled=None):
             if line.startswith(frame_prefix):
                 current_frame = int(line[len(frame_prefix):])
                 percent_complete = (current_frame / total_frames) * 100
-                print(f"\rFFmpeg 'streamhash' Progress: {percent_complete:.2f}%", end='', flush=True)
+                if signals:
+                    signals.stream_hash_progress.emit(percent_complete)
+                else:
+                    print(f"\rFFmpeg 'streamhash' Progress: {percent_complete:.2f}%", end='', flush=True)
             if line.startswith(video_hash_prefix) or line.startswith(audio_hash_prefix):
                 # Split each line by comma
                 parts = line.split(',')
@@ -179,11 +182,11 @@ def compare_hashes(existing_video_hash, existing_audio_hash, video_hash, audio_h
         logger.critical(f"Audio hashes do not match. MD5 stored in MKV file: {existing_audio_hash} Generated MD5:{audio_hash}\n")
 
 
-def embed_fixity(video_path, check_cancelled=None):
+def embed_fixity(video_path, check_cancelled=None, signals=None):
 
     # Make md5 of video/audio stream
     logger.debug('Generating video and audio stream hashes. This may take a moment...')
-    hash_result = make_stream_hash(video_path, check_cancelled=check_cancelled)
+    hash_result = make_stream_hash(video_path, check_cancelled=check_cancelled, signals=signals)
     if hash_result is None:
         return None
     video_hash, audio_hash = hash_result
@@ -220,7 +223,7 @@ def embed_fixity(video_path, check_cancelled=None):
     os.remove(temp_xml_file)
 
 
-def validate_embedded_md5(video_path, check_cancelled=None):
+def validate_embedded_md5(video_path, check_cancelled=None, signals=None):
 
     if check_cancelled():
         return None
@@ -257,7 +260,7 @@ def validate_embedded_md5(video_path, check_cancelled=None):
         return None
 
 
-def process_embedded_fixity(video_path, check_cancelled=None):
+def process_embedded_fixity(video_path, check_cancelled=None, signals=None):
     """
     Handles embedding stream fixity tags in the video file.
     """
@@ -275,7 +278,7 @@ def process_embedded_fixity(video_path, check_cancelled=None):
         logger.critical("Existing stream hashes found!")
         if checks_config.fixity.overwrite_stream_fixity == 'yes':
             logger.critical('New stream hashes will be generated and old hashes will be overwritten!\n')
-            embed_fixity(video_path, check_cancelled=check_cancelled)
+            embed_fixity(video_path, check_cancelled=check_cancelled, signals=signals)
         elif checks_config.fixity.overwrite_stream_fixity == 'no':
             logger.error('Not writing stream hashes to MKV\n')
         elif checks_config.fixity.overwrite_stream_fixity == 'ask me':
@@ -283,7 +286,7 @@ def process_embedded_fixity(video_path, check_cancelled=None):
             while True:
                 user_input = input("Do you want to overwrite existing stream hashes? (yes/no): ")
                 if user_input.lower() in ["yes", "y"]:
-                    embed_fixity(video_path, check_cancelled=check_cancelled)
+                    embed_fixity(video_path, check_cancelled=check_cancelled, signals=signals)
                     break
                 elif user_input.lower() in ["no", "n"]:
                     logger.debug('Not writing stream hashes to MKV\n')

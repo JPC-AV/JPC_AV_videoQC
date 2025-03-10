@@ -27,12 +27,12 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         main_layout = QVBoxLayout(central_widget)
         
         # Status label with larger font
-        self.status_label = QLabel("Initializing...")
-        font = self.status_label.font()
-        font.setPointSize(12)
-        self.status_label.setFont(font)
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        main_layout.addWidget(self.status_label)
+        self.file_status_label = QLabel("No file processing yet...")
+        file_font = self.file_status_label.font()
+        file_font.setPointSize(10)
+        self.file_status_label.setFont(file_font)
+        self.file_status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(self.file_status_label)
         
         # Progress bar
         self.progress_bar = QProgressBar()
@@ -42,29 +42,36 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         main_layout.addWidget(self.progress_bar)
 
         # Create a horizontal layout for steps list and details text
-        h_layout = QHBoxLayout()
-        main_layout.addLayout(h_layout, 1)  # stretch factor of 1 allows for window to stretch
+        v_layout = QVBoxLayout()
+        main_layout.addLayout(v_layout, 1)  # stretch factor of 1 allows for window to stretch
         
         # Steps list widget - shows steps that will be executed
         self.steps_list = QListWidget()
-        self.steps_list.setMinimumWidth(200)
+        self.steps_list.setMinimumHeight(150)
         self.steps_list.setAlternatingRowColors(True)
-        h_layout.addWidget(self.steps_list)
-
-        # Details text
-        self.details_text = QTextEdit()
-        self.details_text.setReadOnly(True)
-        h_layout.addWidget(self.details_text, 1)  # stretch factor of 1
-
-        # Add cancel button
-        self.cancel_button = QPushButton("Cancel")
-        main_layout.addWidget(self.cancel_button)
-
+        v_layout.addWidget(self.steps_list)
 
         # Detailed status
         self.detailed_status = QLabel("")
         self.detailed_status.setWordWrap(True)
-        main_layout.addWidget(self.detailed_status)
+        v_layout.addWidget(self.detailed_status)
+
+        # Detail progress bar
+        self.detail_progress_bar = QProgressBar()
+        self.detail_progress_bar.setTextVisible(True)
+        self.detail_progress_bar.setMinimum(0)
+        # self.detail_progress_bar.setMaximum(0)  
+        v_layout.addWidget(self.detail_progress_bar)
+
+        # Details text
+        self.details_text = QTextEdit()
+        self.details_text.setMinimumHeight(300)
+        self.details_text.setReadOnly(True)
+        v_layout.addWidget(self.details_text, 1)  # stretch factor of 1
+
+        # Add cancel button
+        self.cancel_button = QPushButton("Cancel")
+        main_layout.addWidget(self.cancel_button)
         
         # Center the window on screen
         self._center_on_screen()
@@ -149,7 +156,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
 
     def update_status(self, message):
         """Update the main status message and append to details text."""
-        self.status_label.setText(message)
         self.details_text.append(message)
         # Scroll to bottom
         scrollbar = self.details_text.verticalScrollBar()
@@ -157,6 +163,14 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
 
         # Check if this message indicates a step completion
         self._check_step_completion(message)
+
+    def update_file_status(self, filename):
+        """Update the file status label when processing a new file."""
+        self.file_status_label.setText(f"Processing: {filename}")
+        self.details_text.append(f"Started processing file: {filename}")
+        # Scroll to bottom
+        scrollbar = self.details_text.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
 
     def _check_step_completion(self, message):
         """Check if the message indicates a step has been completed."""
@@ -212,6 +226,13 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         
         # Force repaint
         self.update()
+
+    def update_detail_progress(self, percentage):
+        """Update the detail progress bar with the current percentage."""
+        self.detail_progress_bar.setMaximum(100)
+        self.detail_progress_bar.setValue(percentage)
+        # Force UI update
+        QApplication.processEvents()
 
 
 class DirectoryListWidget(QListWidget):

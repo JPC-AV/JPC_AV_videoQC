@@ -151,8 +151,12 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 self.signals.status_update.connect(self.processing_window.update_status)
                 self.signals.error.connect(self.processing_window.update_status)
                 self.signals.progress.connect(self.update_progress)
-                # self.signals.tool_started.connect(lambda tool: self.processing_window.update_status(f"Starting {tool}..."))
-                # self.signals.tool_completed.connect(self.processing_window.update_status)
+                self.signals.file_started.connect(self.processing_window.update_file_status)
+
+                # progress bar signal connections
+                self.signals.stream_hash_progress.connect(self.processing_window.update_detail_progress)
+                self.signals.md5_progress.connect(self.processing_window.update_detail_progress)
+                self.signals.access_file_progress.connect(self.processing_window.update_detail_progress)
                     
                 # Connect the new step_completed signal
                 self.signals.step_completed.connect(self.processing_window.mark_step_complete)
@@ -205,14 +209,9 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 
             self.processing_window.cancel_button.clicked.connect(self.processing_window.close)
         
-        # Re-enable any UI elements that were disabled during processing
-        # Instead of calling enable_ui(), re-enable specific UI elements as needed
-        # For example, if you have a check_spex_button that was disabled:
+        # Re-enable check spex button that were disabled during processing
         if hasattr(self, 'check_spex_button'):
             self.check_spex_button.setEnabled(True)
-        
-        # If you have other buttons or UI elements that were disabled:
-        # self.some_other_button.setEnabled(True)
         
         # Clean up the worker (but don't close the window)
         self.worker = None
@@ -227,8 +226,12 @@ class MainWindow(QMainWindow, ThemeableMixin):
             self.signals.status_update.connect(self.processing_window.update_status)
             self.signals.error.connect(self.processing_window.update_status)
             self.signals.progress.connect(self.update_progress)
-            # self.signals.tool_started.connect(lambda tool: self.processing_window.update_status(f"Starting {tool}..."))
-            # self.signals.tool_completed.connect(self.processing_window.update_status)
+            self.signals.file_started.connect(self.processing_window.update_file_status)
+            
+            # progress bar signal connections
+            self.signals.stream_hash_progress.connect(self.processing_window.update_detail_progress)
+            self.signals.md5_progress.connect(self.processing_window.update_detail_progress)
+            self.signals.access_file_progress.connect(self.processing_window.update_detail_progress)
             
             # Connect the step_completed signal
             self.signals.step_completed.connect(self.processing_window.mark_step_complete)

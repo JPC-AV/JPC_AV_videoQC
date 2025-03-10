@@ -139,6 +139,9 @@ class AVSpexProcessor:
     def process_single_directory(self, source_directory):
         if self.check_cancelled():
             return False
+        
+        if self.signals:
+            self.signals.file_started.emit(os.path.basename(source_directory))
 
         if self.signals:
             self.signals.status_update.emit(f"Initializing directory: {source_directory}")

@@ -48,7 +48,7 @@ class ProcessingManager:
                 self.signals.fixity_progress.emit("Embedding fixity...")
             if self.check_cancelled():
                 return False
-            process_embedded_fixity(video_path, check_cancelled=self.check_cancelled)
+            process_embedded_fixity(video_path, check_cancelled=self.check_cancelled, signals=self.signals)
             if self.check_cancelled():
                 return False
 
@@ -59,7 +59,7 @@ class ProcessingManager:
             if checks_config.fixity.embed_stream_fixity == 'yes':
                 logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
             else:
-                validate_embedded_md5(video_path, check_cancelled=self.check_cancelled)
+                validate_embedded_md5(video_path, check_cancelled=self.check_cancelled, signals=self.signals)
 
         # Initialize md5_checksum variable
         md5_checksum = None
@@ -68,13 +68,13 @@ class ProcessingManager:
         if checks_config.fixity.output_fixity == 'yes':
             if self.signals:
                 self.signals.fixity_progress.emit("Outputting fixity...")
-            md5_checksum = output_fixity(source_directory, video_path, check_cancelled=self.check_cancelled)
+            md5_checksum = output_fixity(source_directory, video_path, check_cancelled=self.check_cancelled, signals=self.signals)
 
         # Verify stored checksum and write results  
         if checks_config.fixity.check_fixity == 'yes':
             if self.signals:
                 self.signals.fixity_progress.emit("Validating fixity...")
-            check_fixity(source_directory, video_id, actual_checksum=md5_checksum, check_cancelled=self.check_cancelled)
+            check_fixity(source_directory, video_id, actual_checksum=md5_checksum, check_cancelled=self.check_cancelled, signals=self.signals)
 
         if self.check_cancelled():
             return None

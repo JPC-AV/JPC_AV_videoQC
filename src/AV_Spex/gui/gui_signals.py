@@ -18,4 +18,8 @@ class ProcessingSignals(QObject):
     mediaconch_progress = pyqtSignal(str)  # For detailed mediaconch status
     metadata_progress = pyqtSignal(str)  # For detailed metadata status
     output_progress = pyqtSignal(str)  # For detailed output creation status
+
+    stream_hash_progress = pyqtSignal(int)  # Signal for stream hash progress percentage
+    md5_progress = pyqtSignal(int)          # Signal for MD5 calculation progress percentage
+    access_file_progress = pyqtSignal(int)  # Signal for access file creation progress percentage
     
