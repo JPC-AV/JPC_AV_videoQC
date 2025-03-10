@@ -53,6 +53,8 @@ def log_overall_time(overall_start_time, overall_end_time):
 
 class AVSpexProcessor:
     def __init__(self, signals=None):
+        # signals are connected in setup_signal_connections() function in gui_main_window
+        # passed to AVSpexProcessor from ProcessingWorker
         self.signals = signals
         self.config_mgr = ConfigManager()
         self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)

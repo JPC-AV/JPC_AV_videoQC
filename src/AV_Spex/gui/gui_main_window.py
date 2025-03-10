@@ -130,7 +130,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.signals.started.connect(self.on_processing_started)
         self.signals.completed.connect(self.on_processing_completed)
         self.signals.error.connect(self.on_error)
-        self.signals.status_update.connect(self.on_status_update)
         self.signals.cancelled.connect(self.on_processing_cancelled)
         
         # Tool-specific signals
@@ -147,19 +146,23 @@ class MainWindow(QMainWindow, ThemeableMixin):
             # Create the processing window if it doesn't exist
             if not hasattr(self, 'processing_window') or self.processing_window is None:
                 self.processing_window = ProcessingWindow(self)
-                
-                # Connect signals to the processing window
+                    
+                # Connect signals to the processing window 
                 self.signals.status_update.connect(self.processing_window.update_status)
                 self.signals.error.connect(self.processing_window.update_status)
                 self.signals.progress.connect(self.update_progress)
-                self.signals.tool_started.connect(lambda tool: self.processing_window.update_status(f"Starting {tool}..."))
-                self.signals.tool_completed.connect(self.processing_window.update_status)
-                
+                # self.signals.tool_started.connect(lambda tool: self.processing_window.update_status(f"Starting {tool}..."))
+                # self.signals.tool_completed.connect(self.processing_window.update_status)
+                    
                 # Connect the new step_completed signal
                 self.signals.step_completed.connect(self.processing_window.mark_step_complete)
-                
+                    
                 # Connect the cancel button
                 self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
+                
+                # Show the window
+                self.processing_window.show()
+                self.processing_window.raise_()
             
             # Create and configure the worker
             self.worker = ProcessingWorker(self.source_directories, self.signals)
@@ -217,27 +220,29 @@ class MainWindow(QMainWindow, ThemeableMixin):
     def on_processing_started(self, message=None):
         """Handle processing start"""
         # Create processing window if it doesn't exist
-        if self.processing_window is None:
+        if not hasattr(self, 'processing_window') or self.processing_window is None:
             self.processing_window = ProcessingWindow(self)
-            self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
             
-            # Connect signals to the processing window if not already connected
+            # Connect signals to the processing window
             self.signals.status_update.connect(self.processing_window.update_status)
             self.signals.error.connect(self.processing_window.update_status)
             self.signals.progress.connect(self.update_progress)
-            self.signals.tool_started.connect(lambda tool: self.processing_window.update_status(f"Starting {tool}..."))
-            self.signals.tool_completed.connect(self.processing_window.update_status)
+            # self.signals.tool_started.connect(lambda tool: self.processing_window.update_status(f"Starting {tool}..."))
+            # self.signals.tool_completed.connect(self.processing_window.update_status)
             
-            # Connect the new step_completed signal
+            # Connect the step_completed signal
             self.signals.step_completed.connect(self.processing_window.mark_step_complete)
+            
+            # Connect the cancel button
+            self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
+            
+            # Show and raise the window
+            self.processing_window.show()
+            self.processing_window.raise_()
         
         # Update status if a message was provided
         if message:
             self.processing_window.update_status(message)
-        
-        # Show and raise the window
-        self.processing_window.show()
-        self.processing_window.raise_()
         
         # Disable Check Spex button
         self.check_spex_button.setEnabled(False)
@@ -282,11 +287,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
             self.worker.wait()
             self.worker.deleteLater()
             self.worker = None
-
-    def on_status_update(self, message):
-        """Handle status updates"""
-        if self.processing_window:
-            self.processing_window.update_status(message)
 
     def cancel_processing(self):
         """Cancel ongoing processing"""
