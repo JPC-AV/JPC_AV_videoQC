@@ -2,6 +2,7 @@ import xml.etree.ElementTree as ET
 import subprocess
 import tempfile
 import os
+import time
 from ..utils.log_setup import logger
 from ..utils.config_setup import ChecksConfig
 from ..utils.config_manager import ConfigManager
@@ -31,7 +32,8 @@ def make_stream_hash(video_path, check_cancelled=None, signals=None):
     total_frames = get_total_frames(video_path)
     video_hash = None
     audio_hash = None
-    last_percent_done = 0
+    last_update_time = time.time()
+    update_interval = 0.1  # Update every 100ms
 
     ffmpeg_command = [
         'ffmpeg',
@@ -57,10 +59,11 @@ def make_stream_hash(video_path, check_cancelled=None, signals=None):
             if line.startswith(frame_prefix):
                 current_frame = int(line[len(frame_prefix):])
                 percent_complete = min(100, int((current_frame * 100) / total_frames))
-                if percent_complete > last_percent_done + 5:  # Update only every 5% change
-                    if signals:
+                if signals:
+                    current_time = time.time()
+                    if current_time - last_update_time > update_interval:
                         signals.stream_hash_progress.emit(percent_complete)
-                    last_percent_done = percent_complete
+                        last_update_time = current_time
                 else:
                     print(f"\rFFmpeg 'streamhash' Progress: {percent_complete:.2f}%", end='', flush=True)
             if line.startswith(video_hash_prefix) or line.startswith(audio_hash_prefix):

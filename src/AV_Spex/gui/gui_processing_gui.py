@@ -19,7 +19,7 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         super().__init__(parent)
         self.setWindowTitle("Processing Status")
         self.resize(600, 400)
-        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
+        self.setWindowFlags(Qt.WindowType.Window)
         
         # Central widget and main_layout
         central_widget = QWidget()
@@ -61,6 +61,9 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.detail_progress_bar.setTextVisible(True)
         self.detail_progress_bar.setMinimum(0)
         # self.detail_progress_bar.setMaximum(0)  
+        self.percent_label = QLabel("0%")  # Corrected variable name from "perecent_label"
+        self.percent_label.setAlignment(Qt.AlignmentFlag.AlignLeft) 
+        v_layout.addWidget(self.percent_label)
         v_layout.addWidget(self.detail_progress_bar)
 
         # Details text
@@ -72,9 +75,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Add cancel button
         self.cancel_button = QPushButton("Cancel")
         main_layout.addWidget(self.cancel_button)
-        
-        # Center the window on screen
-        self._center_on_screen()
 
         # Load the configuration and populate steps
         self.config_mgr = ConfigManager()
@@ -189,14 +189,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
                 self.mark_step_complete(step_name)
                 break
 
-    def _center_on_screen(self):
-        """Centers the window on the screen"""
-        screen = QApplication.primaryScreen().geometry()
-        window_size = self.geometry()
-        x = (screen.width() - window_size.width()) // 2
-        y = (screen.height() - window_size.height()) // 2
-        self.move(x, y)
-
     def showEvent(self, event):
         super().showEvent(event)
         self.raise_()  # Bring window to front
@@ -228,9 +220,13 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.update()
 
     def update_detail_progress(self, percentage):
-        """Update the detail progress bar with the current percentage."""
+        """Update the detail progress bar and percentage label with the current percentage."""
         self.detail_progress_bar.setMaximum(100)
         self.detail_progress_bar.setValue(percentage)
+        
+        # Update the percentage label
+        self.percent_label.setText(f"{percentage}%")
+        
         # Force UI update
         QApplication.processEvents()
 
