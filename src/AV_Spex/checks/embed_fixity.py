@@ -31,6 +31,8 @@ def get_total_frames(video_path):
 def make_stream_hash(video_path, check_cancelled=None, signals=None):
     """Calculate MD5 checksum of video and audio streams using ffmpeg."""   
 
+    if not signals:
+        print(f"\rFFmpeg 'streamhash' Progress: Initializing...", end='', flush=True)
     total_frames = get_total_frames(video_path)
     video_hash = None
     audio_hash = None
@@ -88,6 +90,7 @@ def make_stream_hash(video_path, check_cancelled=None, signals=None):
                             if signals:
                                 signals.stream_hash_progress.emit(percent_complete)
                             else:
+                                print(f"\rFFmpeg 'streamhash' Progress:                         ", end='', flush=True)
                                 print(f"\rFFmpeg 'streamhash' Progress: {percent_complete:.2f}%", end='', flush=True)
                             last_update_time = current_time
                             last_update_frame = current_frame
