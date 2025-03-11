@@ -4,6 +4,7 @@ import tempfile
 import os
 import time
 import re
+import json
 from ..utils.log_setup import logger
 from ..utils.config_setup import ChecksConfig
 from ..utils.config_manager import ConfigManager
@@ -13,7 +14,74 @@ checks_config = config_mgr.get_config('checks', ChecksConfig)
 
 
 def get_total_frames(video_path):
-    command = [
+    """
+    Get the total number of video frames using the fastest available method.
+    Uses metadata if available, falls back to duration × framerate,
+    and only uses count_packets as a last resort.
+    """
+    # Method 1: Try to get nb_frames metadata directly
+    metadata_cmd = [
+        'ffprobe',
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=nb_frames',
+        '-of', 'csv=p=0',
+        video_path
+    ]
+    
+    result = subprocess.run(metadata_cmd, stdout=subprocess.PIPE, text=True)
+    frames = result.stdout.strip()
+    
+    # If frames metadata exists and is valid
+    if frames and frames.isdigit() and int(frames) > 0:
+        return int(frames)
+    
+    # Method 2: Calculate using duration and framerate
+    duration_cmd = [
+        'ffprobe',
+        '-v', 'error',
+        '-select_streams', 'v:0',
+        '-show_entries', 'stream=duration,r_frame_rate',
+        '-of', 'json',
+        video_path
+    ]
+    
+    result = subprocess.run(duration_cmd, stdout=subprocess.PIPE, text=True)
+    try:
+        data = json.loads(result.stdout)
+        stream = data['streams'][0]
+        
+        # Some files might not have duration in the stream info
+        if 'duration' in stream:
+            duration = float(stream['duration'])
+        else:
+            # Fallback to format duration
+            format_cmd = [
+                'ffprobe',
+                '-v', 'error',
+                '-show_entries', 'format=duration',
+                '-of', 'csv=p=0',
+                video_path
+            ]
+            format_result = subprocess.run(format_cmd, stdout=subprocess.PIPE, text=True)
+            duration = float(format_result.stdout.strip())
+        
+        # Parse framerate (often in the format "num/den")
+        framerate_str = stream['r_frame_rate']
+        if '/' in framerate_str:
+            num, den = map(int, framerate_str.split('/'))
+            framerate = num / den
+        else:
+            framerate = float(framerate_str)
+        
+        # Calculate frame count
+        if duration > 0 and framerate > 0:
+            return int(duration * framerate)
+    except (json.JSONDecodeError, KeyError, ValueError, ZeroDivisionError):
+        pass  # Fall through to the slow method if calculation fails
+    
+    # Method 3 (slowest): Fall back to counting packets
+    count_cmd = [
         'ffprobe',
         '-v', 'error',
         '-threads', '0',
@@ -23,9 +91,13 @@ def get_total_frames(video_path):
         '-of', 'csv=p=0',
         video_path
     ]
-    result = subprocess.run(command, stdout=subprocess.PIPE)
-    total_frames = int(result.stdout.decode().strip())
-    return total_frames
+    result = subprocess.run(count_cmd, stdout=subprocess.PIPE)
+    try:
+        total_frames = int(result.stdout.decode().strip())
+        return total_frames
+    except (ValueError, UnicodeDecodeError):
+        # If all methods fail, return a reasonable default
+        return 1000  # A reasonable guess to allow progress to be shown
 
 
 def make_stream_hash(video_path, check_cancelled=None, signals=None):
