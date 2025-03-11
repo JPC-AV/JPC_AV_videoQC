@@ -3,6 +3,7 @@ import subprocess
 import tempfile
 import os
 import time
+import re
 from ..utils.log_setup import logger
 from ..utils.config_setup import ChecksConfig
 from ..utils.config_manager import ConfigManager
@@ -15,6 +16,7 @@ def get_total_frames(video_path):
     command = [
         'ffprobe',
         '-v', 'error',
+        '-threads', '0',
         '-select_streams', 'v:0',
         '-count_packets',
         '-show_entries', 'stream=nb_read_packets',
@@ -27,7 +29,7 @@ def get_total_frames(video_path):
 
 
 def make_stream_hash(video_path, check_cancelled=None, signals=None):
-    """Calculate MD5 checksum of video and audio streams using ffmpeg."""
+    """Calculate MD5 checksum of video and audio streams using ffmpeg."""   
 
     total_frames = get_total_frames(video_path)
     video_hash = None
@@ -35,48 +37,75 @@ def make_stream_hash(video_path, check_cancelled=None, signals=None):
     last_update_time = time.time()
     update_interval = 0.1  # Update every 100ms
 
+    # Use compiled regex patterns for faster matching
+    frame_pattern = re.compile(r'frame=(\d+)')
+    
+    # Multi-threading and efficient buffer handling
     ffmpeg_command = [
         'ffmpeg',
-        '-hide_banner', '-progress', '-', '-nostats', '-loglevel', 'error',
+        '-hide_banner', '-progress', 'pipe:1', '-nostats', '-loglevel', 'error',
+        '-threads', '0',  # Use all available CPU cores
         '-i', video_path,
         '-map', '0',
         '-f', 'streamhash',
         '-hash', 'md5',
         '-'
     ]
-
-    ffmpeg_process = subprocess.Popen(ffmpeg_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    while True:
-        if check_cancelled():
-            return None
-        ff_output = ffmpeg_process.stdout.readline()
-        if not ff_output:
-            break
-        frame_prefix = 'frame='
-        video_hash_prefix = '0,v,MD5'
-        audio_hash_prefix = '1,a,MD5'
-        for line in ff_output.split('\n'):
-            if line.startswith(frame_prefix):
-                current_frame = int(line[len(frame_prefix):])
-                percent_complete = min(100, int((current_frame * 100) / total_frames))
-                if signals:
-                    current_time = time.time()
-                    if current_time - last_update_time > update_interval:
-                        signals.stream_hash_progress.emit(percent_complete)
-                        last_update_time = current_time
-                else:
-                    print(f"\rFFmpeg 'streamhash' Progress: {percent_complete:.2f}%", end='', flush=True)
-            if line.startswith(video_hash_prefix) or line.startswith(audio_hash_prefix):
-                # Split each line by comma
-                parts = line.split(',')
-                # Extract type and hash
-                type_, hash_ = parts[1], parts[2].split('=')[1]
-                # Check type and assign hash to appropriate variable
-                if type_ == 'v':
-                    video_hash = hash_
-                elif type_ == 'a':
-                    audio_hash = hash_
-
+    
+    # Constants for parsing
+    frame_prefix = 'frame='
+    video_hash_prefix = '0,v,MD5'
+    audio_hash_prefix = '1,a,MD5'
+    
+    # Update progress less frequently (every 10 frames or so)
+    update_frequency = max(1, total_frames // 100)
+    last_update_frame = 0
+    
+    try:
+        with subprocess.Popen(
+            ffmpeg_command, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            text=True, 
+            bufsize=1  # Line buffering
+        ) as ffmpeg_process:
+            for line in ffmpeg_process.stdout:
+                # Check for cancellation
+                if check_cancelled and check_cancelled():
+                    ffmpeg_process.terminate()
+                    return None
+                    
+                # Extract frame number and update progress
+                if line.startswith(frame_prefix):
+                    current_frame = int(line[len(frame_prefix):])
+                    
+                    # Only update GUI when needed (not every frame)
+                    if current_frame - last_update_frame >= update_frequency:
+                        percent_complete = min(100, int((current_frame * 100) / total_frames))
+                        
+                        current_time = time.time()
+                        if current_time - last_update_time > update_interval:
+                            if signals:
+                                signals.stream_hash_progress.emit(percent_complete)
+                            else:
+                                print(f"\rFFmpeg 'streamhash' Progress: {percent_complete:.2f}%", end='', flush=True)
+                            last_update_time = current_time
+                            last_update_frame = current_frame
+                        
+                # Extract hash values efficiently
+                elif line.startswith(video_hash_prefix):
+                    video_hash = line.split('=')[1].strip()
+                elif line.startswith(audio_hash_prefix):
+                    audio_hash = line.split('=')[1].strip()
+                    
+                # Early termination if we have both hashes and not needing to track progress
+                if video_hash and audio_hash and not signals:
+                    break
+    finally:
+        # Final progress update if using console output
+        if not signals:
+            print(f"\rFFmpeg 'streamhash' Progress: 100.00%", end='', flush=True)
+    
     return video_hash, audio_hash
 
 
