@@ -18,6 +18,7 @@ class ProcessingWorker(QThread):
         self.source_directories = source_directories
         self.signals = signals
         self.processor = AVSpexProcessor(signals=signals)
+        self.user_cancelled = False
         
     def run(self):
         """Run the worker thread."""
@@ -48,5 +49,6 @@ class ProcessingWorker(QThread):
     
     def cancel(self):
         """Cancel the processing."""
+        self.user_cancelled = True  # Set the flag
         if self.processor:
             self.processor.cancel()

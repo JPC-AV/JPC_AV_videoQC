@@ -145,28 +145,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
         try:
             # Create the processing window if it doesn't exist
             if not hasattr(self, 'processing_window') or self.processing_window is None:
-                self.processing_window = ProcessingWindow(self)
-                    
-                # Connect signals to the processing window 
-                self.signals.status_update.connect(self.processing_window.update_status)
-                self.signals.error.connect(self.processing_window.update_status)
-                self.signals.progress.connect(self.update_progress)
-                self.signals.file_started.connect(self.processing_window.update_file_status)
-
-                # progress bar signal connections
-                self.signals.stream_hash_progress.connect(self.processing_window.update_detail_progress)
-                self.signals.md5_progress.connect(self.processing_window.update_detail_progress)
-                self.signals.access_file_progress.connect(self.processing_window.update_detail_progress)
-                    
-                # Connect the new step_completed signal
-                self.signals.step_completed.connect(self.processing_window.mark_step_complete)
-                    
-                # Connect the cancel button
-                self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
-                
-                # Show the window
-                self.processing_window.show()
-                self.processing_window.raise_()
+                # Create and initialize the processing window
+                self.initialize_processing_window()
             
             # Create and configure the worker
             self.worker = ProcessingWorker(self.source_directories, self.signals)
@@ -183,6 +163,31 @@ class MainWindow(QMainWindow, ThemeableMixin):
         except Exception as e:
             self.signals.error.emit(str(e))
 
+    def initialize_processing_window(self):
+        """Create and configure the processing window and connect signals"""
+        self.processing_window = ProcessingWindow(self)
+            
+        # Connect signals to the processing window 
+        self.signals.status_update.connect(self.processing_window.update_status)
+        self.signals.error.connect(self.processing_window.update_status)
+        self.signals.progress.connect(self.update_progress)
+        self.signals.file_started.connect(self.processing_window.update_file_status)
+
+        # Progress bar signal connections
+        self.signals.stream_hash_progress.connect(self.processing_window.update_detail_progress)
+        self.signals.md5_progress.connect(self.processing_window.update_detail_progress)
+        self.signals.access_file_progress.connect(self.processing_window.update_detail_progress)
+            
+        # Connect the step_completed signal
+        self.signals.step_completed.connect(self.processing_window.mark_step_complete)
+            
+        # Connect the cancel button
+        self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
+        
+        # Show the window
+        self.processing_window.show()
+        self.processing_window.raise_()
+
     def update_progress(self, current, total):
         """Update progress bar in the processing window."""
         if hasattr(self, 'processing_window') and self.processing_window:
@@ -191,11 +196,15 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def on_worker_finished(self):
         """Handle worker thread completion."""
+        # Check if this was a cancellation
+        was_cancelled = hasattr(self.worker, 'user_cancelled') and self.worker.user_cancelled
+
         # Update UI to indicate processing is complete
         if hasattr(self, 'processing_window') and self.processing_window:
-            self.processing_window.update_status("Processing completed successfully!")
-            self.processing_window.progress_bar.setMaximum(100)
-            self.processing_window.progress_bar.setValue(100)
+            if not was_cancelled:
+                self.processing_window.update_status("Processing completed successfully!")
+                self.processing_window.progress_bar.setMaximum(100)
+                self.processing_window.progress_bar.setValue(100)
             
             # Change the cancel button to a close button
             self.processing_window.cancel_button.setText("Close")
@@ -220,28 +229,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
         """Handle processing start"""
         # Create processing window if it doesn't exist
         if not hasattr(self, 'processing_window') or self.processing_window is None:
-            self.processing_window = ProcessingWindow(self)
-            
-            # Connect signals to the processing window
-            self.signals.status_update.connect(self.processing_window.update_status)
-            self.signals.error.connect(self.processing_window.update_status)
-            self.signals.progress.connect(self.update_progress)
-            self.signals.file_started.connect(self.processing_window.update_file_status)
-            
-            # progress bar signal connections
-            self.signals.stream_hash_progress.connect(self.processing_window.update_detail_progress)
-            self.signals.md5_progress.connect(self.processing_window.update_detail_progress)
-            self.signals.access_file_progress.connect(self.processing_window.update_detail_progress)
-            
-            # Connect the step_completed signal
-            self.signals.step_completed.connect(self.processing_window.mark_step_complete)
-            
-            # Connect the cancel button
-            self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
-            
-            # Show and raise the window
-            self.processing_window.show()
-            self.processing_window.raise_()
+            # Create and initialize the processing window
+            self.initialize_processing_window()
         
         # Update status if a message was provided
         if message:
@@ -263,10 +252,12 @@ class MainWindow(QMainWindow, ThemeableMixin):
     
     def on_processing_time(self, processing_time):
         """Handle processing time message from worker"""
-        if self.processing_window:
-            self.processing_window.update_status(f"Total processing time: {processing_time}")
-            
-        QMessageBox.information(self, "Complete", f"Processing completed in {processing_time}!")
+        # Only show processing time if the worker wasn't cancelled
+        if not hasattr(self.worker, 'user_cancelled') or not self.worker.user_cancelled:
+            if self.processing_window:
+                self.processing_window.update_status(f"Total processing time: {processing_time}")
+                
+            QMessageBox.information(self, "Complete", f"Processing completed in {processing_time}!")
 
     def on_error(self, error_message):
         """Handle errors"""
