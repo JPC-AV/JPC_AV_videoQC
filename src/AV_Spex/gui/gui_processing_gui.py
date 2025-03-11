@@ -92,14 +92,10 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
                 self.update_status("Warning: Could not load checks configuration")
                 return
 
-            # Add steps based on configuration
-            # First add outputs
-            if checks_config.outputs.access_file == "yes":
-                self._add_step_item("Generate Access File")
-            if checks_config.outputs.report == "yes":
-                self._add_step_item("Generate Report")
-            
-            # Add fixity
+            # Dependencies check (always shown)
+            self._add_step_item("Dependencies Check")
+
+            # Fixity Steps
             if checks_config.fixity.check_fixity == "yes":
                 self._add_step_item("Check Fixity")
             if checks_config.fixity.validate_stream_fixity == "yes":
@@ -109,26 +105,34 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
             if checks_config.fixity.output_fixity == "yes":
                 self._add_step_item("Output Fixity")
             
-            # Add tools
-            tools_config = checks_config.tools
-            
-            # Handle mediaconch specifically
-            if tools_config.mediaconch.run_mediaconch == "yes":
+            # MediaConch
+            if checks_config.tools.mediaconch.run_mediaconch == "yes":
                 self._add_step_item("MediaConch Validation")
             
-            # Handle other tools
-            if tools_config.exiftool.run_tool == "yes":
+            # Metadata tools - note consistent naming
+            if checks_config.tools.exiftool.run_tool == "yes":
                 self._add_step_item("Exiftool")
-            if tools_config.ffprobe.run_tool == "yes":
-                self._add_step_item("Ffprobe")
-            if tools_config.mediainfo.run_tool == "yes":
+            if checks_config.tools.ffprobe.run_tool == "yes":
+                self._add_step_item("FFprobe")
+            if checks_config.tools.mediainfo.run_tool == "yes":
                 self._add_step_item("Mediainfo")
-            if tools_config.mediatrace.run_tool == "yes":
+            if checks_config.tools.mediatrace.run_tool == "yes":
                 self._add_step_item("Mediatrace")
-            if tools_config.qctools.run_tool == "yes":
-                self._add_step_item("Qctools")
-            if tools_config.qct_parse.run_tool == "yes":
-                self._add_step_item("Qct_parse")
+            
+            # Output tools
+            if checks_config.tools.qctools.run_tool == "yes":
+                self._add_step_item("QCTools")
+            if checks_config.tools.qct_parse.run_tool == "yes":
+                self._add_step_item("QCT Parse")
+            
+            # Output files
+            if checks_config.outputs.access_file == "yes":
+                self._add_step_item("Generate Access File")
+            if checks_config.outputs.report == "yes":
+                self._add_step_item("Generate Report")
+            
+            # Final steps
+            self._add_step_item("All Processing")
             
         except Exception as e:
             self.update_status(f"Error loading steps: {str(e)}")
@@ -141,13 +145,26 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
     def mark_step_complete(self, step_name):
         """Mark a step as complete in the list."""
         # Find and update the item
+        found = False
         for i in range(self.steps_list.count()):
             item = self.steps_list.item(i)
-            # Check if this item contains our step name
-            if step_name.lower() in item.text().lower():
+            item_text = item.text()[2:]  # Remove the checkbox prefix
+            
+            # Check for exact match first
+            if item_text == step_name:
                 item.setText(f"✅ {step_name}")
                 item.setFont(QFont("Arial", weight=QFont.Weight.Bold))
+                found = True
                 break
+            # If no exact match, try case-insensitive matching
+            elif item_text.lower() == step_name.lower():
+                item.setText(f"✅ {item_text}")  # Keep original capitalization
+                item.setFont(QFont("Arial", weight=QFont.Weight.Bold))
+                found = True
+                break
+        
+        if not found:
+            self.details_text.append(f"Warning: No matching step found for '{step_name}'")
 
     def update_detailed_status(self, message):
         """Update the detailed status message."""
@@ -160,9 +177,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Scroll to bottom
         scrollbar = self.details_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
-
-        # Check if this message indicates a step completion
-        self._check_step_completion(message)
 
     def update_file_status(self, filename):
         """Update the file status label when processing a new file."""
@@ -201,6 +215,10 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # If parent exists and has a cancel_processing method AND processing is still active, call it
         if parent and hasattr(parent, 'cancel_processing') and parent.worker is not None:
             parent.cancel_processing()
+        
+        # Set the processing_window reference to None in the parent
+        if parent and hasattr(parent, 'processing_window'):
+            parent.processing_window = None
         
         # Call the parent class's closeEvent to properly handle window closure
         super().closeEvent(event)

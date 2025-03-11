@@ -176,9 +176,16 @@ class AVSpexProcessor:
             processing_mgmt.process_fixity(source_directory, video_path, video_id)
             if self.signals:
                 self.signals.tool_completed.emit("Fixity processing complete")
-                self.signals.step_completed.emit("Check Fixity")
-                self.signals.step_completed.emit("Embed Stream Fixity")
-                self.signals.step_completed.emit("Output Fixity")
+                
+                # Emit individual steps based on what was actually processed
+                if fixity_config.check_fixity == "yes":
+                    self.signals.step_completed.emit("Check Fixity")
+                if fixity_config.validate_stream_fixity == "yes":
+                    self.signals.step_completed.emit("Validate Stream Fixity")  
+                if fixity_config.embed_stream_fixity == "yes":
+                    self.signals.step_completed.emit("Embed Stream Fixity")
+                if fixity_config.output_fixity == "yes":
+                    self.signals.step_completed.emit("Output Fixity")
 
         if self.check_cancelled():
             return False
@@ -205,10 +212,10 @@ class AVSpexProcessor:
         tools_config = self.checks_config.tools
 
         # Check if any metadata tools are enabled
-        if (hasattr(tools_config.mediainfo, 'run_tool') and tools_config.mediainfo.run_tool == "yes" or
-            hasattr(tools_config.mediatrace, 'run_tool') and tools_config.mediatrace.run_tool == "yes" or
-            hasattr(tools_config.exiftool, 'run_tool') and tools_config.exiftool.run_tool == "yes" or
-            hasattr(tools_config.ffprobe, 'run_tool') and tools_config.ffprobe.run_tool == "yes"):
+        if (hasattr(tools_config.mediainfo, 'check_tool') and tools_config.mediainfo.check_tool == "yes" or
+            hasattr(tools_config.mediatrace, 'check_tool') and tools_config.mediatrace.check_tool == "yes" or
+            hasattr(tools_config.exiftool, 'check_tool') and tools_config.exiftool.check_tool == "yes" or
+            hasattr(tools_config.ffprobe, 'check_tool') and tools_config.ffprobe.check_tool == "yes"):
             metadata_tools_enabled = True
                     
         if metadata_tools_enabled:
@@ -222,13 +229,13 @@ class AVSpexProcessor:
             if self.signals:
                 self.signals.tool_completed.emit("Metadata tools complete")
                 # Emit signals for each completed metadata tool
-                if self.checks_config.tools.mediainfo.run_tool == "yes":
+                if self.checks_config.tools.mediainfo.check_tool == "yes":
                     self.signals.step_completed.emit("Mediainfo")
-                if self.checks_config.tools.mediatrace.run_tool == "yes":
+                if self.checks_config.tools.mediatrace.check_tool == "yes":
                     self.signals.step_completed.emit("Mediatrace")
-                if self.checks_config.tools.exiftool.run_tool == "yes":
+                if self.checks_config.tools.exiftool.check_tool == "yes":
                     self.signals.step_completed.emit("Exiftool")
-                if self.checks_config.tools.ffprobe.run_tool == "yes":
+                if self.checks_config.tools.ffprobe.check_tool == "yes":
                     self.signals.step_completed.emit("FFprobe")
 
         if self.check_cancelled():
@@ -268,6 +275,8 @@ class AVSpexProcessor:
         
         if self.signals:
             self.signals.tool_completed.emit("All processing for this directory complete")
+        if self.signals:
+            self.signals.step_completed.emit("All Processing")
         
         logger.debug('Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
         

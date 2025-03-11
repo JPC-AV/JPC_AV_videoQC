@@ -245,7 +245,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         """Handle processing complete"""
         if self.processing_window:
             self.processing_window.close()
-            self.processing_window = None
+            self.processing_window = None  # Explicitly set to None
         # Re-enable the Check Spex button
         self.check_spex_button.setEnabled(True)
         QMessageBox.information(self, "Complete", message)
@@ -265,10 +265,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
         logger.error(f"Processing error: {error_message}")
         if self.processing_window:
             self.processing_window.update_status(f"ERROR: {error_message}")
-            # Commented these out to keep window open 
-            # self.processing_window.close()
-            # self.processing_window = None
-
+            # Don't close the window automatically, let the user close it
+        
         # Re-enable the Check Spex button
         self.check_spex_button.setEnabled(True)
 
@@ -306,7 +304,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         """Handle processing cancellation"""
         if self.processing_window:
             self.processing_window.close()
-            self.processing_window = None
+            self.processing_window = None  # Explicitly set to None
         self.check_spex_button.setEnabled(True)
         QMessageBox.information(self, "Cancelled", "Processing was cancelled.")
 
