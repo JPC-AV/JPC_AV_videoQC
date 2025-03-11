@@ -31,6 +31,7 @@ def make_stream_hash(video_path, check_cancelled=None, signals=None):
     total_frames = get_total_frames(video_path)
     video_hash = None
     audio_hash = None
+    last_percent_done = 0
 
     ffmpeg_command = [
         'ffmpeg',
@@ -55,9 +56,11 @@ def make_stream_hash(video_path, check_cancelled=None, signals=None):
         for line in ff_output.split('\n'):
             if line.startswith(frame_prefix):
                 current_frame = int(line[len(frame_prefix):])
-                percent_complete = (current_frame / total_frames) * 100
-                if signals:
-                    signals.stream_hash_progress.emit(percent_complete)
+                percent_complete = min(100, int((current_frame * 100) / total_frames))
+                if percent_complete > last_percent_done + 5:  # Update only every 5% change
+                    if signals:
+                        signals.stream_hash_progress.emit(percent_complete)
+                    last_percent_done = percent_complete
                 else:
                     print(f"\rFFmpeg 'streamhash' Progress: {percent_complete:.2f}%", end='', flush=True)
             if line.startswith(video_hash_prefix) or line.startswith(audio_hash_prefix):
@@ -246,7 +249,7 @@ def validate_embedded_md5(video_path, check_cancelled=None, signals=None):
             embed_fixity(video_path, check_cancelled=check_cancelled)
             return
         logger.debug('Generating video and audio stream hashes. This may take a moment...')
-        hash_result = make_stream_hash(video_path, check_cancelled=check_cancelled)
+        hash_result = make_stream_hash(video_path, check_cancelled=check_cancelled, signals=signals)
         if hash_result is None:
             return None
         video_hash, audio_hash = hash_result
