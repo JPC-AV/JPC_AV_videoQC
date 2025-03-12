@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QListWidget, QListWidgetItem, QPushButton, QAbstractItemView, QTextEdit, 
     QProgressBar
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QEvent
 from PyQt6.QtGui import QPalette, QFont
 
 import os
@@ -38,7 +38,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.progress_bar = QProgressBar()
         self.progress_bar.setTextVisible(True)
         self.progress_bar.setMinimum(0)
-        self.progress_bar.setMaximum(0)  # This makes it into a "bouncing ball" progress bar
         main_layout.addWidget(self.progress_bar)
 
         # Create a horizontal layout for steps list and details text
@@ -57,14 +56,7 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         v_layout.addWidget(self.detailed_status)
 
         # Detail progress bar
-        self.detail_progress_bar = QProgressBar()
-        self.detail_progress_bar.setTextVisible(True)
-        self.detail_progress_bar.setMinimum(0)
-        # self.detail_progress_bar.setMaximum(0)  
-        self.percent_label = QLabel("0%")  # Corrected variable name from "percent_label"
-        self.percent_label.setAlignment(Qt.AlignmentFlag.AlignLeft) 
-        v_layout.addWidget(self.percent_label)
-        v_layout.addWidget(self.detail_progress_bar)
+        self.setup_details_progress_bar(v_layout)
 
         # Details text
         self.details_text = QTextEdit()
@@ -82,6 +74,76 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         
         # Setup theme handling (only once)
         self.setup_theme_handling()
+
+        # Apply initial progress bar styles
+        self.apply_progress_bar_style()
+        
+        # Connect theme changes to progress bar styling
+        self.theme_manager = ThemeManager.instance()
+        self.theme_manager.themeChanged.connect(self.apply_progress_bar_style)
+
+    def setup_details_progress_bar(self, v_layout):
+        """Set up the modern overlay progress bar."""
+        # Create progress bar
+        self.detail_progress_bar = QProgressBar()
+        self.detail_progress_bar.setTextVisible(False)  # Hide default text
+        self.detail_progress_bar.setMinimum(0)
+        self.detail_progress_bar.setMaximum(100)
+        
+        # Create overlay label
+        self.overlay_container = QWidget(self.detail_progress_bar)
+        overlay_layout = QHBoxLayout(self.overlay_container)
+        overlay_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.overlay_label = QLabel("0%")
+        self.overlay_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        overlay_layout.addWidget(self.overlay_label)
+        
+        # Set overlay to cover the progress bar
+        self.overlay_container.setGeometry(self.detail_progress_bar.rect())
+        self.detail_progress_bar.installEventFilter(self)
+        
+        # Add to layout
+        v_layout.addWidget(self.detail_progress_bar)
+
+    def apply_progress_bar_style(self, palette=None):
+        """Apply modern overlay style to progress bar using current palette."""
+        if palette is None:
+            palette = self.palette()
+        
+        # Get colors from palette
+        base_color = palette.color(QPalette.ColorRole.Base).name()
+        highlight_color = palette.color(QPalette.ColorRole.Highlight).name()
+        text_color = palette.color(QPalette.ColorRole.HighlightedText).name()
+        
+        # Style the progress bar
+        self.detail_progress_bar.setStyleSheet(f"""
+            QProgressBar {{
+                border: none;
+                border-radius: 4px;
+                background-color: {base_color};
+                text-align: center;
+                height: 22px;
+            }}
+            
+            QProgressBar::chunk {{
+                background-color: {highlight_color};
+                border-radius: 4px;
+            }}
+        """)
+        
+        # Style the overlay text
+        self.overlay_label.setStyleSheet(f"""
+            color: {text_color};
+            font-weight: bold;
+        """)
+
+    def eventFilter(self, obj, event):
+        """Ensure overlay label stays positioned correctly."""
+        if obj == self.detail_progress_bar and event.type() == QEvent.Type.Resize:
+            self.overlay_container.setGeometry(self.detail_progress_bar.rect())
+        return super().eventFilter(obj, event)
+
 
     def populate_steps_list(self):
         """Populate the steps list with enabled checks from config."""
@@ -171,6 +233,21 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.detailed_status.setText(message)
         QApplication.processEvents()
 
+    def update_detail_progress(self, percentage):
+        """Update the detail progress bar with the current percentage."""
+        # If this is the first update (percentage very small) or a reset signal (percentage = 0),
+        # we're likely starting a new process step
+        if percentage <= 1:
+            # Reset the progress bar
+            self.detail_progress_bar.setMaximum(100)
+            self.detail_progress_bar.setValue(0)
+        
+        # Now update with the current progress
+        self.detail_progress_bar.setValue(percentage)
+        
+        # Update percentage label
+        self.overlay_label.setText(f"{percentage}%")
+
     def update_status(self, message):
         """Update the main status message and append to details text."""
         self.details_text.append(message)
@@ -216,6 +293,13 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.activateWindow()  # Activate the window
 
     def closeEvent(self, event):
+        # Disconnect from theme manager
+        if hasattr(self, 'theme_manager'):
+            try:
+                self.theme_manager.themeChanged.disconnect(self.apply_progress_bar_style)
+            except:
+                pass  # Already disconnected
+        
         # Get a reference to the parent (MainWindow)
         parent = self.parent()
         
@@ -243,20 +327,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         
         # Force repaint
         self.update()
-
-    def update_detail_progress(self, percentage):
-        """Update the detail progress bar with the current percentage."""
-        # If this is the first update (percentage very small) or a reset signal (percentage = 0),
-        # we're likely starting a new process step
-        if percentage <= 1:
-            # Reset the progress bar
-            self.detail_progress_bar.setMaximum(100)
-            self.detail_progress_bar.setValue(0)
-        
-        # Now update with the current progress
-        self.detail_progress_bar.setValue(percentage)
-        # Update the percentage label
-        self.percent_label.setText(f"{percentage}%")
 
 
 class DirectoryListWidget(QListWidget):
