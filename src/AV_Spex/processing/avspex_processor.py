@@ -123,6 +123,7 @@ class AVSpexProcessor:
             if self.signals:
                 self.signals.progress.emit(idx, total_dirs)
                 self.signals.status_update.emit(f"Processing directory {idx}/{total_dirs}: {source_directory}")
+                self.signals.file_started.emit(source_directory, idx, total_dirs)
             
             source_directory = os.path.normpath(source_directory)
             self.process_single_directory(source_directory)
@@ -139,9 +140,6 @@ class AVSpexProcessor:
     def process_single_directory(self, source_directory):
         if self.check_cancelled():
             return False
-        
-        if self.signals:
-            self.signals.file_started.emit(os.path.basename(source_directory))
 
         if self.signals:
             self.signals.status_update.emit(f"Initializing directory: {source_directory}")

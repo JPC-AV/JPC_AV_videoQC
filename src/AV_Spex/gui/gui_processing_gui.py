@@ -178,9 +178,16 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         scrollbar = self.details_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
 
-    def update_file_status(self, filename):
+    def update_file_status(self, filename, current_index=None, total_files=None):
         """Update the file status label when processing a new file."""
-        self.file_status_label.setText(f"Processing: {filename}")
+        if current_index is not None and total_files is not None:
+            self.file_status_label.setText(f"Processing ({current_index} / {total_files}): {os.path.basename(filename)}")
+        else:
+            self.file_status_label.setText(f"Processing: {filename}")
+        
+        # Update the progress bar
+        self.progress_bar.setMaximum(total_files)  # Set maximum to total files
+        self.progress_bar.setValue(current_index - 1)  # Set value to index - 1
         self.details_text.append(f"Started processing file: {filename}")
         # Scroll to bottom
         scrollbar = self.details_text.verticalScrollBar()
@@ -228,7 +235,7 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Apply palette to all components
         self.setPalette(palette)
         self.details_text.setPalette(palette)
-        self.status_label.setPalette(palette)
+        self.file_status_label.setPalette(palette)
         
         # Style the cancel button
         theme_manager = ThemeManager.instance()

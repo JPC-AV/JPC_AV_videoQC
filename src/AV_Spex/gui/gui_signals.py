@@ -9,7 +9,7 @@ class ProcessingSignals(QObject):
     status_update = pyqtSignal(str)  # Signal for general status updates
     progress = pyqtSignal(int, int)  # Signal for numerical progress (current, total)
 
-    file_started = pyqtSignal(str)  # Signal for when processing of a specific file starts
+    file_started = pyqtSignal(str, int, int)  # Signal for when processing of a specific file starts
     tool_started = pyqtSignal(str)  # Signal for when a specific tool starts
     tool_completed = pyqtSignal(str)  # Signal for when a tool completes
     step_completed = pyqtSignal(str)  # Signal when a specific step is completed
