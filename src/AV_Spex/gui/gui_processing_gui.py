@@ -158,10 +158,10 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
             self._add_step_item("Dependencies Check")
 
             # Fixity Steps
-            if checks_config.fixity.check_fixity == "yes":
-                self._add_step_item("Check Fixity")
             if checks_config.fixity.validate_stream_fixity == "yes":
                 self._add_step_item("Validate Stream Fixity")
+            if checks_config.fixity.check_fixity == "yes":
+                self._add_step_item("Validate Fixity")
             if checks_config.fixity.embed_stream_fixity == "yes":
                 self._add_step_item("Embed Stream Fixity")
             if checks_config.fixity.output_fixity == "yes":
@@ -172,13 +172,13 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
                 self._add_step_item("MediaConch Validation")
             
             # Metadata tools - note consistent naming
-            if checks_config.tools.exiftool.run_tool == "yes":
+            if checks_config.tools.exiftool.run_tool or checks_config.tools.exiftool.check_tool == "yes":
                 self._add_step_item("Exiftool")
-            if checks_config.tools.ffprobe.run_tool == "yes":
+            if checks_config.tools.ffprobe.run_tool or checks_config.tools.ffprobe.check_tool == "yes":
                 self._add_step_item("FFprobe")
-            if checks_config.tools.mediainfo.run_tool == "yes":
+            if checks_config.tools.mediainfo.run_tool or checks_config.tools.mediainfo.check_tool == "yes":
                 self._add_step_item("Mediainfo")
-            if checks_config.tools.mediatrace.run_tool == "yes":
+            if checks_config.tools.mediatrace.run_tool or checks_config.tools.mediatrace.check_tool == "yes":
                 self._add_step_item("Mediatrace")
             
             # Output tools
@@ -269,23 +269,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Scroll to bottom
         scrollbar = self.details_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
-
-    def _check_step_completion(self, message):
-        """Check if the message indicates a step has been completed."""
-        # Define message patterns that indicate step completion
-        completion_indicators = {
-            "fixity processing complete": "Check Fixity",
-            "mediaconch validation complete": "MediaConch Validation",
-            "metadata tools complete": "Metadata Tools",
-            "outputs complete": "Generate Access File"
-        }
-        
-        # Look for completion indicators in the message
-        message_lower = message.lower()
-        for indicator, step_name in completion_indicators.items():
-            if indicator in message_lower:
-                self.mark_step_complete(step_name)
-                break
 
     def showEvent(self, event):
         super().showEvent(event)

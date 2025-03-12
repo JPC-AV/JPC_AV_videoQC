@@ -175,15 +175,6 @@ class AVSpexProcessor:
             if self.signals:
                 self.signals.tool_completed.emit("Fixity processing complete")
                 
-                # Emit individual steps based on what was actually processed
-                if fixity_config.check_fixity == "yes":
-                    self.signals.step_completed.emit("Check Fixity")
-                if fixity_config.validate_stream_fixity == "yes":
-                    self.signals.step_completed.emit("Validate Stream Fixity")  
-                if fixity_config.embed_stream_fixity == "yes":
-                    self.signals.step_completed.emit("Embed Stream Fixity")
-                if fixity_config.output_fixity == "yes":
-                    self.signals.step_completed.emit("Output Fixity")
 
         if self.check_cancelled():
             return False
