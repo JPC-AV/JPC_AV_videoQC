@@ -41,28 +41,28 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         main_layout.addWidget(self.progress_bar)
 
         # Create a horizontal layout for steps list and details text
-        v_layout = QVBoxLayout()
-        main_layout.addLayout(v_layout, 1)  # stretch factor of 1 allows for window to stretch
+        steps_layout = QHBoxLayout()
+        main_layout.addLayout(steps_layout, 1)  # stretch factor of 1 allows for window to stretch
         
         # Steps list widget - shows steps that will be executed
         self.steps_list = QListWidget()
         self.steps_list.setMinimumHeight(150)
         self.steps_list.setAlternatingRowColors(True)
-        v_layout.addWidget(self.steps_list)
-
-        # Detailed status
-        self.detailed_status = QLabel("")
-        self.detailed_status.setWordWrap(True)
-        v_layout.addWidget(self.detailed_status)
-
-        # Detail progress bar
-        self.setup_details_progress_bar(v_layout)
+        steps_layout.addWidget(self.steps_list)
 
         # Details text
         self.details_text = QTextEdit()
         self.details_text.setMinimumHeight(300)
         self.details_text.setReadOnly(True)
-        v_layout.addWidget(self.details_text, 1)  # stretch factor of 1
+        steps_layout.addWidget(self.details_text, 1)  # stretch factor of 1
+
+        # Detailed status
+        self.detailed_status = QLabel("")
+        self.detailed_status.setWordWrap(True)
+        main_layout.addWidget(self.detailed_status)
+
+        # Detail progress bar
+        self.setup_details_progress_bar(main_layout)
 
         # Add cancel button
         self.cancel_button = QPushButton("Cancel")
@@ -82,7 +82,7 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.theme_manager = ThemeManager.instance()
         self.theme_manager.themeChanged.connect(self.apply_progress_bar_style)
 
-    def setup_details_progress_bar(self, v_layout):
+    def setup_details_progress_bar(self, layout):
         """Set up the modern overlay progress bar."""
         # Create progress bar
         self.detail_progress_bar = QProgressBar()
@@ -104,7 +104,7 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.detail_progress_bar.installEventFilter(self)
         
         # Add to layout
-        v_layout.addWidget(self.detail_progress_bar)
+        layout.addWidget(self.detail_progress_bar)
 
     def apply_progress_bar_style(self, palette=None):
         """Apply modern overlay style to progress bar using current palette."""
