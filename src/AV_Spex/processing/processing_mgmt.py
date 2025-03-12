@@ -234,7 +234,8 @@ class ProcessingManager:
         # Generate access file
         processing_results['access_file'] = process_access_file(
             video_path, source_directory, video_id, 
-            check_cancelled=self.check_cancelled
+            check_cancelled=self.check_cancelled,
+            signals=self.signals
         )
 
         if self.signals:

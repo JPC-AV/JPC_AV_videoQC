@@ -68,7 +68,7 @@ def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None
             return
         elif checksum_files and actual_checksum is None:
             # Calculate the MD5 checksum of the video file
-            actual_checksum = hashlib_md5(video_file_path, check_cancelled=check_cancelled)
+            actual_checksum = hashlib_md5(video_file_path, check_cancelled=check_cancelled, signals=signals)
     else:
         logger.critical(f'Video file not found: {video_file_path}')
         return

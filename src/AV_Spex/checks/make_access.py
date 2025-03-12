@@ -21,7 +21,7 @@ def get_duration(video_path):
     return duration
 
 
-def make_access_file(video_path, output_path, check_cancelled=None):
+def make_access_file(video_path, output_path, check_cancelled=None, signals=None):
     """Create access file using ffmpeg."""
 
     logger.debug(f'Running ffmpeg on {os.path.basename(video_path)} to create access copy {os.path.basename(output_path)}')
@@ -52,11 +52,17 @@ def make_access_file(video_path, output_path, check_cancelled=None):
             # Calculate the total duration in microseconds
             if ff_output.startswith(duration_prefix):
                 if check_cancelled():
+                    ffmpeg_process.terminate
                     return
                 current_frame_str = ff_output.split(duration_prefix)[1]
                 current_frame_ms = float(current_frame_str)
                 percent_complete = (current_frame_ms / duration_ms) * 100
-                print(f"\rFFmpeg Access Copy Progress: {percent_complete:.2f}%", end='', flush=True)
+                if signals:
+                    # Make doubly sure we're emitting an integer percentage in range 0-100
+                    safe_percent = min(100, max(0, int(percent_complete)))
+                    signals.access_file_progress.emit(safe_percent)
+                else:
+                    print(f"\rFFmpeg Access Copy Progress: {percent_complete:.2f}%", end='', flush=True)
         ffmpeg_stderr = ffmpeg_process.stderr.read()
         if ffmpeg_stderr:
             logger.error(f"ffmpeg stderr: {ffmpeg_stderr.strip()}")
@@ -65,7 +71,7 @@ def make_access_file(video_path, output_path, check_cancelled=None):
     print("\n")
 
 
-def process_access_file(video_path, source_directory, video_id, check_cancelled=None):
+def process_access_file(video_path, source_directory, video_id, check_cancelled=None, signals=None):
     """
     Generate access file if configured and not already existing.
     
@@ -95,21 +101,9 @@ def process_access_file(video_path, source_directory, video_id, check_cancelled=
             return None
 
         # Generate access file
-        make_access_file(video_path, access_output_path, check_cancelled=check_cancelled)
+        make_access_file(video_path, access_output_path, check_cancelled=check_cancelled, signals=signals)
         return access_output_path
 
     except Exception as e:
         logger.critical(f"Error creating access file: {e}")
         return None
-
-
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-            print("Usage: python make_access.py <mkv_file>")
-            sys.exit(1)
-    file_path = sys.argv[1]
-    output_file = file_path.replace(".mkv", "_access.mp4")
-    if not os.path.isfile(file_path):
-        print(f"Error: {file_path} is not a valid file.")
-        sys.exit(1)
-    make_access_file(file_path, output_file)

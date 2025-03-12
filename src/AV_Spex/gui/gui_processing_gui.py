@@ -61,7 +61,7 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.detail_progress_bar.setTextVisible(True)
         self.detail_progress_bar.setMinimum(0)
         # self.detail_progress_bar.setMaximum(0)  
-        self.percent_label = QLabel("0%")  # Corrected variable name from "perecent_label"
+        self.percent_label = QLabel("0%")  # Corrected variable name from "percent_label"
         self.percent_label.setAlignment(Qt.AlignmentFlag.AlignLeft) 
         v_layout.addWidget(self.percent_label)
         v_layout.addWidget(self.detail_progress_bar)
@@ -238,15 +238,18 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.update()
 
     def update_detail_progress(self, percentage):
-        """Update the detail progress bar and percentage label with the current percentage."""
-        self.detail_progress_bar.setMaximum(100)
-        self.detail_progress_bar.setValue(percentage)
+        """Update the detail progress bar with the current percentage."""
+        # If this is the first update (percentage very small) or a reset signal (percentage = 0),
+        # we're likely starting a new process step
+        if percentage <= 1:
+            # Reset the progress bar
+            self.detail_progress_bar.setMaximum(100)
+            self.detail_progress_bar.setValue(0)
         
+        # Now update with the current progress
+        self.detail_progress_bar.setValue(percentage)
         # Update the percentage label
         self.percent_label.setText(f"{percentage}%")
-        
-        # Force UI update
-        QApplication.processEvents()
 
 
 class DirectoryListWidget(QListWidget):
