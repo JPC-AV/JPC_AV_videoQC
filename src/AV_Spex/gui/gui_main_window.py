@@ -1,7 +1,7 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
     QLabel, QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, 
-    QComboBox, QTabWidget, QTextEdit, QMessageBox, QDialog
+    QComboBox, QTabWidget, QTextEdit, QMessageBox, QDialog, QProgressBar
 )
 from PyQt6.QtCore import Qt, QSettings, QDir, QTimer, QSize
 from PyQt6.QtGui import QPixmap, QPalette
@@ -88,6 +88,48 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 }
             """)
         
+        # Special styling for open processing window button
+        if hasattr(self, 'open_processing_button'):
+            self.open_processing_button.setStyleSheet("""
+                QPushButton {
+                    font-weight: bold;
+                    padding: 8px 16px;
+                    font-size: 14px;
+                    background-color: #ff9999;
+                    color: #4d2b12;
+                    border: none;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #ff8080;
+                }
+                QPushButton:disabled {
+                    background-color: #ffcccc; 
+                    color: #8c6347;             
+                    opacity: 0.8;               
+                }
+            """)
+
+        # Style the processing indicator (using highlight color from palette)
+        if hasattr(self, 'processing_indicator'):
+            highlight_color = palette.color(QPalette.ColorRole.Highlight).name()
+            text_color = palette.color(QPalette.ColorRole.Text).name()
+            base_color = palette.color(QPalette.ColorRole.Base).name()
+            
+            self.processing_indicator.setStyleSheet(f"""
+                QProgressBar {{
+                    border: 1px solid {text_color};
+                    border-radius: 4px;
+                    background-color: {base_color};
+                    text-align: center;
+                }}
+                
+                QProgressBar::chunk {{
+                    background-color: {highlight_color};
+                    width: 5px; /* for indeterminate progress bar */
+                }}
+            """)
+
         # Update child windows
         for child_name in ['config_widget', 'processing_window']:
             child = getattr(self, child_name, None)
@@ -204,6 +246,9 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Check if this was a cancellation
         was_cancelled = hasattr(self.worker, 'user_cancelled') and self.worker.user_cancelled
 
+        # Hide the processing indicator
+        self.processing_indicator.setVisible(False)
+        
         # Update UI to indicate processing is complete
         if hasattr(self, 'processing_window') and self.processing_window:
             if not was_cancelled:
@@ -223,27 +268,38 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 
             self.processing_window.cancel_button.clicked.connect(self.processing_window.close)
         
-        # Re-enable check spex button that were disabled during processing
+        # Re-enable the Check Spex button
         if hasattr(self, 'check_spex_button'):
             self.check_spex_button.setEnabled(True)
+        
+        # Disable the Open Processing Window button when not processing
+        if hasattr(self, 'open_processing_button'):
+            self.open_processing_button.setEnabled(False)
         
         # Clean up the worker (but don't close the window)
         self.worker = None
 
     def on_processing_started(self, message=None):
         """Handle processing start"""
+        # Start showing the processing indicator
+        self.processing_indicator.setVisible(True)
+        
+        # Enable the processing window button
+        self.open_processing_button.setEnabled(True)
+        
         # Create processing window if it doesn't exist
         if not hasattr(self, 'processing_window') or self.processing_window is None:
             # Create and initialize the processing window
             self.initialize_processing_window()
         
         # Update status if a message was provided
-        if message:
+        if message and hasattr(self, 'processing_window') and self.processing_window:
             self.processing_window.update_status(message)
         
         # Disable Check Spex button
         self.check_spex_button.setEnabled(False)
 
+        # Apply disabled style to Check Spex button
         if hasattr(self, 'check_spex_button'):
             self.check_spex_button.setStyleSheet("""
                 QPushButton {
@@ -272,8 +328,13 @@ class MainWindow(QMainWindow, ThemeableMixin):
         if self.processing_window:
             self.processing_window.close()
             self.processing_window = None  # Explicitly set to None
-        # Re-enable the Check Spex button
-        self.check_spex_button.setEnabled(True)
+        
+        # Re-enable both buttons
+        if hasattr(self, 'check_spex_button'):
+            self.check_spex_button.setEnabled(True)
+        if hasattr(self, 'open_processing_button'):
+            self.open_processing_button.setEnabled(True)
+        
         QMessageBox.information(self, "Complete", message)
     
     def on_processing_time(self, processing_time):
@@ -289,7 +350,14 @@ class MainWindow(QMainWindow, ThemeableMixin):
         """Handle errors"""
         # Log the error
         logger.error(f"Processing error: {error_message}")
-        if self.processing_window:
+        
+        # Hide the processing indicator
+        self.processing_indicator.setVisible(False)
+        
+        # Disable the Open Processing Window button
+        self.open_processing_button.setEnabled(False)
+        
+        if hasattr(self, 'processing_window') and self.processing_window:
             self.processing_window.update_status(f"ERROR: {error_message}")
             # Don't close the window automatically, let the user close it
         
@@ -323,15 +391,27 @@ class MainWindow(QMainWindow, ThemeableMixin):
             # Call the worker's cancel method
             self.worker.cancel()
             
+            # Hide the processing indicator
+            self.processing_indicator.setVisible(False)
+            
+            # Disable the Open Processing Window button
+            self.open_processing_button.setEnabled(False)
+            
             # Re-enable the Check Spex button
             self.check_spex_button.setEnabled(True)
 
     def on_processing_cancelled(self):
         """Handle processing cancellation"""
-        if self.processing_window:
-            self.processing_window.close()
-            self.processing_window = None  # Explicitly set to None
+        # Hide the processing indicator
+        self.processing_indicator.setVisible(False)
+        
+        # Disable the Open Processing Window button
+        self.open_processing_button.setEnabled(False)
+        
+        # Re-enable the Check Spex button
         self.check_spex_button.setEnabled(True)
+        
+        # Notify user
         QMessageBox.information(self, "Cancelled", "Processing was cancelled.")
 
     def on_tool_started(self, tool_name):
@@ -551,6 +631,52 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Bottom button section
         bottom_row = QHBoxLayout()
         bottom_row.addStretch()
+        
+       # Create a layout for the Open Processing Window button and progress indicator
+        processing_button_layout = QHBoxLayout()
+        
+        # Add a small indeterminate progress bar
+        self.processing_indicator = QProgressBar(self)
+        self.processing_indicator.setMaximumWidth(50)  # Make it small
+        self.processing_indicator.setMinimum(0)
+        self.processing_indicator.setMaximum(0)  # Makes it indeterminate
+        self.processing_indicator.setTextVisible(False)  # No percentage text
+        self.processing_indicator.setVisible(False)  # Initially hidden
+        processing_button_layout.addWidget(self.processing_indicator)
+        
+        # Open Processing Window button
+        self.open_processing_button = QPushButton("Open Processing Window")
+        self.open_processing_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px 16px;
+                font-size: 14px;
+                background-color: #ff9999;
+                color: #4d2b12;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #ff8080;
+            }
+            QPushButton:disabled {
+                background-color: #ffcccc; 
+                color: #8c6347;             
+                opacity: 0.8;               
+            }
+        """)
+        self.open_processing_button.clicked.connect(self.on_open_processing_clicked)
+        # Initially disable the button since no processing is running
+        self.open_processing_button.setEnabled(False)
+        processing_button_layout.addWidget(self.open_processing_button)
+        
+        # Add the processing button layout to the bottom row
+        bottom_row.addLayout(processing_button_layout)
+
+        # Add some spacing between buttons
+        bottom_row.addSpacing(10)
+
+        # Check Spex button
         self.check_spex_button = QPushButton("Check Spex!")
         self.check_spex_button.setStyleSheet("""
             QPushButton {
@@ -565,10 +691,36 @@ class MainWindow(QMainWindow, ThemeableMixin):
             QPushButton:hover {
                 background-color: #45a049;
             }
+            QPushButton:disabled {
+                background-color: #A5D6A7; 
+                color: #E8F5E9;             
+                opacity: 0.8;               
+            }
         """)
         self.check_spex_button.clicked.connect(self.on_check_spex_clicked)
         bottom_row.addWidget(self.check_spex_button)
         checks_layout.addLayout(bottom_row)
+
+    def on_open_processing_clicked(self):
+        """Open the processing window directly without affecting processing."""
+        # Create processing window if it doesn't exist
+        if not hasattr(self, 'processing_window') or self.processing_window is None:
+            self.initialize_processing_window()
+        
+        # Show the window
+        self.processing_window.show()   
+        self.processing_window.raise_()
+
+    # Add this method to handle processing window closed event
+    def on_processing_window_closed(self):
+        """Handle processing window closed event."""
+        # Re-enable both buttons
+        self.check_spex_button.setEnabled(True)
+        
+        self.open_processing_button.setEnabled(True)
+        
+        # Reset processing window reference
+        self.processing_window = None
 
     def setup_main_layout(self):
         """Set up the main window layout structure"""

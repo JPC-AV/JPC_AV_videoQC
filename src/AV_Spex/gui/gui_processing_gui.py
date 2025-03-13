@@ -331,14 +331,10 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Get a reference to the parent (MainWindow)
         parent = self.parent()
         
-        # If parent exists and has a cancel_processing method AND processing is still active, call it
-        if parent and hasattr(parent, 'cancel_processing') and parent.worker is not None:
-            parent.cancel_processing()
-        
         # Set the processing_window reference to None in the parent
         if parent and hasattr(parent, 'processing_window'):
             parent.processing_window = None
-        
+            
         # Call the parent class's closeEvent to properly handle window closure
         super().closeEvent(event)
 
