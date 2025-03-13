@@ -232,15 +232,6 @@ class AVSpexProcessor:
             
             if self.signals:
                 self.signals.tool_completed.emit("Outputs complete")
-                # Emit signals for each completed output
-                if self.checks_config.outputs.access_file == "yes":
-                    self.signals.step_completed.emit("Generate Access File")
-                if self.checks_config.outputs.report == "yes":
-                    self.signals.step_completed.emit("Generate Report")
-                if self.checks_config.tools.qctools.run_tool == "yes":
-                    self.signals.step_completed.emit("QCTools")
-                if self.checks_config.tools.qct_parse.run_tool == "yes":
-                    self.signals.step_completed.emit("QCT Parse")
 
         if self.check_cancelled():
             return False

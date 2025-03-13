@@ -229,8 +229,11 @@ class ProcessingManager:
         # Process QCTools output
         process_qctools_output(
             video_path, source_directory, destination_directory, video_id, report_directory=report_directory,
-            check_cancelled=self.check_cancelled
+            check_cancelled=self.check_cancelled, signals=self.signals
         )
+
+        if self.signals:
+            self.signals.step_completed.emit("QCTools")
 
         if self.signals:
             self.signals.output_progress.emit("Creating access file...")
@@ -252,13 +255,13 @@ class ProcessingManager:
         # Generate final HTML report
         processing_results['html_report'] = generate_final_report(
             video_id, source_directory, report_directory, destination_directory,
-            check_cancelled=self.check_cancelled
+            check_cancelled=self.check_cancelled, signals=self.signals
         )
 
         return processing_results
 
 
-def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None, check_cancelled=None):
+def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None, check_cancelled=None, signals=None):
     """
     Process QCTools output, including running QCTools and optional parsing.
     
@@ -288,6 +291,8 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         run_qctools_command('qcli -i', video_path, '-o', qctools_output_path, check_cancelled=check_cancelled)
         logger.debug('')  # Add new line for cleaner terminal output
         results['qctools_output_path'] = qctools_output_path
+        if signals:
+            signals.step_completed.emit("QCTools")
 
     # Check QCTools output if configured
     if checks_config.tools.qct_parse.run_tool == 'yes':
@@ -302,7 +307,8 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
 
         # Run QCTools parsing
         run_qctparse(video_path, qctools_output_path, report_directory, check_cancelled=check_cancelled)
-        # currently not using results['qctools_check_output']
+        if signals:
+            signals.step_completed.emit("QCT Parse")
 
     return results
 

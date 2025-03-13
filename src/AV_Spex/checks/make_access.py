@@ -95,13 +95,19 @@ def process_access_file(video_path, source_directory, video_id, check_cancelled=
         for filename in os.listdir(source_directory):
             if filename.lower().endswith('mp4'):
                 logger.critical(f"Access file already exists, not running ffmpeg\n")
+                if signals:
+                    signals.step_completed.emit("Generate Access File")
                 return None
         if os.path.isfile(access_output_path):
             logger.critical(f"Access file already exists, not running ffmpeg\n")
+            if signals:
+                signals.step_completed.emit("Generate Access File")
             return None
 
         # Generate access file
         make_access_file(video_path, access_output_path, check_cancelled=check_cancelled, signals=signals)
+        if signals:
+            signals.step_completed.emit("Generate Access File")
         return access_output_path
 
     except Exception as e:
