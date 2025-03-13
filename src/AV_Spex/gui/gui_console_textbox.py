@@ -22,6 +22,7 @@ class ConsoleTextEdit(QTextEdit):
         super().__init__(parent)
         self.setReadOnly(True)
         self.setMinimumHeight(300)
+        self.setMaximumHeight(900)
         
         # Set default font to monospace for console-like appearance
         font = QFont("Courier New, monospace")
@@ -41,24 +42,8 @@ class ConsoleTextEdit(QTextEdit):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         
         # Set a reasonable minimum width but allow horizontal scrolling
-        self.setMinimumWidth(200)
+        self.setMinimumWidth(300)
         self.setMaximumWidth(800)  # Maximum width to prevent stretching
-
-        # Set size policy to prevent layout expansion
-        # The widget will not expand beyond its sizeHint for width
-        size_policy = QSizePolicy(
-            QSizePolicy.Policy.Preferred,  # Don't grow horizontally beyond sizeHint
-            QSizePolicy.Policy.Expanding    # Can expand vertically
-        )
-        size_policy.setHorizontalStretch(0)  # No horizontal stretch
-        self.setSizePolicy(size_policy)
-
-    def sizeHint(self):
-        """
-        Provide a reasonable default size, but allow scrolling for content
-        that exceeds this width.
-        """
-        return QSize(600, 300)  # Default width 600px, height 300px
         
     def append_message(self, text, msg_type=MessageType.NORMAL):
         """
