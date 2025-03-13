@@ -81,6 +81,11 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 QPushButton:hover {
                     background-color: #45a049;
                 }
+                QPushButton:disabled {
+                    background-color: #A5D6A7; 
+                    color: #E8F5E9;             
+                    opacity: 0.8;               
+                }
             """)
         
         # Update child windows
@@ -238,6 +243,27 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # Disable Check Spex button
         self.check_spex_button.setEnabled(False)
+
+        if hasattr(self, 'check_spex_button'):
+            self.check_spex_button.setStyleSheet("""
+                QPushButton {
+                    font-weight: bold;
+                    padding: 8px 16px;
+                    font-size: 14px;
+                    background-color: #4CAF50;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #45a049;
+                }
+                QPushButton:disabled {
+                    background-color: #A5D6A7; 
+                    color: #E8F5E9;             
+                    opacity: 0.8;               
+                }
+            """)
         
         QApplication.processEvents()
         
