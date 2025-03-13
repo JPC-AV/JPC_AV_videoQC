@@ -8,6 +8,7 @@ from PyQt6.QtGui import QPalette, QFont
 
 import os
 from ..gui.gui_theme_manager import ThemeManager, ThemeableMixin
+from ..gui.gui_console_textbox import ConsoleTextEdit, MessageType
 
 from ..utils.config_manager import ConfigManager
 from ..utils.config_setup import ChecksConfig
@@ -50,10 +51,8 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.steps_list.setAlternatingRowColors(True)
         steps_layout.addWidget(self.steps_list)
 
-        # Details text
-        self.details_text = QTextEdit()
-        self.details_text.setMinimumHeight(300)
-        self.details_text.setReadOnly(True)
+        # Details text - use custom ConsoleTextEdit instead of QTextEdit
+        self.details_text = ConsoleTextEdit()
         steps_layout.addWidget(self.details_text, 1)  # stretch factor of 1
 
         # Detailed status
@@ -81,6 +80,10 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Connect theme changes to progress bar styling
         self.theme_manager = ThemeManager.instance()
         self.theme_manager.themeChanged.connect(self.apply_progress_bar_style)
+
+        # Initial welcome message
+        self.details_text.append_message("Processing window initialized", MessageType.INFO)
+        self.details_text.append_message("Ready to process files", MessageType.SUCCESS)
 
     def setup_details_progress_bar(self, layout):
         """Set up the modern overlay progress bar."""
@@ -249,11 +252,27 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.overlay_label.setText(f"{percentage}%")
 
     def update_status(self, message):
-        """Update the main status message and append to details text."""
-        self.details_text.append(message)
-        # Scroll to bottom
-        scrollbar = self.details_text.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+        """
+        Update the main status message and append to details text.
+        Detects message type based on content and formats accordingly.
+        """
+        # Determine message type based on content
+        msg_type = MessageType.NORMAL
+        lowercase_msg = message.lower()
+        
+        if "error" in lowercase_msg:
+            msg_type = MessageType.ERROR
+        elif "warning" in lowercase_msg:
+            msg_type = MessageType.WARNING
+        elif lowercase_msg.startswith("finding") or lowercase_msg.startswith("checking"):
+            msg_type = MessageType.COMMAND
+        elif "success" in lowercase_msg or "complete" in lowercase_msg or "identified successfully" in lowercase_msg:
+            msg_type = MessageType.SUCCESS
+        elif any(info_prefix in lowercase_msg for info_prefix in ["found", "version", "dependencies"]):
+            msg_type = MessageType.INFO
+            
+        # Append the message with appropriate styling
+        self.details_text.append_message(message, msg_type)
 
     def update_file_status(self, filename, current_index=None, total_files=None):
         """Update the file status label when processing a new file."""
@@ -301,12 +320,12 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         """Handle theme changes"""
         # Apply palette to all components
         self.setPalette(palette)
-        self.details_text.setPalette(palette)
         self.file_status_label.setPalette(palette)
         
         # Style the cancel button
         theme_manager = ThemeManager.instance()
         theme_manager.style_buttons(self)
+        theme_manager.style_console_text(self.details_text)
         
         # Force repaint
         self.update()

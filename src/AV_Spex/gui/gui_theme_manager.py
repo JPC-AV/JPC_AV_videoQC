@@ -165,6 +165,67 @@ class ThemeManager(QObject):
                 background-color: none;
             }}
         """
+    
+    # Add method to style console text edit
+    def style_console_text(self, text_edit):
+        """
+        Apply consistent styling to a ConsoleTextEdit based on current theme.
+        
+        Args:
+            text_edit: The ConsoleTextEdit to style
+        """
+            
+        # Get the current palette
+        palette = self.app.palette()
+        base_color = palette.color(QPalette.ColorRole.Base).name()
+        text_color = palette.color(QPalette.ColorRole.Text).name()
+        
+        # Define darker/lighter background based on theme
+        is_dark = palette.color(QPalette.ColorRole.Window).lightness() < 128
+        if is_dark:
+            # For dark themes, use slightly lighter than base
+            bg_color = f"rgba({min(palette.color(QPalette.ColorRole.Base).red() + 15, 255)}, "\
+                      f"{min(palette.color(QPalette.ColorRole.Base).green() + 15, 255)}, "\
+                      f"{min(palette.color(QPalette.ColorRole.Base).blue() + 15, 255)}, 255)"
+            # Border for dark theme
+            border_color = palette.color(QPalette.ColorRole.Mid).name()
+        else:
+            # For light themes, use slightly darker than base
+            bg_color = f"rgba({max(palette.color(QPalette.ColorRole.Base).red() - 15, 0)}, "\
+                      f"{max(palette.color(QPalette.ColorRole.Base).green() - 15, 0)}, "\
+                      f"{max(palette.color(QPalette.ColorRole.Base).blue() - 15, 0)}, 255)"
+            # Border for light theme
+            border_color = palette.color(QPalette.ColorRole.Mid).name()
+            
+        # Create console-like style
+        text_edit.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {bg_color};
+                color: {text_color};
+                border: 1px solid {border_color};
+                border-radius: 5px;
+                padding: 5px;
+                selection-background-color: {palette.color(QPalette.ColorRole.Highlight).name()};
+                selection-color: {palette.color(QPalette.ColorRole.HighlightedText).name()};
+            }}
+            QScrollBar:vertical {{
+                background: {bg_color};
+                width: 14px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:vertical {{
+                background: {palette.color(QPalette.ColorRole.Mid).name()};
+                min-height: 20px;
+                border-radius: 7px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+                height: 0px;
+            }}
+        """)
+        
+        # Clear format cache so they'll be recreated with new theme colors
+        if hasattr(text_edit, 'clear_formats'):
+            text_edit.clear_formats()
 
 
 class ThemeableMixin:
