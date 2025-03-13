@@ -26,7 +26,6 @@ class ConsoleTextEdit(QTextEdit):
         
         # Set default font to monospace for console-like appearance
         font = QFont("Courier New, monospace")
-        font.setPointSize(12)
         self.setFont(font)
         
         # Document margin settings for better appearance
@@ -104,7 +103,7 @@ class ConsoleTextEdit(QTextEdit):
         
         # Base font (monospace)
         font = QFont("Courier New, monospace")
-        font.setPointSize(10)
+        font.setPointSize(14)
         
         # Apply styling based on message type
         if msg_type == MessageType.NORMAL:
