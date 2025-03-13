@@ -311,7 +311,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Update the progress bar
         self.progress_bar.setMaximum(total_files)  # Set maximum to total files
         self.progress_bar.setValue(current_index - 1)  # Set value to index - 1
-        self.details_text.append(f"Started processing file: {filename}")
         # Scroll to bottom
         scrollbar = self.details_text.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())

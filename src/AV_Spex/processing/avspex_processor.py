@@ -77,24 +77,14 @@ class AVSpexProcessor:
         if self.check_cancelled():
             return False
 
-        if self.signals:
-            self.signals.status_update.emit("Checking Python version...")
         check_py_version()
         
         if self.check_cancelled():
             return False
-
-        if self.signals:
-            self.signals.status_update.emit("Checking required dependencies...")
         
-        total_commands = len(required_commands)
-        for idx, command in enumerate(required_commands, 1):
+        for command in required_commands:
             if self.check_cancelled():
                 return False
-
-            if self.signals:
-                self.signals.status_update.emit(f"Finding {command} ({idx}/{total_commands})...")
-                self.signals.progress.emit(idx, total_commands)
                 
             if not check_external_dependency(command):
                 error_msg = f"Error: {command} not found. Please install it."
@@ -103,8 +93,6 @@ class AVSpexProcessor:
                 raise RuntimeError(error_msg)
         
         if self.signals:
-            self.signals.status_update.emit("All dependencies identified successfully.")
-            # Signal that dependency checking is complete
             self.signals.step_completed.emit("Dependencies Check")
         
         return True
@@ -121,8 +109,6 @@ class AVSpexProcessor:
                 return False
 
             if self.signals:
-                self.signals.progress.emit(idx, total_dirs)
-                self.signals.status_update.emit(f"Processing directory {idx}/{total_dirs}: {os.path.basename(source_directory)}\n") 
                 self.signals.file_started.emit(source_directory, idx, total_dirs)
             
             source_directory = os.path.normpath(source_directory)
@@ -140,9 +126,6 @@ class AVSpexProcessor:
     def process_single_directory(self, source_directory):
         if self.check_cancelled():
             return False
-
-        if self.signals:
-            self.signals.status_update.emit(f"Initializing directory: {source_directory}")
 
         init_dir_result = dir_setup.initialize_directory(source_directory)
         if init_dir_result is None:

@@ -27,13 +27,11 @@ class ProcessingWorker(QThread):
             self.started_processing.emit()
             
             # Initialize the processor
-            logger.info("Initializing processor...")
             if not self.processor.initialize():
                 self.error.emit("Processor initialization failed or was cancelled")
                 return
             
             # Process the directories
-            logger.info("Processing directories...")
             processing_time = self.processor.process_directories(self.source_directories)
             
             if processing_time:
