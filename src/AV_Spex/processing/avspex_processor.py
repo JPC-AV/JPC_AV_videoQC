@@ -190,6 +190,10 @@ class AVSpexProcessor:
             hasattr(tools_config.ffprobe, 'check_tool') and tools_config.ffprobe.check_tool == "yes"):
             metadata_tools_enabled = True
                     
+        # Initialize metadata_differences
+        # Needed for process_video_outputs, if not created in process_video_metadata
+        metadata_differences = None
+
         if metadata_tools_enabled:
             if self.signals:
                 self.signals.tool_started.emit("Metadata Tools")
@@ -240,6 +244,7 @@ class AVSpexProcessor:
             self.signals.tool_completed.emit("All processing for this directory complete")
         if self.signals:
             self.signals.step_completed.emit("All Processing")
+            time.sleep(0.1) # pause for a ms to let the list update before the QMessage box pops up
         
         logger.debug('Please note that any warnings on metadata are just used to help any issues with your file. If they are not relevant at this point in your workflow, just ignore this. Thanks!\n')
         
