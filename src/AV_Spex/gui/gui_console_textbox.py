@@ -43,7 +43,6 @@ class ConsoleTextEdit(QTextEdit):
         
         # Set a reasonable minimum width but allow horizontal scrolling
         self.setMinimumWidth(300)
-        self.setMaximumWidth(800)  # Maximum width to prevent stretching
         
     def append_message(self, text, msg_type=MessageType.NORMAL):
         """

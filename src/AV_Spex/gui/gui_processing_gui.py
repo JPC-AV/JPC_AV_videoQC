@@ -45,27 +45,22 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         main_layout.addWidget(self.progress_bar)
 
         # Create a splitter for steps list and details text
-        # This allows the user to adjust the width allocation
         splitter = QSplitter(Qt.Orientation.Horizontal)
         main_layout.addWidget(splitter, 1)  # stretch factor of 1
 
-        # Create a horizontal layout for steps list and details text
-        steps_layout = QHBoxLayout()
-        main_layout.addLayout(steps_layout, 1)  # stretch factor of 1 allows for window to stretch
-        
         # Steps list widget - shows steps that will be executed
         self.steps_list = QListWidget()
         self.steps_list.setMinimumHeight(150)
         self.steps_list.setAlternatingRowColors(True)
         self.steps_list.setMinimumWidth(150)  # Ensure minimum width
-        steps_layout.addWidget(self.steps_list)
+        splitter.addWidget(self.steps_list)
 
         # Details text - use custom ConsoleTextEdit instead of QTextEdit
         self.details_text = ConsoleTextEdit()
-        steps_layout.addWidget(self.details_text)
+        splitter.addWidget(self.details_text)
 
         # Set initial splitter sizes
-        splitter.setSizes([200, 500])  # Allocate more space to the details text  
+        splitter.setSizes([200, 500])  # Allocate more space to the details text
 
         # Detailed status
         self.detailed_status = QLabel("")
@@ -302,9 +297,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
                 "found", "version", "dependencies", "starting", "processing"
             ]):
                 msg_type = MessageType.INFO
-        
-        # Update the file status label with the most recent message
-        self.file_status_label.setText(message)
         
         # Append the message to the console with styling
         self.details_text.append_message(message, msg_type)
