@@ -205,8 +205,8 @@ class ThemeManager(QObject):
                 border: 1px solid {border_color};
                 border-radius: 5px;
                 padding: 5px;
-                selection-background-color: {palette.color(QPalette.ColorRole.Highlight).name()};
-                selection-color: {palette.color(QPalette.ColorRole.HighlightedText).name()};
+                selection-background-color: {palette.color(palette.ColorRole.Highlight).name()};
+                selection-color: {palette.color(palette.ColorRole.HighlightedText).name()};
             }}
             QScrollBar:vertical {{
                 background: {bg_color};
@@ -214,12 +214,24 @@ class ThemeManager(QObject):
                 margin: 0px;
             }}
             QScrollBar::handle:vertical {{
-                background: {palette.color(QPalette.ColorRole.Mid).name()};
+                background: {palette.color(palette.ColorRole.Mid).name()};
                 min-height: 20px;
                 border-radius: 7px;
             }}
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+            QScrollBar:horizontal {{
+                background: {bg_color};
+                height: 14px;
+                margin: 0px;
+            }}
+            QScrollBar::handle:horizontal {{
+                background: {palette.color(palette.ColorRole.Mid).name()};
+                min-width: 20px;
+                border-radius: 7px;
+            }}
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
                 height: 0px;
+                width: 0px;
             }}
         """)
         

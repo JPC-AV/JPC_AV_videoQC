@@ -1,6 +1,6 @@
 from PyQt6.QtGui import QTextCharFormat, QColor, QFont, QTextCursor
-from PyQt6.QtWidgets import QTextEdit
-from PyQt6.QtCore import Qt, QRegularExpression
+from PyQt6.QtWidgets import QTextEdit, QSizePolicy
+from PyQt6.QtCore import Qt, QRegularExpression, QSize
 from enum import Enum, auto
 
 class MessageType(Enum):
@@ -24,7 +24,7 @@ class ConsoleTextEdit(QTextEdit):
         self.setMinimumHeight(300)
         
         # Set default font to monospace for console-like appearance
-        font = QFont("Consolas, Courier New, monospace")
+        font = QFont("Courier New, monospace")
         font.setPointSize(12)
         self.setFont(font)
         
@@ -33,6 +33,32 @@ class ConsoleTextEdit(QTextEdit):
         
         # Initialize format cache
         self._format_cache = {}
+
+        # Disable word wrapping for horizontal scrolling
+        self.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
+        
+        # Set horizontal scrollbar policy to always show
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        
+        # Set a reasonable minimum width but allow horizontal scrolling
+        self.setMinimumWidth(200)
+        self.setMaximumWidth(800)  # Maximum width to prevent stretching
+
+        # Set size policy to prevent layout expansion
+        # The widget will not expand beyond its sizeHint for width
+        size_policy = QSizePolicy(
+            QSizePolicy.Policy.Preferred,  # Don't grow horizontally beyond sizeHint
+            QSizePolicy.Policy.Expanding    # Can expand vertically
+        )
+        size_policy.setHorizontalStretch(0)  # No horizontal stretch
+        self.setSizePolicy(size_policy)
+
+    def sizeHint(self):
+        """
+        Provide a reasonable default size, but allow scrolling for content
+        that exceeds this width.
+        """
+        return QSize(600, 300)  # Default width 600px, height 300px
         
     def append_message(self, text, msg_type=MessageType.NORMAL):
         """
@@ -56,12 +82,6 @@ class ConsoleTextEdit(QTextEdit):
         # Set the format and insert the text
         cursor.setCharFormat(text_format)
         
-        # Add timestamp for certain message types
-        if msg_type in [MessageType.ERROR, MessageType.WARNING, MessageType.INFO, MessageType.SUCCESS]:
-            from datetime import datetime
-            timestamp = datetime.now().strftime("[%H:%M:%S] ")
-            cursor.insertText(timestamp)
-        
         # Format error, warning, and info messages
         prefix = ""
         if msg_type == MessageType.ERROR:
@@ -73,7 +93,7 @@ class ConsoleTextEdit(QTextEdit):
         elif msg_type == MessageType.SUCCESS:
             prefix = "SUCCESS: "
         elif msg_type == MessageType.COMMAND:
-            prefix = "$ "
+            prefix = ""
             
         cursor.insertText(prefix + text)
         
@@ -99,7 +119,7 @@ class ConsoleTextEdit(QTextEdit):
         fmt = QTextCharFormat()
         
         # Base font (monospace)
-        font = QFont("Consolas, Courier New, monospace")
+        font = QFont("Courier New, monospace")
         font.setPointSize(10)
         
         # Apply styling based on message type
@@ -116,6 +136,7 @@ class ConsoleTextEdit(QTextEdit):
             fmt.setForeground(QColor(255, 160, 0))
         elif msg_type == MessageType.INFO:
             # Info messages are cyan/blue
+            font.setBold(True)
             fmt.setForeground(QColor(40, 170, 255))
         elif msg_type == MessageType.SUCCESS:
             # Success messages are green
@@ -124,7 +145,6 @@ class ConsoleTextEdit(QTextEdit):
         elif msg_type == MessageType.COMMAND:
             # Command messages are bold
             font.setBold(True)
-            fmt.setBackground(QColor(0, 0, 0, 30))  # Semi-transparent background
             
         fmt.setFont(font)
         

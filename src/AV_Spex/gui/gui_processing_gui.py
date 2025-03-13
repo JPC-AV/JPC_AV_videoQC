@@ -1,9 +1,9 @@
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QListWidget, QListWidgetItem, QPushButton, QAbstractItemView, QTextEdit, 
-    QProgressBar
+    QProgressBar, QSplitter
 )
-from PyQt6.QtCore import Qt, QEvent
+from PyQt6.QtCore import Qt, QEvent, QSize
 from PyQt6.QtGui import QPalette, QFont
 
 import os
@@ -20,13 +20,15 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Processing Status")
-        self.resize(600, 400)
+        self.resize(700, 500)  # Set initial size
+        self.setMinimumSize(500, 300)  # Set minimum size
         self.setWindowFlags(Qt.WindowType.Window)
         
         # Central widget and main_layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout(central_widget)
+        main_layout.setContentsMargins(10, 10, 10, 10)  # Add some padding
         
         # Status label with larger font
         self.file_status_label = QLabel("No file processing yet...")
@@ -42,6 +44,11 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.progress_bar.setMinimum(0)
         main_layout.addWidget(self.progress_bar)
 
+        # Create a splitter for steps list and details text
+        # This allows the user to adjust the width allocation
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        main_layout.addWidget(splitter, 1)  # stretch factor of 1
+
         # Create a horizontal layout for steps list and details text
         steps_layout = QHBoxLayout()
         main_layout.addLayout(steps_layout, 1)  # stretch factor of 1 allows for window to stretch
@@ -50,11 +57,15 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.steps_list = QListWidget()
         self.steps_list.setMinimumHeight(150)
         self.steps_list.setAlternatingRowColors(True)
+        self.steps_list.setMinimumWidth(150)  # Ensure minimum width
         steps_layout.addWidget(self.steps_list)
 
         # Details text - use custom ConsoleTextEdit instead of QTextEdit
         self.details_text = ConsoleTextEdit()
-        steps_layout.addWidget(self.details_text, 1)  # stretch factor of 1
+        steps_layout.addWidget(self.details_text)
+
+        # Set initial splitter sizes
+        splitter.setSizes([200, 500])  # Allocate more space to the details text  
 
         # Detailed status
         self.detailed_status = QLabel("")
@@ -87,6 +98,10 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.details_text.append_message("Ready to process files", MessageType.SUCCESS)
 
         self.logger = connect_logger_to_ui(self)
+
+    def sizeHint(self):
+        """Override size hint to provide default window size"""
+        return QSize(700, 500)
 
     def setup_details_progress_bar(self, layout):
         """Set up the modern overlay progress bar."""
