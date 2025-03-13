@@ -122,7 +122,7 @@ class AVSpexProcessor:
 
             if self.signals:
                 self.signals.progress.emit(idx, total_dirs)
-                self.signals.status_update.emit(f"Processing directory {idx}/{total_dirs}: {source_directory}")
+                self.signals.status_update.emit(f"Processing directory {idx}/{total_dirs}: {os.path.basename(source_directory)}\n") 
                 self.signals.file_started.emit(source_directory, idx, total_dirs)
             
             source_directory = os.path.normpath(source_directory)

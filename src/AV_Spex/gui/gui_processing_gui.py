@@ -12,6 +12,7 @@ from ..gui.gui_console_textbox import ConsoleTextEdit, MessageType
 
 from ..utils.config_manager import ConfigManager
 from ..utils.config_setup import ChecksConfig
+from ..utils.log_setup import connect_logger_to_ui
 
 class ProcessingWindow(QMainWindow, ThemeableMixin):
     """Window to display processing status and progress."""
@@ -84,6 +85,8 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Initial welcome message
         self.details_text.append_message("Processing window initialized", MessageType.INFO)
         self.details_text.append_message("Ready to process files", MessageType.SUCCESS)
+
+        self.logger = connect_logger_to_ui(self)
 
     def setup_details_progress_bar(self, layout):
         """Set up the modern overlay progress bar."""
@@ -251,27 +254,44 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Update percentage label
         self.overlay_label.setText(f"{percentage}%")
 
-    def update_status(self, message):
+    def update_status(self, message, msg_type=None):
         """
         Update the main status message and append to details text.
         Detects message type based on content and formats accordingly.
         """
-        # Determine message type based on content
-        msg_type = MessageType.NORMAL
-        lowercase_msg = message.lower()
-        
-        if "error" in lowercase_msg:
-            msg_type = MessageType.ERROR
-        elif "warning" in lowercase_msg:
-            msg_type = MessageType.WARNING
-        elif lowercase_msg.startswith("finding") or lowercase_msg.startswith("checking"):
-            msg_type = MessageType.COMMAND
-        elif "success" in lowercase_msg or "complete" in lowercase_msg or "identified successfully" in lowercase_msg:
-            msg_type = MessageType.SUCCESS
-        elif any(info_prefix in lowercase_msg for info_prefix in ["found", "version", "dependencies"]):
-            msg_type = MessageType.INFO
+        if msg_type is None:
+            # Determine message type based on content
+            msg_type = MessageType.NORMAL
+            lowercase_msg = message.lower()
             
-        # Append the message with appropriate styling
+            # ERROR detection
+            if "error" in lowercase_msg or "failed" in lowercase_msg:
+                msg_type = MessageType.ERROR
+            
+            # WARNING detection
+            elif "warning" in lowercase_msg:
+                msg_type = MessageType.WARNING
+            
+            # COMMAND detection
+            elif lowercase_msg.startswith(("finding", "checking", "executing", "running")):
+                msg_type = MessageType.COMMAND
+            
+            # SUCCESS detection
+            elif any(success_term in lowercase_msg for success_term in [
+                "success", "complete", "finished", "done", "identified successfully"
+            ]):
+                msg_type = MessageType.SUCCESS
+            
+            # INFO detection
+            elif any(info_term in lowercase_msg for info_term in [
+                "found", "version", "dependencies", "starting", "processing"
+            ]):
+                msg_type = MessageType.INFO
+        
+        # Update the file status label with the most recent message
+        self.file_status_label.setText(message)
+        
+        # Append the message to the console with styling
         self.details_text.append_message(message, msg_type)
 
     def update_file_status(self, filename, current_index=None, total_files=None):
