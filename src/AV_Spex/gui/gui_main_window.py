@@ -111,6 +111,26 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 }
             """)
 
+        # Style the processing indicator (using highlight color from palette)
+        if hasattr(self, 'processing_indicator'):
+            highlight_color = palette.color(QPalette.ColorRole.Highlight).name()
+            text_color = palette.color(QPalette.ColorRole.Text).name()
+            base_color = palette.color(QPalette.ColorRole.Base).name()
+            
+            self.processing_indicator.setStyleSheet(f"""
+                QProgressBar {{
+                    border: 1px solid {text_color};
+                    border-radius: 4px;
+                    background-color: {base_color};
+                    text-align: center;
+                }}
+                
+                QProgressBar::chunk {{
+                    background-color: {highlight_color};
+                    width: 5px; /* for indeterminate progress bar */
+                }}
+            """)
+
         # Update child windows
         for child_name in ['config_widget', 'processing_window']:
             child = getattr(self, child_name, None)
@@ -230,8 +250,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Check if this was a cancellation
         was_cancelled = hasattr(self.worker, 'user_cancelled') and self.worker.user_cancelled
 
-        # Stop the button animation
-        self.stop_button_animation()
+        # Hide the processing indicator
+        self.processing_indicator.setVisible(False)
         self.main_status_label.setVisible(False)
         
         # Update UI to indicate processing is complete
@@ -270,8 +290,9 @@ class MainWindow(QMainWindow, ThemeableMixin):
         if hasattr(self, 'main_status_label'):
             self.main_status_label.setText("Starting processing...")
         
-        # Start the button animation
-        self.start_button_animation()
+        # Start showing the processing indicator
+        if hasattr(self, 'processing_indicator'):
+            self.processing_indicator.setVisible(True)
 
         if hasattr(self, 'main_status_label'):
             self.main_status_label.setVisible(True)
@@ -323,8 +344,9 @@ class MainWindow(QMainWindow, ThemeableMixin):
         if hasattr(self, 'main_status_label'):
             self.main_status_label.setText("Processing completed")
         
-        # Stop the button animation
-        self.stop_button_animation()
+        # Hide the progress indicator
+        if hasattr(self, 'processing_indicator'):
+            self.processing_indicator.setVisible(False)
 
         if hasattr(self, 'main_status_label'):
             self.main_status_label.setVisible(False)
@@ -359,8 +381,9 @@ class MainWindow(QMainWindow, ThemeableMixin):
         if hasattr(self, 'main_status_label'):
             self.main_status_label.setText("Error occurred")
         
-        # Stop the button animation
-        self.stop_button_animation()
+        # Hide the processing indicator
+        if hasattr(self, 'processing_indicator'):
+            self.processing_indicator.setVisible(False)
         
         # Disable the Open Processing Window button
         if hasattr(self, 'open_processing_button'):
@@ -401,9 +424,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
             # Call the worker's cancel method
             self.worker.cancel()
             
-
-            # Stop the button animation
-            self.stop_button_animation()
+            # Hide the processing indicator
+            self.processing_indicator.setVisible(False)
             self.main_status_label.setVisible(False)
             
             # Disable the Open Processing Window button
@@ -418,8 +440,9 @@ class MainWindow(QMainWindow, ThemeableMixin):
         if hasattr(self, 'main_status_label'):
             self.main_status_label.setText("Processing cancelled")
         
-        # Stop the button animation
-        self.stop_button_animation()
+        # Hide the processing indicator
+        if hasattr(self, 'processing_indicator'):
+            self.processing_indicator.setVisible(False)
 
         # Reset the status label
         if hasattr(self, 'main_status_label'):
@@ -696,6 +719,16 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.main_status_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)  # Minimize height
         self.main_status_label.setVisible(False) # initially hidden 
         processing_button_layout.addWidget(self.main_status_label)
+        
+        # Add a small indeterminate progress bar
+        self.processing_indicator = QProgressBar(self)
+        self.processing_indicator.setMaximumWidth(50)  # Make it small
+        self.processing_indicator.setMaximumHeight(10)  # Make it shorter
+        self.processing_indicator.setMinimum(0)
+        self.processing_indicator.setMaximum(0)  # Makes it indeterminate
+        self.processing_indicator.setTextVisible(False)  # No percentage text
+        self.processing_indicator.setVisible(False)  # Initially hidden
+        processing_button_layout.addWidget(self.processing_indicator)
 
         # Add the processing button layout to the bottom row
         # Use a stretch factor of 0 to keep it from expanding
@@ -1258,147 +1291,3 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # Show the dialog
         about_dialog.exec()
-
-    def setup_button_animation(self):
-        """Setup a subtle text animation transitioning from brown to green."""
-        self.animation_timer = QTimer()
-        self.animation_timer.setInterval(150)  # Shorter interval for smoother animation
-        self.animation_timer.timeout.connect(self.animate_processing_button)
-        self.animation_active = False
-        self.animation_state = 0
-        
-        # Create multiple states for a more gradual animation
-        # This transitions the text from dark brown to dark green to mid green (#378d6a) and back
-        self.button_styles = [
-            # Original style with default text color
-            """
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: #ff9999;
-                color: #4d2b12;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ff8080;
-            }
-            QPushButton:disabled {
-                background-color: #ffcccc; 
-                color: #8c6347;             
-                opacity: 0.8;               
-            }
-            """,
-            # Gradual transition from brown to green
-            """
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: #ff9999;
-                color: #4d331c;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ff8080;
-            }
-            QPushButton:disabled {
-                background-color: #ffcccc; 
-                color: #8c6347;             
-                opacity: 0.8;               
-            }
-            """,
-            """
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: #ff9999;
-                color: #3d3d24;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ff8080;
-            }
-            QPushButton:disabled {
-                background-color: #ffcccc; 
-                color: #8c6347;             
-                opacity: 0.8;               
-            }
-            """,
-            """
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: #ff9999;
-                color: #2d4030;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ff8080;
-            }
-            QPushButton:disabled {
-                background-color: #ffcccc; 
-                color: #8c6347;             
-                opacity: 0.8;               
-            }
-            """,
-            """
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: #ff9999;
-                color: #2e6049;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ff8080;
-            }
-            QPushButton:disabled {
-                background-color: #ffcccc; 
-                color: #8c6347;             
-                opacity: 0.8;               
-            }
-            """
-        ]
-        
-        # Add the reverse transition (back to original color)
-        reversed_styles = self.button_styles[1:3]
-        reversed_styles.reverse()
-        self.button_styles.extend(reversed_styles)
-
-    def animate_processing_button(self):
-        """Cycle through animation states to create a smooth transition."""
-        if not self.animation_active:
-            return
-            
-        # Cycle through all states
-        self.animation_state = (self.animation_state + 1) % len(self.button_styles)
-        self.open_processing_button.setStyleSheet(self.button_styles[self.animation_state])
-
-    def start_button_animation(self):
-        """Start the button animation."""
-        # Ensure setup is done if this is the first time
-        if not hasattr(self, 'animation_timer'):
-            self.setup_button_animation()
-            
-        self.animation_active = True
-        self.animation_timer.start()
-        
-    def stop_button_animation(self):
-        """Stop the button animation and reset style."""
-        # Check if animation system is initialized
-        if not hasattr(self, 'animation_timer'):
-            return
-            
-        self.animation_active = False
-        self.animation_timer.stop()
-        self.animation_state = 0
-        self.open_processing_button.setStyleSheet(self.button_styles[0])
