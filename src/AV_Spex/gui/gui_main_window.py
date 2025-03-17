@@ -293,15 +293,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Start showing the processing indicator
         if hasattr(self, 'processing_indicator'):
             self.processing_indicator.setVisible(True)
-            # Ensure progress bar is positioned correctly
-            button_height = self.open_processing_button.height()
-            progress_height = min(4, button_height // 6)
-            self.processing_indicator.setGeometry(
-                2,
-                button_height - progress_height - 2,
-                self.open_processing_button.width() - 4,
-                progress_height
-            )
 
         if hasattr(self, 'main_status_label'):
             self.main_status_label.setVisible(True)
@@ -689,12 +680,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Bottom button section
         bottom_row = QHBoxLayout()
         bottom_row.setContentsMargins(0, 10, 0, 10)  # Add some vertical padding
-        
-       # Create a container widget for processing window button
-        self.processing_button_container = QWidget()
-        self.processing_button_container.setLayout(QVBoxLayout())
-        self.processing_button_container.layout().setContentsMargins(0, 0, 0, 0)
-        self.processing_button_container.layout().setSpacing(0)
 
         # Open Processing Window button
         self.open_processing_button = QPushButton("Open Processing Window")
@@ -703,44 +688,27 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 font-weight: bold;
                 padding: 8px 16px;
                 font-size: 14px;
-                background-color: #ff9999;
-                color: #4d2b12;
+                background-color: white;
+                color: #4CAF50;
                 border: none;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #ff8080;
+                background-color: #d2ffed;
             }
             QPushButton:disabled {
-                background-color: #ffcccc; 
-                color: #8c6347;             
+                background-color: #E8F5E9; 
+                color: #A5D6A7;             
                 opacity: 0.8;               
             }
         """)
         self.open_processing_button.clicked.connect(self.on_open_processing_clicked)
         # Initially disable the button since no processing is running
         self.open_processing_button.setEnabled(False)
+        bottom_row.addWidget(self.open_processing_button)
 
-        # Add the button to the container
-        self.processing_button_container.layout().addWidget(self.open_processing_button)
-        
-        # Add a small indeterminate progress bar
-        self.processing_indicator = QProgressBar(self.processing_button_container)
-        self.processing_indicator.setMinimum(0)
-        self.processing_indicator.setMaximum(0)  # Makes it indeterminate
-        self.processing_indicator.setTextVisible(False)  # No percentage text
-        self.processing_indicator.setVisible(False)  # Initially hidden
-
-        # Make progress bar background transparent
-        self.processing_indicator.setStyleSheet("""
-            QProgressBar {
-                background-color: transparent;
-                border: none;
-            }
-            QProgressBar::chunk {
-                background-color: rgba(66, 133, 244, 120);  /* Semi-transparent blue */
-            }
-        """)
+        # create layout for current processing
+        self.now_processing_layout = QVBoxLayout()
 
         # Add a status label that shows current file being processed
         self.main_status_label = QLabel("Not processing")
@@ -748,7 +716,21 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.main_status_label.setMaximumWidth(300)  # Limit width to prevent stretching
         self.main_status_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)  # Minimize height
         self.main_status_label.setVisible(False) # initially hidden 
-        self.processing_button_container.layout().addWidget(self.main_status_label)
+        self.now_processing_layout.addWidget(self.main_status_label)
+        
+        # Add a small indeterminate progress bar
+        self.processing_indicator = QProgressBar(self)
+        self.processing_indicator.setMaximumWidth(50)  # Make it small
+        self.processing_indicator.setMaximumHeight(10)  # Make it shorter
+        self.processing_indicator.setMinimum(0)
+        self.processing_indicator.setMaximum(0)  # Makes it indeterminate
+        self.processing_indicator.setTextVisible(False)  # No percentage text
+        self.processing_indicator.setVisible(False)  # Initially hidden
+        self.now_processing_layout.addWidget(self.processing_indicator)
+
+        # Add the processing button layout to the bottom row
+        # Use a stretch factor of 0 to keep it from expanding
+        bottom_row.addLayout(self.now_processing_layout, 0)  
 
         # Cancel button
         self.cancel_processing_button = QPushButton("Cancel Processing")
@@ -772,15 +754,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
             }
         """)
 
-        self.cancel_processing_button.clicked.connect(self.on_cancel_processing_clicked)
-
-        # Add the container to the bottom row
-        bottom_row.addWidget(self.processing_button_container, 0)
-
+        self.cancel_processing_button.clicked.connect(self.cancel_processing)
         bottom_row.addWidget(self.cancel_processing_button)
-
-        # Add event handler to reposition the progress bar when button resizes
-        self.open_processing_button.installEventFilter(self)
 
         # Add a stretch to push the Check Spex button to the right
         bottom_row.addStretch(1)
@@ -810,22 +785,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         bottom_row.addWidget(self.check_spex_button, 0)
         checks_layout.addLayout(bottom_row)
 
-    def eventFilter(self, obj, event):
-        if obj == self.open_processing_button and event.type() == event.Type.Resize:
-            # Update the progress bar position to match the bottom portion of the button
-            button_height = self.open_processing_button.height()
-            progress_height = min(4, button_height // 6)  # Make height proportional but not too large
-            
-            # Position the progress bar at the bottom of the button with a small margin
-            self.processing_indicator.setGeometry(
-                2,  # Small left margin
-                button_height - progress_height - 2,  # Position at bottom with small margin
-                self.open_processing_button.width() - 4,  # Width minus margins
-                progress_height  # Small height
-            )
-            
-        return super().eventFilter(obj, event)
-    
     def update_main_status_label(self, filename, current_index=None, total_files=None):
         """Update the status label in the main window."""
         if not hasattr(self, 'main_status_label'):
@@ -840,10 +799,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # Make sure the UI updates
         QApplication.processEvents()
-
-    def on_cancel_processing_clicked(self):
-        """Open the processing window directly without affecting processing."""
-        self.cancel_processing()
 
     def on_open_processing_clicked(self):
         """Open the processing window directly without affecting processing."""
