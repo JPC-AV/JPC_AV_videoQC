@@ -36,6 +36,10 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.worker = None
         self.processing_window = None
 
+        # Instance variables to store processing state
+        self.processing_messages = []  # Store console messages with their types
+        self.completed_steps = set()   # Store names of completed steps
+
         # Initialize collections for theme-aware components
         self.spex_tab_group_boxes = []
         self.checks_tab_group_boxes = []
@@ -216,11 +220,22 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def initialize_processing_window(self):
         """Create and configure the processing window and connect signals"""
-        self.processing_window = ProcessingWindow(self)
-            
+        # Debug logging
+        print(f"Initializing processing window with {len(self.processing_messages)} stored messages")
+        print(f"And {len(self.completed_steps)} completed steps")
+        
+        self.processing_window = ProcessingWindow(
+            self,
+            processing_messages=self.processing_messages.copy(),
+            completed_steps=self.completed_steps.copy()
+        )
+        
         # Connect signals to the processing window 
-        self.signals.status_update.connect(self.processing_window.update_status)
-        self.signals.error.connect(self.processing_window.update_status)
+        self.signals.status_update.connect(self.capture_and_forward_status)
+        self.signals.error.connect(self.capture_and_forward_error)
+        self.signals.step_completed.connect(self.capture_and_forward_step_completion)
+
+        # Direct connections that don't need to be captured
         self.signals.progress.connect(self.update_progress)
         self.signals.file_started.connect(self.processing_window.update_file_status)
 
@@ -228,10 +243,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.signals.stream_hash_progress.connect(self.processing_window.update_detail_progress)
         self.signals.md5_progress.connect(self.processing_window.update_detail_progress)
         self.signals.access_file_progress.connect(self.processing_window.update_detail_progress)
-            
-        # Connect the step_completed signal
-        self.signals.step_completed.connect(self.processing_window.mark_step_complete)
-            
+        
         # Connect the cancel button
         self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
         
@@ -244,6 +256,74 @@ class MainWindow(QMainWindow, ThemeableMixin):
         if hasattr(self, 'processing_window') and self.processing_window:
             self.processing_window.progress_bar.setMaximum(total)
             self.processing_window.progress_bar.setValue(current)
+
+    def capture_and_forward_status(self, message, msg_type=None):
+        """Capture status update and forward to processing window."""
+        from ..gui.gui_console_textbox import MessageType
+        
+        # Handle tuple format from logger
+        if isinstance(message, tuple) and len(message) == 2:
+            message, msg_type = message
+        
+        # Determine message type based on content if not provided
+        if msg_type is None:
+            msg_type = MessageType.NORMAL
+            lowercase_msg = message.lower()
+            
+            # ERROR detection
+            if "error" in lowercase_msg or "failed" in lowercase_msg:
+                msg_type = MessageType.ERROR
+            
+            # WARNING detection
+            elif "warning" in lowercase_msg:
+                msg_type = MessageType.WARNING
+            
+            # COMMAND detection
+            elif lowercase_msg.startswith(("finding", "checking", "executing", "running")):
+                msg_type = MessageType.COMMAND
+            
+            # SUCCESS detection
+            elif any(success_term in lowercase_msg for success_term in [
+                "success", "complete", "finished", "done", "identified successfully"
+            ]):
+                msg_type = MessageType.SUCCESS
+            
+            # INFO detection
+            elif any(info_term in lowercase_msg for info_term in [
+                "found", "version", "dependencies", "starting", "processing"
+            ]):
+                msg_type = MessageType.INFO
+        
+        # Store the message with its type (limit to 500 messages)
+        MAX_STORED_MESSAGES = 500
+        self.processing_messages.append((message, msg_type))
+        if len(self.processing_messages) > MAX_STORED_MESSAGES:
+            self.processing_messages = self.processing_messages[-MAX_STORED_MESSAGES:]
+        
+        # Forward to processing window if it exists
+        if hasattr(self, 'processing_window') and self.processing_window:
+            self.processing_window.update_status(message, msg_type)
+
+    def capture_and_forward_error(self, error_message):
+        """Capture error message and forward to processing window."""
+        from ..gui.gui_console_textbox import MessageType
+        
+        # Store the error message
+        self.processing_messages.append((error_message, MessageType.ERROR))
+        
+        # Forward to the processing window and call the original error handler
+        if hasattr(self, 'processing_window') and self.processing_window:
+            self.processing_window.update_status(error_message, MessageType.ERROR)
+        self.on_error(error_message)
+
+    def capture_and_forward_step_completion(self, step_name):
+        """Capture step completion and forward to processing window."""
+        # Store the completed step
+        self.completed_steps.add(step_name)
+        
+        # Forward to processing window if it exists
+        if hasattr(self, 'processing_window') and self.processing_window:
+            self.processing_window.mark_step_complete(step_name)
 
     def on_worker_finished(self):
         """Handle worker thread completion."""
@@ -1107,6 +1187,10 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def on_check_spex_clicked(self):
         """Handle the Check Spex button click."""
+        # Clear previous processing history when starting a new job
+        self.processing_messages = []
+        self.completed_steps = set()
+
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
         self.config_mgr.save_last_used_config('checks')
