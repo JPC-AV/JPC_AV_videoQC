@@ -39,6 +39,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Instance variables to store processing state
         self.processing_messages = []  # Store console messages with their types
         self.completed_steps = set()   # Store names of completed steps
+        self.current_detailed_status = ""  # Store current detailed status message
+        self.current_main_status = ""  # Store current main status label text
 
         # Initialize collections for theme-aware components
         self.spex_tab_group_boxes = []
@@ -220,20 +222,24 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def initialize_processing_window(self):
         """Create and configure the processing window and connect signals"""
-        # Debug logging
-        print(f"Initializing processing window with {len(self.processing_messages)} stored messages")
-        print(f"And {len(self.completed_steps)} completed steps")
-        
         self.processing_window = ProcessingWindow(
             self,
             processing_messages=self.processing_messages.copy(),
-            completed_steps=self.completed_steps.copy()
+            completed_steps=self.completed_steps.copy(),
+            detailed_status=self.current_detailed_status,
+            main_status=self.current_main_status
         )
         
         # Connect signals to the processing window 
         self.signals.status_update.connect(self.capture_and_forward_status)
         self.signals.error.connect(self.capture_and_forward_error)
         self.signals.step_completed.connect(self.capture_and_forward_step_completion)
+
+        # Connect DetailedStatus signals
+        self.signals.fixity_progress.connect(self.update_detailed_status_and_store)
+        self.signals.mediaconch_progress.connect(self.update_detailed_status_and_store)
+        self.signals.metadata_progress.connect(self.update_detailed_status_and_store)
+        self.signals.output_progress.connect(self.update_detailed_status_and_store)
 
         # Direct connections that don't need to be captured
         self.signals.progress.connect(self.update_progress)
@@ -251,6 +257,14 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.processing_window.show()
         self.processing_window.raise_()
 
+    def update_detailed_status_and_store(self, message):
+        """Update detailed status in processing window and store it."""
+        self.current_detailed_status = message
+        
+        # Forward to processing window if it exists
+        if hasattr(self, 'processing_window') and self.processing_window:
+            self.processing_window.update_detailed_status(message)
+    
     def update_progress(self, current, total):
         """Update progress bar in the processing window."""
         if hasattr(self, 'processing_window') and self.processing_window:
@@ -293,6 +307,10 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 "found", "version", "dependencies", "starting", "processing"
             ]):
                 msg_type = MessageType.INFO
+
+        # Check for duplicates - don't store or forward if this message is already the latest one
+        if self.processing_messages and self.processing_messages[-1][0] == message:
+            return
         
         # Store the message with its type (limit to 500 messages)
         MAX_STORED_MESSAGES = 500
@@ -865,20 +883,25 @@ class MainWindow(QMainWindow, ThemeableMixin):
         bottom_row.addWidget(self.check_spex_button, 0)
         checks_layout.addLayout(bottom_row)
 
-    def update_main_status_label(self, filename, current_index=None, total_files=None):
-        """Update the status label in the main window."""
-        if not hasattr(self, 'main_status_label'):
-            return
-            
+    def update_main_status_label_and_store(self, filename, current_index=None, total_files=None):
+        """Update main status label and store it."""
         if current_index is not None and total_files is not None:
             # Get just the basename of the file
             base_filename = os.path.basename(filename)
-            self.main_status_label.setText(f"Processing ({current_index}/{total_files}): {base_filename}")
+            self.current_main_status = f"Processing ({current_index}/{total_files}): {base_filename}"
         else:
-            self.main_status_label.setText(f"Processing: {filename}")
+            self.current_main_status = f"Processing: {filename}"
+        
+        # Update the main status label
+        if hasattr(self, 'main_status_label'):
+            self.main_status_label.setText(self.current_main_status)
         
         # Make sure the UI updates
         QApplication.processEvents()
+
+    def update_main_status_label(self, filename, current_index=None, total_files=None):
+        """Update the status label in the main window."""
+        self.update_main_status_label_and_store(filename, current_index, total_files)
 
     def on_open_processing_clicked(self):
         """Open the processing window directly without affecting processing."""
@@ -1187,10 +1210,12 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def on_check_spex_clicked(self):
         """Handle the Check Spex button click."""
-        # Clear previous processing history when starting a new job
+        # Clear previous processing state
         self.processing_messages = []
         self.completed_steps = set()
-
+        self.current_detailed_status = ""
+        self.current_main_status = ""
+        
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
         self.config_mgr.save_last_used_config('checks')

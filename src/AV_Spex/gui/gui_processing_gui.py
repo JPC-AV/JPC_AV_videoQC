@@ -17,7 +17,8 @@ from ..utils.log_setup import connect_logger_to_ui
 class ProcessingWindow(QMainWindow, ThemeableMixin):
     """Window to display processing status and progress."""
     
-    def __init__(self, parent=None, processing_messages=None, completed_steps=None):
+    def __init__(self, parent=None, processing_messages=None, completed_steps=None, 
+             detailed_status="", main_status=""):
         super().__init__(parent)
         self.setWindowTitle("Processing Status")
         self.resize(700, 500)  # Set initial size
@@ -94,10 +95,8 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         # Store and initialize state
         self.stored_messages = processing_messages if processing_messages is not None else []
         self.stored_completed_steps = completed_steps if completed_steps is not None else set()
-        
-        # Debug logging
-        print(f"ProcessingWindow created with {len(self.stored_messages)} messages")
-        print(f"And {len(self.stored_completed_steps)} completed steps")
+        self.stored_detailed_status = detailed_status
+        self.stored_main_status = main_status
         
         # Restore from state
         self.restore_processing_state()
@@ -254,22 +253,15 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         if not found:
             self.details_text.append(f"Warning: No matching step found for '{step_name}'")
 
-    def restore_processing_state(self, processing_messages=None, completed_steps=None):
+    def restore_processing_state(self):
         """Restore processing state from saved messages and completed steps."""
-        # Debug logging
-        print(f"restore_processing_state called with {len(processing_messages) if processing_messages else 0} messages")
-        print(f"completed_steps has {len(completed_steps) if completed_steps else 0} items")
-        
-        # Clear console first
-        self.details_text.clear()
-        
         # Restore console messages
         if self.stored_messages and len(self.stored_messages) > 0:
             # First clear the text
             self.details_text.clear()
             
             # Show a message indicating we're restoring previous state
-            self.details_text.append_message("--- Restoring previous processing state ---", MessageType.INFO)
+            self.details_text.append_message("--- Restoring previous processing log ---", MessageType.INFO)
             
             # Add all the stored messages
             for message, msg_type in self.stored_messages:
@@ -288,12 +280,19 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
             for step in self.stored_completed_steps:
                 # Find and mark the step in the list
                 self.mark_step_complete(step)
+        
+        # Restore status labels
+        if self.stored_detailed_status:
+            self.detailed_status.setText(self.stored_detailed_status)
+        
+        if self.stored_main_status:
+            self.file_status_label.setText(self.stored_main_status)
 
     def update_detailed_status(self, message):
         """Update the detailed status message."""
         self.detailed_status.setText(message)
         QApplication.processEvents()
-
+    
     def update_detail_progress(self, percentage):
         """Update the detail progress bar with the current percentage."""
         # If this is the first update (percentage very small) or a reset signal (percentage = 0),
