@@ -749,6 +749,32 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.open_processing_button.setEnabled(False)
         bottom_row.addWidget(self.open_processing_button)
 
+        # Cancel button
+        self.cancel_processing_button = QPushButton("Cancel Processing")
+        self.cancel_processing_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px 16px;
+                font-size: 14px;
+                background-color: #ff9999;
+                color: #4d2b12;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #ff8080;
+            }
+            QPushButton:disabled {
+                background-color: #f5e9e3; 
+                color: #cd9e7f;             
+                opacity: 0.8;               
+            }
+        """)
+
+        self.cancel_processing_button.clicked.connect(self.cancel_processing)
+        self.cancel_processing_button.setEnabled(False)
+        bottom_row.addWidget(self.cancel_processing_button)
+
         # create layout for current processing
         self.now_processing_layout = QVBoxLayout()
 
@@ -773,32 +799,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Add the processing button layout to the bottom row
         # Use a stretch factor of 0 to keep it from expanding
         bottom_row.addLayout(self.now_processing_layout, 0)  
-
-        # Cancel button
-        self.cancel_processing_button = QPushButton("Cancel Processing")
-        self.cancel_processing_button.setStyleSheet("""
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: #ff9999;
-                color: #4d2b12;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ff8080;
-            }
-            QPushButton:disabled {
-                background-color: #ffcccc; 
-                color: #8c6347;             
-                opacity: 0.8;               
-            }
-        """)
-
-        self.cancel_processing_button.clicked.connect(self.cancel_processing)
-        self.cancel_processing_button.setEnabled(False)
-        bottom_row.addWidget(self.cancel_processing_button)
 
         # Add a stretch to push the Check Spex button to the right
         bottom_row.addStretch(1)
