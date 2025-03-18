@@ -111,34 +111,28 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 }
             """)
 
-        # Style the processing indicator (using highlight color from palette)
-        if hasattr(self, 'processing_indicator'):
-            highlight_color = palette.color(QPalette.ColorRole.Highlight).name()
-            text_color = palette.color(QPalette.ColorRole.Text).name()
-            base_color = palette.color(QPalette.ColorRole.Base).name()
-            
-            self.processing_indicator.setStyleSheet(f"""
-                QProgressBar {{
-                    border: 1px solid {text_color};
-                    border-radius: 4px;
-                    background-color: {base_color};
-                    text-align: center;
-                }}
-                
-                QProgressBar::chunk {{
-                    background-color: {highlight_color};
-                    width: 5px; /* for indeterminate progress bar */
-                }}
-            """)
-
         # Update child windows
         for child_name in ['config_widget', 'processing_window']:
             child = getattr(self, child_name, None)
             if child and hasattr(child, 'on_theme_changed'):
                 child.on_theme_changed(palette)
+
+        # Special styling for open processing window button
+        if hasattr(self, 'processing_indicator'):
+            self.processing_indicator.setStyleSheet("""
+                QProgressBar {
+                    background-color: palette(Base);
+                    text-align: center;
+                    padding: 1px;
+                }
+                QProgressBar::chunk {
+                    background-color: palette(Highlight);
+                }
+            """)
         
         # Force repaint
         self.update()
+            
 
     def closeEvent(self, event):
         # Clean up theme connections
@@ -790,9 +784,15 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.processing_indicator = QProgressBar(self)
         self.processing_indicator.setMaximumWidth(100)  # Make it small
         self.processing_indicator.setMaximumHeight(10)  # Make it shorter
-        self.processing_indicator.setMinimum(0)
-        self.processing_indicator.setMaximum(0)  # Makes it indeterminate
+        self.processing_indicator.setRange(0, 0)
         self.processing_indicator.setTextVisible(False)  # No percentage text
+        self.processing_indicator.setStyleSheet("""
+            QProgressBar {
+                background-color: palette(Base);
+                text-align: center;
+                padding: 1px;
+            }
+        """)
         self.processing_indicator.setVisible(False)  # Initially hidden
         self.now_processing_layout.addWidget(self.processing_indicator)
 
