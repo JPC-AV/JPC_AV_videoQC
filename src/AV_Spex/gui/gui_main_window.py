@@ -96,17 +96,17 @@ class MainWindow(QMainWindow, ThemeableMixin):
                     font-weight: bold;
                     padding: 8px 16px;
                     font-size: 14px;
-                    background-color: #ff9999;
-                    color: #4d2b12;
+                    background-color: white;
+                    color: #4CAF50;
                     border: none;
                     border-radius: 4px;
                 }
                 QPushButton:hover {
-                    background-color: #ff8080;
+                    background-color: #d2ffed;
                 }
                 QPushButton:disabled {
-                    background-color: #ffcccc; 
-                    color: #8c6347;             
+                    background-color: #E8F5E9; 
+                    color: #A5D6A7;             
                     opacity: 0.8;               
                 }
             """)
