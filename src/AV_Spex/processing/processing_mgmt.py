@@ -48,9 +48,12 @@ class ProcessingManager:
                 self.signals.fixity_progress.emit("Embedding fixity...")
             if self.check_cancelled():
                 return False
-            process_embedded_fixity(video_path, check_cancelled=self.check_cancelled)
+            process_embedded_fixity(video_path, check_cancelled=self.check_cancelled, signals=self.signals)
             if self.check_cancelled():
                 return False
+            # Mark checkbox
+            if self.signals:
+                self.signals.step_completed.emit("Embed Stream Fixity")
 
         # Validate stream hashes if required
         if checks_config.fixity.validate_stream_fixity == 'yes':
@@ -59,7 +62,10 @@ class ProcessingManager:
             if checks_config.fixity.embed_stream_fixity == 'yes':
                 logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
             else:
-                validate_embedded_md5(video_path, check_cancelled=self.check_cancelled)
+                validate_embedded_md5(video_path, check_cancelled=self.check_cancelled, signals=self.signals)
+            # Mark checkbox
+            if self.signals:
+                self.signals.step_completed.emit("Validate Stream Fixity")
 
         # Initialize md5_checksum variable
         md5_checksum = None
@@ -68,13 +74,17 @@ class ProcessingManager:
         if checks_config.fixity.output_fixity == 'yes':
             if self.signals:
                 self.signals.fixity_progress.emit("Outputting fixity...")
-            md5_checksum = output_fixity(source_directory, video_path, check_cancelled=self.check_cancelled)
+            md5_checksum = output_fixity(source_directory, video_path, check_cancelled=self.check_cancelled, signals=self.signals)
+            if self.signals:
+                self.signals.step_completed.emit("Output Fixity")
 
         # Verify stored checksum and write results  
         if checks_config.fixity.check_fixity == 'yes':
             if self.signals:
                 self.signals.fixity_progress.emit("Validating fixity...")
-            check_fixity(source_directory, video_id, actual_checksum=md5_checksum, check_cancelled=self.check_cancelled)
+            check_fixity(source_directory, video_id, actual_checksum=md5_checksum, check_cancelled=self.check_cancelled, signals=self.signals)
+            if self.signals:
+                self.signals.step_completed.emit("Validate Fixity")
 
         if self.check_cancelled():
             return None
@@ -223,8 +233,11 @@ class ProcessingManager:
         # Process QCTools output
         process_qctools_output(
             video_path, source_directory, destination_directory, video_id, report_directory=report_directory,
-            check_cancelled=self.check_cancelled
+            check_cancelled=self.check_cancelled, signals=self.signals
         )
+
+        if self.signals:
+            self.signals.step_completed.emit("QCTools")
 
         if self.signals:
             self.signals.output_progress.emit("Creating access file...")
@@ -234,7 +247,8 @@ class ProcessingManager:
         # Generate access file
         processing_results['access_file'] = process_access_file(
             video_path, source_directory, video_id, 
-            check_cancelled=self.check_cancelled
+            check_cancelled=self.check_cancelled,
+            signals=self.signals
         )
 
         if self.signals:
@@ -245,13 +259,13 @@ class ProcessingManager:
         # Generate final HTML report
         processing_results['html_report'] = generate_final_report(
             video_id, source_directory, report_directory, destination_directory,
-            check_cancelled=self.check_cancelled
+            check_cancelled=self.check_cancelled, signals=self.signals
         )
 
         return processing_results
 
 
-def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None, check_cancelled=None):
+def process_qctools_output(video_path, source_directory, destination_directory, video_id, report_directory=None, check_cancelled=None, signals=None):
     """
     Process QCTools output, including running QCTools and optional parsing.
     
@@ -281,6 +295,8 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
         run_qctools_command('qcli -i', video_path, '-o', qctools_output_path, check_cancelled=check_cancelled)
         logger.debug('')  # Add new line for cleaner terminal output
         results['qctools_output_path'] = qctools_output_path
+        if signals:
+            signals.step_completed.emit("QCTools")
 
     # Check QCTools output if configured
     if checks_config.tools.qct_parse.run_tool == 'yes':
@@ -295,7 +311,8 @@ def process_qctools_output(video_path, source_directory, destination_directory, 
 
         # Run QCTools parsing
         run_qctparse(video_path, qctools_output_path, report_directory, check_cancelled=check_cancelled)
-        # currently not using results['qctools_check_output']
+        if signals:
+            signals.step_completed.emit("QCT Parse")
 
     return results
 

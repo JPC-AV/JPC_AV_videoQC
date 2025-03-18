@@ -7,7 +7,7 @@ from datetime import datetime
 from ..utils.log_setup import logger
 
 
-def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None):
+def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None, signals=None):
     if check_cancelled():
         return None
     
@@ -64,11 +64,11 @@ def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None
     if os.path.exists(video_file_path):
         # If checksum has not yet been calculated, then:
         if not checksum_files and actual_checksum is None:
-            output_fixity(directory, video_file_path, check_cancelled=check_cancelled)
+            output_fixity(directory, video_file_path, check_cancelled=check_cancelled, signals=signals)
             return
         elif checksum_files and actual_checksum is None:
             # Calculate the MD5 checksum of the video file
-            actual_checksum = hashlib_md5(video_file_path, check_cancelled=check_cancelled)
+            actual_checksum = hashlib_md5(video_file_path, check_cancelled=check_cancelled, signals=signals)
     else:
         logger.critical(f'Video file not found: {video_file_path}')
         return
@@ -105,7 +105,7 @@ def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None
         result_file.close()
 
 
-def output_fixity(source_directory, video_path, check_cancelled=None):
+def output_fixity(source_directory, video_path, check_cancelled=None, signals=None):
     # Parse video_id from video file path
     video_id = os.path.splitext(os.path.basename(os.path.basename(video_path)))[0]
     # Create fixity results files
@@ -116,7 +116,7 @@ def output_fixity(source_directory, video_path, check_cancelled=None):
         return None
     
     # Calculate the MD5 checksum of the video file
-    md5_checksum = hashlib_md5(video_path, check_cancelled=check_cancelled)
+    md5_checksum = hashlib_md5(video_path, check_cancelled=check_cancelled, signals=signals)
     if md5_checksum is None:  # Handle cancelled case
         return None
     
@@ -150,18 +150,19 @@ def read_checksum_from_file(file_path):
     return None
 
 
-def hashlib_md5(filename, check_cancelled=None):
+def hashlib_md5(filename, check_cancelled=None, signals=None):
     '''
     Create an md5 checksum.
     '''
     if check_cancelled():
-            return None
+        return None
     
     read_size = 0
     last_percent_done = 0
     md5_object = hashlib.md5()
     total_size = os.path.getsize(filename)
     logger.debug(f'Generating md5 checksum for {os.path.basename(filename)} via {os.path.basename(__file__)}:')
+    
     with open(str(filename), 'rb') as file_object:
         while True:
             if check_cancelled():
@@ -172,11 +173,26 @@ def hashlib_md5(filename, check_cancelled=None):
                 break
             read_size += len(buf)
             md5_object.update(buf)
-            percent_done = 100 * read_size / total_size
+            
+            # Calculate percentage (0-100)
+            percent_done = int((read_size * 100) / total_size)
+            
+            # Ensure percent_done is capped at 100
+            percent_done = min(100, percent_done)
+            
             if percent_done > last_percent_done:
-                sys.stdout.write('[%d%%]\r' % percent_done)
-                sys.stdout.flush()
+                # Add debug printing for both cases
+                
+                if signals:
+                    # Make doubly sure we're emitting an integer percentage in range 0-100
+                    safe_percent = min(100, max(0, int(percent_done)))
+                    signals.md5_progress.emit(safe_percent)
+                else:
+                    sys.stdout.write('[%d%%]\r' % percent_done)
+                    sys.stdout.flush()
+                    
                 last_percent_done = percent_done
+                
     md5_output = md5_object.hexdigest()
     logger.info(f'Calculated md5 checksum is {md5_output}\n')
     return md5_output

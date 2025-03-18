@@ -9,6 +9,48 @@ from datetime import datetime
 from colorlog import ColoredFormatter
 from pathlib import Path
 
+from PyQt6.QtCore import QObject, pyqtSignal
+from ..gui.gui_console_textbox import MessageType
+
+class QtLogHandler(logging.Handler, QObject):
+    """
+    A custom logging handler that emits Qt signals for log messages.
+    Bridges Python's logging system with Qt's signal/slot mechanism.
+    """
+    
+    # Signal to emit log messages: (message, level)
+    log_message = pyqtSignal(str, object)
+    
+    def __init__(self, level=logging.NOTSET):
+        # Initialize both parent classes
+        logging.Handler.__init__(self, level)
+        QObject.__init__(self)
+        
+        # Create a formatter - use the same format as the console
+        self.setFormatter(logging.Formatter('%(message)s'))
+        
+    def emit(self, record):
+        """Process a log record and emit it as a Qt signal"""
+        # Format the record according to our formatter
+        msg = self.format(record)
+        
+        # Map logging levels to MessageType
+        msg_type = MessageType.NORMAL
+        if record.levelno >= logging.CRITICAL:
+            msg_type = MessageType.ERROR  # Critical as error but could be a distinct type
+        elif record.levelno >= logging.ERROR:
+            msg_type = MessageType.ERROR
+        elif record.levelno >= logging.WARNING:
+            msg_type = MessageType.WARNING
+        elif record.levelno >= logging.INFO:
+            msg_type = MessageType.INFO
+        elif record.levelno == logging.DEBUG:
+            msg_type = MessageType.COMMAND  # Use command style for debug messages
+            
+        # Emit the signal with message and type
+        self.log_message.emit(msg, msg_type)
+
+
 def get_log_directory():
     """Determine the appropriate log directory based on how the app is running"""
     if getattr(sys, 'frozen', False):
@@ -71,8 +113,37 @@ def setup_logger():
 
     return logger
 
-
+# Initialize logger once on module import
 logger = setup_logger() 
+
+def connect_logger_to_ui(ui_component):
+    """
+    Connect the existing logger to a UI component without recreating the logger.
+    Only adds a QtLogHandler to the existing logger.
+    
+    Args:
+        ui_component: The UI component with update_status method
+    
+    Returns:
+        The logger instance with the added Qt handler
+    """
+    if ui_component is not None and hasattr(ui_component, 'update_status'):
+        # Check if a Qt handler is already connected to prevent duplicates
+        for handler in logger.handlers:
+            if isinstance(handler, QtLogHandler):
+                # If there's already a Qt handler, disconnect old signals and connect new one
+                handler.log_message.disconnect()
+                handler.log_message.connect(ui_component.update_status)
+                return logger
+                
+        # If no Qt handler exists, create and add a new one
+        qt_handler = QtLogHandler()
+        qt_handler.log_message.connect(ui_component.update_status)
+        # Set log level - can adjust this to control what appears in the UI
+        qt_handler.setLevel(logging.DEBUG)  
+        # Add Qt handler to logger
+        logger.addHandler(qt_handler)
+    
 
 # Example logs (only execute if this file is run directly, not imported)
 if __name__ == "__main__":

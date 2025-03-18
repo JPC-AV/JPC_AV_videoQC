@@ -550,7 +550,7 @@ def make_content_summary_html(qctools_content_check_output, sorted_thumbs_dict, 
 
     return content_summary_html
 
-def generate_final_report(video_id, source_directory, report_directory, destination_directory, check_cancelled=None):
+def generate_final_report(video_id, source_directory, report_directory, destination_directory, check_cancelled=None, signals=None):
     """
     Generate final HTML report if configured.
     
@@ -578,6 +578,8 @@ def generate_final_report(video_id, source_directory, report_directory, destinat
         write_html_report(video_id, report_directory, destination_directory, html_report_path, check_cancelled=check_cancelled)
         
         logger.info(f"HTML report generated: {html_report_path}\n")
+        if signals:
+            signals.step_completed.emit("Generate Report")
         return html_report_path
 
     except Exception as e:
