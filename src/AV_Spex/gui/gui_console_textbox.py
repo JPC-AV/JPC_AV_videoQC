@@ -64,21 +64,8 @@ class ConsoleTextEdit(QTextEdit):
         
         # Set the format and insert the text
         cursor.setCharFormat(text_format)
-        
-        # Format error, warning, and info messages
-        prefix = ""
-        if msg_type == MessageType.ERROR:
-            prefix = "ERROR: "
-        elif msg_type == MessageType.WARNING:
-            prefix = "WARNING: "
-        elif msg_type == MessageType.INFO:
-            prefix = "INFO: "
-        elif msg_type == MessageType.SUCCESS:
-            prefix = "SUCCESS: "
-        elif msg_type == MessageType.COMMAND:
-            prefix = ""
             
-        cursor.insertText(prefix + text)
+        cursor.insertText(text)
         
         # Scroll to bottom
         self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())
