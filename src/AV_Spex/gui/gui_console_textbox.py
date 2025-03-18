@@ -138,3 +138,43 @@ class ConsoleTextEdit(QTextEdit):
     def clear_formats(self):
         """Clear the format cache when theme changes"""
         self._format_cache.clear()
+
+    def add_processing_divider(self, text="New Processing Run"):
+        """
+        Add a visible divider line to indicate a new processing run.
+        
+        Args:
+            text (str): Optional text to display in the divider
+        """
+        # Store cursor position
+        cursor = self.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.End)
+        
+        # Add a newline if text exists
+        if not self.toPlainText().isspace() and self.toPlainText():
+            cursor.insertText("\n\n")
+        
+        # Create a divider format
+        divider_format = QTextCharFormat()
+        font = QFont("Courier New, monospace")
+        font.setPointSize(14)
+        font.setBold(True)
+        divider_format.setFont(font)
+        divider_format.setForeground(QColor(100, 100, 255))  # Blue color for the divider
+        
+        # Set the format
+        cursor.setCharFormat(divider_format)
+        
+        # Calculate divider width to fill the visible space
+        line_char = "═"  # Unicode double line character
+        divider_text = f"\n{line_char * 20} {text} {line_char * 20}\n"
+        
+        # Insert the divider
+        cursor.insertText(divider_text)
+        
+        # Add a newline after the divider
+        cursor.setCharFormat(self._get_format_for_type(MessageType.NORMAL))
+        cursor.insertText("\n")
+        
+        # Scroll to the divider
+        self.verticalScrollBar().setValue(self.verticalScrollBar().maximum())

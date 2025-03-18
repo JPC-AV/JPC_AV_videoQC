@@ -128,55 +128,21 @@ def connect_logger_to_ui(ui_component):
         The logger instance with the added Qt handler
     """
     if ui_component is not None and hasattr(ui_component, 'update_status'):
-        # Find the parent MainWindow to capture logs there too
-        main_window = None
-        if hasattr(ui_component, 'parent_window') and ui_component.parent_window:
-            # Choose the right method based on what exists
-            if hasattr(ui_component.parent_window, 'capture_and_forward_status'):
-                main_window = ui_component.parent_window
-                capture_method = main_window.capture_and_forward_status
-            elif hasattr(ui_component.parent_window, 'capture_status_update'):
-                main_window = ui_component.parent_window
-                capture_method = main_window.capture_status_update
-        
         # Check if a Qt handler is already connected to prevent duplicates
         for handler in logger.handlers:
             if isinstance(handler, QtLogHandler):
-                # If there's already a Qt handler, disconnect old signals
-                try:
-                    handler.log_message.disconnect()
-                except TypeError:
-                    # No connections exist
-                    pass
-                
-                # If we're in the ProcessingWindow and have a parent,
-                # only connect to the parent to avoid duplication
-                if main_window:
-                    # Connect only to the main window's capture method
-                    handler.log_message.connect(capture_method)
-                else:
-                    # If no parent, connect directly to the UI component
-                    handler.log_message.connect(ui_component.update_status)
-                
+                # If there's already a Qt handler, disconnect old signals and connect new one
+                handler.log_message.disconnect()
+                handler.log_message.connect(ui_component.update_status)
                 return logger
                 
         # If no Qt handler exists, create and add a new one
         qt_handler = QtLogHandler()
-        
-        # Same logic as above - connect to either parent OR component, not both
-        if main_window:
-            # Connect only to the main window's capture method
-            qt_handler.log_message.connect(capture_method)
-        else:
-            # If no parent, connect directly to the UI component
-            qt_handler.log_message.connect(ui_component.update_status)
-        
+        qt_handler.log_message.connect(ui_component.update_status)
         # Set log level - can adjust this to control what appears in the UI
         qt_handler.setLevel(logging.DEBUG)  
         # Add Qt handler to logger
         logger.addHandler(qt_handler)
-    
-    return logger
     
 
 # Example logs (only execute if this file is run directly, not imported)

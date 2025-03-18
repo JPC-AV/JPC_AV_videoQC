@@ -17,16 +17,12 @@ from ..utils.log_setup import connect_logger_to_ui
 class ProcessingWindow(QMainWindow, ThemeableMixin):
     """Window to display processing status and progress."""
     
-    def __init__(self, parent=None, processing_messages=None, completed_steps=None, 
-             detailed_status="", main_status=""):
+    def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Processing Status")
         self.resize(700, 500)  # Set initial size
         self.setMinimumSize(500, 300)  # Set minimum size
         self.setWindowFlags(Qt.WindowType.Window)
-
-        # Store reference to parent for accessing processing state
-        self.parent_window = parent
         
         # Central widget and main_layout
         central_widget = QWidget()
@@ -92,14 +88,9 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.theme_manager = ThemeManager.instance()
         self.theme_manager.themeChanged.connect(self.apply_progress_bar_style)
 
-        # Store and initialize state
-        self.stored_messages = processing_messages if processing_messages is not None else []
-        self.stored_completed_steps = completed_steps if completed_steps is not None else set()
-        self.stored_detailed_status = detailed_status
-        self.stored_main_status = main_status
-        
-        # Restore from state
-        self.restore_processing_state()
+        # Initial welcome message
+        self.details_text.append_message("Processing window initialized", MessageType.INFO)
+        self.details_text.append_message("Ready to process files", MessageType.SUCCESS)
 
         self.logger = connect_logger_to_ui(self)
 
@@ -253,46 +244,37 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         if not found:
             self.details_text.append(f"Warning: No matching step found for '{step_name}'")
 
-    def restore_processing_state(self):
-        """Restore processing state from saved messages and completed steps."""
-        # Restore console messages
-        if self.stored_messages and len(self.stored_messages) > 0:
-            # First clear the text
-            self.details_text.clear()
-            
-            # Show a message indicating we're restoring previous state
-            self.details_text.append_message("--- Restoring previous processing log ---", MessageType.INFO)
-            
-            # Add all the stored messages
-            for message, msg_type in self.stored_messages:
-                self.details_text.append_message(message, msg_type)
-            
-            # Scroll to the bottom
-            scrollbar = self.details_text.verticalScrollBar()
-            scrollbar.setValue(scrollbar.maximum())
-        else:
-            # Initial welcome message if no previous messages
-            self.details_text.append_message("Processing window initialized", MessageType.INFO)
-            self.details_text.append_message("Ready to process files", MessageType.SUCCESS)
+    def reset_steps_list(self):
+        """Reset the steps list when processing a new file, but preserve dependency check status."""
+        # Store the dependency check status before clearing
+        dependency_checked = False
+        for i in range(self.steps_list.count()):
+            item = self.steps_list.item(i)
+            item_text = item.text()
+            if "Dependencies Check" in item_text and "✅" in item_text:
+                dependency_checked = True
+                break
         
-        # Mark completed steps
-        if self.stored_completed_steps:
-            for step in self.stored_completed_steps:
-                # Find and mark the step in the list
-                self.mark_step_complete(step)
+        # Clear the list widget
+        self.steps_list.clear()
         
-        # Restore status labels
-        if self.stored_detailed_status:
-            self.detailed_status.setText(self.stored_detailed_status)
+        # Repopulate with fresh steps
+        self.populate_steps_list()
         
-        if self.stored_main_status:
-            self.file_status_label.setText(self.stored_main_status)
+        # If dependency check was completed, restore its checked status
+        if dependency_checked:
+            for i in range(self.steps_list.count()):
+                item = self.steps_list.item(i)
+                if "Dependencies Check" in item.text():
+                    item.setText("✅ Dependencies Check")
+                    item.setFont(QFont("Arial", weight=QFont.Weight.Bold))
+                    break
 
     def update_detailed_status(self, message):
         """Update the detailed status message."""
         self.detailed_status.setText(message)
         QApplication.processEvents()
-    
+
     def update_detail_progress(self, percentage):
         """Update the detail progress bar with the current percentage."""
         # If this is the first update (percentage very small) or a reset signal (percentage = 0),
@@ -313,10 +295,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         Update the main status message and append to details text.
         Detects message type based on content and formats accordingly.
         """
-        # If message came from logger it might be a tuple
-        if isinstance(message, tuple) and len(message) == 2:
-            message, msg_type = message
-        
         if msg_type is None:
             # Determine message type based on content
             msg_type = MessageType.NORMAL
@@ -348,10 +326,6 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         
         # Append the message to the console with styling
         self.details_text.append_message(message, msg_type)
-        
-        # Ensure parent window also captures this message
-        if hasattr(self, 'parent_window') and hasattr(self.parent_window, 'capture_status_update'):
-            self.parent_window.capture_and_forward_status(message, msg_type)
 
     def update_file_status(self, filename, current_index=None, total_files=None):
         """Update the file status label when processing a new file."""
@@ -373,22 +347,27 @@ class ProcessingWindow(QMainWindow, ThemeableMixin):
         self.activateWindow()  # Activate the window
 
     def closeEvent(self, event):
-        # Disconnect from theme manager
-        if hasattr(self, 'theme_manager'):
-            try:
-                self.theme_manager.themeChanged.disconnect(self.apply_progress_bar_style)
-            except:
-                pass  # Already disconnected
-        
-        # Get a reference to the parent (MainWindow)
-        parent = self.parent()
-        
-        # Set the processing_window reference to None in the parent
-        if parent and hasattr(parent, 'processing_window'):
-            parent.processing_window = None
+        # Check if this is a forced close from the application quit
+        if QApplication.instance().closingDown():
+            # Allow actual close when application is quitting
+            if hasattr(self, 'theme_manager'):
+                try:
+                    self.theme_manager.themeChanged.disconnect(self.apply_progress_bar_style)
+                except:
+                    pass  # Already disconnected
+            super().closeEvent(event)
+            return
             
-        # Call the parent class's closeEvent to properly handle window closure
-        super().closeEvent(event)
+        # Prevent the default close behavior
+        event.ignore()
+        
+        # Hide the window instead
+        self.hide()
+        
+        # Notify the parent window that the processing window was hidden
+        parent = self.parent()
+        if parent and hasattr(parent, 'on_processing_window_hidden'):
+            parent.on_processing_window_hidden()
 
     def on_theme_changed(self, palette):
         """Handle theme changes"""

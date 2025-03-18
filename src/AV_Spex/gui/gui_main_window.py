@@ -36,12 +36,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.worker = None
         self.processing_window = None
 
-        # Instance variables to store processing state
-        self.processing_messages = []  # Store console messages with their types
-        self.completed_steps = set()   # Store names of completed steps
-        self.current_detailed_status = ""  # Store current detailed status message
-        self.current_main_status = ""  # Store current main status label text
-
         # Initialize collections for theme-aware components
         self.spex_tab_group_boxes = []
         self.checks_tab_group_boxes = []
@@ -222,126 +216,49 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def initialize_processing_window(self):
         """Create and configure the processing window and connect signals"""
-        self.processing_window = ProcessingWindow(
-            self,
-            processing_messages=self.processing_messages.copy(),
-            completed_steps=self.completed_steps.copy(),
-            detailed_status=self.current_detailed_status,
-            main_status=self.current_main_status
-        )
-        
+        self.processing_window = ProcessingWindow(self)
+            
         # Connect signals to the processing window 
-        self.signals.status_update.connect(self.capture_and_forward_status)
-        self.signals.error.connect(self.capture_and_forward_error)
-        self.signals.step_completed.connect(self.capture_and_forward_step_completion)
-
-        # Connect DetailedStatus signals
-        self.signals.fixity_progress.connect(self.update_detailed_status_and_store)
-        self.signals.mediaconch_progress.connect(self.update_detailed_status_and_store)
-        self.signals.metadata_progress.connect(self.update_detailed_status_and_store)
-        self.signals.output_progress.connect(self.update_detailed_status_and_store)
-
-        # Direct connections that don't need to be captured
+        self.signals.status_update.connect(self.processing_window.update_status)
+        self.signals.error.connect(self.processing_window.update_status)
         self.signals.progress.connect(self.update_progress)
         self.signals.file_started.connect(self.processing_window.update_file_status)
+
+        # reset steps list when a new file starts
+        self.signals.file_started.connect(self.processing_window.reset_steps_list)
 
         # Progress bar signal connections
         self.signals.stream_hash_progress.connect(self.processing_window.update_detail_progress)
         self.signals.md5_progress.connect(self.processing_window.update_detail_progress)
         self.signals.access_file_progress.connect(self.processing_window.update_detail_progress)
-        
+            
+        # Connect the step_completed signal
+        self.signals.step_completed.connect(self.processing_window.mark_step_complete)
+            
         # Connect the cancel button
         self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
+
+        # Connect open processing button
+        if hasattr(self, 'open_processing_button'):
+            self.open_processing_button.setText("Show Processing Window")
         
         # Show the window
         self.processing_window.show()
         self.processing_window.raise_()
 
-    def update_detailed_status_and_store(self, message):
-        """Update detailed status in processing window and store it."""
-        self.current_detailed_status = message
-        
-        # Forward to processing window if it exists
-        if hasattr(self, 'processing_window') and self.processing_window:
-            self.processing_window.update_detailed_status(message)
     
+    def on_processing_window_hidden(self):
+        """Handle processing window hidden event."""
+        # Update the open processing button text/functionality
+        if hasattr(self, 'open_processing_button'):
+            self.open_processing_button.setText("Show Processing Window")
+            self.open_processing_button.setEnabled(True)
+
     def update_progress(self, current, total):
         """Update progress bar in the processing window."""
         if hasattr(self, 'processing_window') and self.processing_window:
             self.processing_window.progress_bar.setMaximum(total)
             self.processing_window.progress_bar.setValue(current)
-
-    def capture_and_forward_status(self, message, msg_type=None):
-        """Capture status update and forward to processing window."""
-        from ..gui.gui_console_textbox import MessageType
-        
-        # Handle tuple format from logger
-        if isinstance(message, tuple) and len(message) == 2:
-            message, msg_type = message
-        
-        # Determine message type based on content if not provided
-        if msg_type is None:
-            msg_type = MessageType.NORMAL
-            lowercase_msg = message.lower()
-            
-            # ERROR detection
-            if "error" in lowercase_msg or "failed" in lowercase_msg:
-                msg_type = MessageType.ERROR
-            
-            # WARNING detection
-            elif "warning" in lowercase_msg:
-                msg_type = MessageType.WARNING
-            
-            # COMMAND detection
-            elif lowercase_msg.startswith(("finding", "checking", "executing", "running")):
-                msg_type = MessageType.COMMAND
-            
-            # SUCCESS detection
-            elif any(success_term in lowercase_msg for success_term in [
-                "success", "complete", "finished", "done", "identified successfully"
-            ]):
-                msg_type = MessageType.SUCCESS
-            
-            # INFO detection
-            elif any(info_term in lowercase_msg for info_term in [
-                "found", "version", "dependencies", "starting", "processing"
-            ]):
-                msg_type = MessageType.INFO
-
-        # Check for duplicates - don't store or forward if this message is already the latest one
-        if self.processing_messages and self.processing_messages[-1][0] == message:
-            return
-        
-        # Store the message with its type (limit to 500 messages)
-        MAX_STORED_MESSAGES = 500
-        self.processing_messages.append((message, msg_type))
-        if len(self.processing_messages) > MAX_STORED_MESSAGES:
-            self.processing_messages = self.processing_messages[-MAX_STORED_MESSAGES:]
-        
-        # Forward to processing window if it exists
-        if hasattr(self, 'processing_window') and self.processing_window:
-            self.processing_window.update_status(message, msg_type)
-
-    def capture_and_forward_error(self, error_message):
-        """Capture error message and forward to processing window."""
-        from ..gui.gui_console_textbox import MessageType
-        
-        # Store the error message
-        self.processing_messages.append((error_message, MessageType.ERROR))
-        
-        # Forward to the processing window and call the original error handler
-        if hasattr(self, 'processing_window') and self.processing_window:
-            self.processing_window.update_status(error_message, MessageType.ERROR)
-        self.on_error(error_message)
-
-    def capture_and_forward_step_completion(self, step_name):
-        """Capture step completion and forward to processing window."""
-        # Store the completed step
-        self.completed_steps.add(step_name)
-        
-        # Forward to processing window if it exists
-        if hasattr(self, 'processing_window') and self.processing_window:
-            self.processing_window.mark_step_complete(step_name)
 
     def on_worker_finished(self):
         """Handle worker thread completion."""
@@ -361,6 +278,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
             
             # Change the cancel button to a close button
             self.processing_window.cancel_button.setText("Close")
+            self.processing_window.cancel_button.setEnabled(True)
             
             # Disconnect previous handler if any (use try/except in case it's not connected)
             try:
@@ -378,6 +296,10 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Disable the Open Processing Window button when not processing
         if hasattr(self, 'open_processing_button'):
             self.open_processing_button.setEnabled(False)
+
+        # Disable the Cancel Processing button in the main window
+        if hasattr(self, 'cancel_processing_button'):
+            self.cancel_processing_button.setEnabled(False)
         
         # Clean up the worker (but don't close the window)
         self.worker = None
@@ -403,10 +325,32 @@ class MainWindow(QMainWindow, ThemeableMixin):
         if not hasattr(self, 'processing_window') or self.processing_window is None:
             # Create and initialize the processing window
             self.initialize_processing_window()
+        else:
+            # Reset the cancel button if it exists but was changed to "Close"
+            if self.processing_window.cancel_button.text() == "Close":
+                # Change text back to "Cancel"
+                self.processing_window.cancel_button.setText("Cancel")
+                
+                # Disconnect any existing connections
+                try:
+                    self.processing_window.cancel_button.clicked.disconnect()
+                except TypeError:
+                    pass  # No connections exist
+                
+                # Reconnect to cancel_processing
+                self.processing_window.cancel_button.clicked.connect(self.cancel_processing)
+
+        # Add a divider in the console for the new processing run
+        if self.processing_window and hasattr(self.processing_window, 'details_text'):
+            self.processing_window.details_text.add_processing_divider()
         
         # Update status if a message was provided
         if message and hasattr(self, 'processing_window') and self.processing_window:
             self.processing_window.update_status(message)
+
+        # Enable Cancel Processing button
+        if hasattr(self, 'cancel_processing_button'):
+            self.cancel_processing_button.setEnabled(True)
         
         # Disable Check Spex button
         if hasattr(self, 'check_spex_button'):
@@ -526,8 +470,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
             self.processing_indicator.setVisible(False)
             self.main_status_label.setVisible(False)
             
-            # Disable the Open Processing Window button
-            self.open_processing_button.setEnabled(False)
+            # Disable the Cancel button button
+            self.cancel_processing_button.setEnabled(False)
             
             # Re-enable the Check Spex button
             self.check_spex_button.setEnabled(True)
@@ -549,14 +493,14 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Disable the Open Processing Window button
         if hasattr(self, 'open_processing_button'):
             self.open_processing_button.setEnabled(False)
+
+        # Disable the Cancel button button
+        if hasattr(self, 'cancel_processing_button'):
+            self.cancel_processing_button.setEnabled(False)
         
         # Re-enable the Check Spex button
         if hasattr(self, 'check_spex_button'):
             self.check_spex_button.setEnabled(True)
-        
-        if self.processing_window:
-            self.processing_window.close()
-            self.processing_window = None  # Explicitly set to None
         
         # Notify user
         QMessageBox.information(self, "Cancelled", "Processing was cancelled.")
@@ -780,7 +724,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         bottom_row.setContentsMargins(0, 10, 0, 10)  # Add some vertical padding
 
         # Open Processing Window button
-        self.open_processing_button = QPushButton("Open Processing Window")
+        self.open_processing_button = QPushButton("Show Processing Window")
         self.open_processing_button.setStyleSheet("""
             QPushButton {
                 font-weight: bold;
@@ -853,6 +797,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         """)
 
         self.cancel_processing_button.clicked.connect(self.cancel_processing)
+        self.cancel_processing_button.setEnabled(False)
         bottom_row.addWidget(self.cancel_processing_button)
 
         # Add a stretch to push the Check Spex button to the right
@@ -883,35 +828,35 @@ class MainWindow(QMainWindow, ThemeableMixin):
         bottom_row.addWidget(self.check_spex_button, 0)
         checks_layout.addLayout(bottom_row)
 
-    def update_main_status_label_and_store(self, filename, current_index=None, total_files=None):
-        """Update main status label and store it."""
+    def update_main_status_label(self, filename, current_index=None, total_files=None):
+        """Update the status label in the main window."""
+        if not hasattr(self, 'main_status_label'):
+            return
+            
         if current_index is not None and total_files is not None:
             # Get just the basename of the file
             base_filename = os.path.basename(filename)
-            self.current_main_status = f"Processing ({current_index}/{total_files}): {base_filename}"
+            self.main_status_label.setText(f"Processing ({current_index}/{total_files}): {base_filename}")
         else:
-            self.current_main_status = f"Processing: {filename}"
-        
-        # Update the main status label
-        if hasattr(self, 'main_status_label'):
-            self.main_status_label.setText(self.current_main_status)
+            self.main_status_label.setText(f"Processing: {filename}")
         
         # Make sure the UI updates
         QApplication.processEvents()
 
-    def update_main_status_label(self, filename, current_index=None, total_files=None):
-        """Update the status label in the main window."""
-        self.update_main_status_label_and_store(filename, current_index, total_files)
-
     def on_open_processing_clicked(self):
-        """Open the processing window directly without affecting processing."""
-        # Create processing window if it doesn't exist
-        if not hasattr(self, 'processing_window') or self.processing_window is None:
+        """Show the processing window if it exists, or create it if it doesn't."""
+        if hasattr(self, 'processing_window') and self.processing_window:
+            # If the window exists but is hidden, show it
+            self.processing_window.show()
+            self.processing_window.raise_()
+            self.processing_window.activateWindow()
+        else:
+            # Create processing window if it doesn't exist
             self.initialize_processing_window()
         
-        # Show the window
-        self.processing_window.show()   
-        self.processing_window.raise_()
+        # Update button text while window is visible
+        if hasattr(self, 'open_processing_button'):
+            self.open_processing_button.setText("Show Processing Window")
 
     # Add this method to handle processing window closed event
     def on_processing_window_closed(self):
@@ -1210,16 +1155,18 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
     def on_check_spex_clicked(self):
         """Handle the Check Spex button click."""
-        # Clear previous processing state
-        self.processing_messages = []
-        self.completed_steps = set()
-        self.current_detailed_status = ""
-        self.current_main_status = ""
-        
         self.update_selected_directories()
         self.check_spex_clicked = True  # Mark that the button was clicked
         self.config_mgr.save_last_used_config('checks')
         self.config_mgr.save_last_used_config('spex')
+        # Make sure the processing window is visible before starting the process
+        if hasattr(self, 'processing_window') and self.processing_window:
+            # If it exists but might be hidden, show it
+            self.processing_window.show()
+            self.processing_window.raise_()
+            self.processing_window.activateWindow()
+        
+        # Call worker thread
         self.call_process_directories()
 
     def on_profile_selected(self, index):
