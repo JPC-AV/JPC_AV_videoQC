@@ -788,7 +788,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         
         # Add a small indeterminate progress bar
         self.processing_indicator = QProgressBar(self)
-        self.processing_indicator.setMaximumWidth(50)  # Make it small
+        self.processing_indicator.setMaximumWidth(100)  # Make it small
         self.processing_indicator.setMaximumHeight(10)  # Make it shorter
         self.processing_indicator.setMinimum(0)
         self.processing_indicator.setMaximum(0)  # Makes it indeterminate
