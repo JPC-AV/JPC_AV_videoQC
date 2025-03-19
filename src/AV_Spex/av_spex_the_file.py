@@ -14,7 +14,7 @@ from .processing.avspex_processor import AVSpexProcessor
 from .utils import dir_setup
 from .utils import config_edit
 from .utils.log_setup import logger
-from .utils.config_setup import SpexConfig
+from .utils.config_setup import SpexConfig, FilenameConfig
 from .utils.config_manager import ConfigManager
 from .utils.config_io import ConfigIO
 

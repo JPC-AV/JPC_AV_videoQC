@@ -2,7 +2,7 @@ from dataclasses import asdict
 from typing import List
 
 from ..utils.log_setup import logger
-from ..utils.config_setup import ChecksConfig, SpexConfig
+from ..utils.config_setup import ChecksConfig, SpexConfig, FilenameProfile
 from ..utils.config_manager import ConfigManager
 
 

@@ -15,7 +15,7 @@ from ..gui.gui_processing_gui import ProcessingWindow, DirectoryListWidget
 from ..gui.gui_checks_window import ChecksWindow
 from ..gui.gui_theme_manager import ThemeManager, ThemeableMixin
 
-from ..utils.config_setup import SpexConfig, ChecksConfig
+from ..utils.config_setup import SpexConfig, ChecksConfig, FilenameConfig
 from ..utils.config_manager import ConfigManager
 from ..utils.log_setup import logger
 from ..utils import config_edit
@@ -914,39 +914,53 @@ class MainWindow(QMainWindow, ThemeableMixin):
         vertical_layout = QVBoxLayout(main_widget)
         
         # 1. Filename section
-        self.filename_group = QGroupBox("Filename Values")
-        theme_manager.style_groupbox(self.filename_group, "top center")
-        self.spex_tab_group_boxes.append(self.filename_group)
-        
-        filename_layout = QVBoxLayout()
-        
-        # Profile dropdown
-        profile_label = QLabel("Expected filename profiles:")
-        profile_label.setStyleSheet("font-weight: bold;")
+        self.filename_config = self.config_mgr.get_config("filename", FilenameConfig)
+        filename_section_group = QGroupBox()
+        filename_section_layout = QVBoxLayout()
+        # Create a label to display the section name
+        filename_section_label = QLabel(f"<b>Filename Values</b>")
+        filename_section_layout.addWidget(filename_section_label)
+
+        # Add a dropdown menu for command profiles
+        filenames_profile_label = QLabel("Expected filename profiles:")
+        filename_section_layout.addWidget(filenames_profile_label)
+
         self.filename_profile_dropdown = QComboBox()
-        self.filename_profile_dropdown.addItem("Bowser file names")
-        self.filename_profile_dropdown.addItem("JPC file names")
+        self.filename_profile_dropdown.addItem("Select a profile...")
         
-        # Set initial state based on config
-        if self.spex_config.filename_values.Collection == "JPC":
-            self.filename_profile_dropdown.setCurrentText("JPC file names")
-        elif self.spex_config.filename_values.Collection == "2012_79":
-            self.filename_profile_dropdown.setCurrentText("Bowser file names")
-        
+        # Add any custom filename profiles from the config
+        if hasattr(self.filename_config, 'filename_profiles') and self.filename_config.filename_profiles:
+            for profile_name in self.filename_config.filename_profiles.keys():
+                self.filename_profile_dropdown.addItem(profile_name)
+
+        # Set initial state
+        if self.spex_config.filename_values.fn_sections["section1"].value == "JPC":
+            self.filename_profile_dropdown.setCurrentText("JPC Filename Profile")
+        elif self.spex_config.filename_values.fn_sections["section1"].value == "2012":
+            self.filename_profile_dropdown.setCurrentText("Bowser Filename Profile")
+        else:
+             self.filename_profile_dropdown.setCurrentText("Select a profile...")
+            
         self.filename_profile_dropdown.currentIndexChanged.connect(self.on_filename_profile_changed)
+        filename_section_layout.addWidget(self.filename_profile_dropdown)
+
+        # Store the layout as an instance variable so it can be accessed by add_custom_filename_button
+        self.filename_section_layout = filename_section_layout
+        
+        # Add the custom filename button
+        self.add_custom_filename_button()
         
         # Open section button
-        open_button = QPushButton("Open Section")
-        open_button.clicked.connect(
+        button = QPushButton("Open Section")
+        button.clicked.connect(
             lambda: self.open_new_window('Filename Values', asdict(self.spex_config.filename_values))
         )
+        filename_section_layout.addWidget(button)
         
-        # Add widgets to layout
-        filename_layout.addWidget(profile_label)
-        filename_layout.addWidget(self.filename_profile_dropdown)
-        filename_layout.addWidget(open_button)
-        self.filename_group.setLayout(filename_layout)
-        vertical_layout.addWidget(self.filename_group)
+        filename_section_group.setLayout(filename_section_layout)
+        filename_section_group.setFixedHeight(150)
+        
+
         
         # Style the button using theme manager
         theme_manager.style_buttons(self.filename_group)
