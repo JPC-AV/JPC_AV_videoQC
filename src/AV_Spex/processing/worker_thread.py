@@ -1,49 +1,52 @@
 from PyQt6.QtCore import QThread, pyqtSignal
+
 from ..processing.avspex_processor import AVSpexProcessor
+from ..utils.log_setup import logger
+
 
 class ProcessingWorker(QThread):
-    """Worker thread for handling AV Spex processing"""
+    """Worker thread for processing directories."""
+    
+    # Thread-specific signals
+    started_processing = pyqtSignal()
     finished = pyqtSignal()
     error = pyqtSignal(str)
     processing_time = pyqtSignal(str)
-    started_processing = pyqtSignal(str)
-    cancelled = pyqtSignal()
-
-    def __init__(self, source_directories, signals):
-        super().__init__()
+    
+    def __init__(self, source_directories, signals, parent=None):
+        super().__init__(parent)
         self.source_directories = source_directories
         self.signals = signals
-        self.processor = None
-        self._is_cancelled = False
-
+        self.processor = AVSpexProcessor(signals=signals)
+        self.user_cancelled = False
+        
     def run(self):
+        """Run the worker thread."""
         try:
-            if self._is_cancelled:
-                return
+            # Emit that we started
+            self.started_processing.emit()
             
-            # Emit started signal before beginning processing
-            self.started_processing.emit("Initializing processing...")
-            
-            self.processor = AVSpexProcessor(signals=self.signals)
-            
-            # Initialize will trigger the progress window updates
-            # if initialize() returns false then setup has failed and return will end the thread
+            # Initialize the processor
             if not self.processor.initialize():
+                self.error.emit("Processor initialization failed or was cancelled")
                 return
             
-            # Process directories
-            formatted_time = self.processor.process_directories(self.source_directories)
+            # Process the directories
+            processing_time = self.processor.process_directories(self.source_directories)
             
-            # Emit results
-            # Only emit processing_time if we got a valid string result
-            if not self._is_cancelled and isinstance(formatted_time, str):
-                self.processing_time.emit(formatted_time)
-                self.finished.emit()
-
+            if processing_time:
+                self.processing_time.emit(processing_time)
+            
+            self.finished.emit()
+        
         except Exception as e:
-            self.error.emit(str(e))
-
+            logger.exception("Error in processing worker")
+            self.error.emit(f"Processing error: {str(e)}")
+            # Commenting this out to keep the window open after an error
+            # self.finished.emit()
+    
     def cancel(self):
-        self._is_cancelled = True
+        """Cancel the processing."""
+        self.user_cancelled = True  # Set the flag
         if self.processor:
             self.processor.cancel()

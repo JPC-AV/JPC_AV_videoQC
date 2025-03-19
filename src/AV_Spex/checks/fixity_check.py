@@ -2,11 +2,12 @@ import os
 import sys
 import hashlib
 import shutil
+import re
 from datetime import datetime
 from ..utils.log_setup import logger
 
 
-def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None):
+def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None, signals=None):
     if check_cancelled():
         return None
     
@@ -18,24 +19,35 @@ def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None
     # Walk files of the source directory looking for file with '_checksums.md5' or '_fixity.txt' suffix
     for root, dirs, files in os.walk(directory):
         for file in files:
+            # Look for date pattern before "_fixity.txt" or "_checksums.md5"
             if file.endswith('_checksums.md5') or file.endswith('_fixity.txt'):
                 checksum_file_path = os.path.join(root, file)
                 try:
-                    # Extract date from filename (YYYY_MM_DD or YYYY_MM_DD_HH_MM format)
-                    file_date_str = file.split('_')[3:6]  # First try to get the date part (YYYY_MM_DD)
-
-                    # Try parsing the date with only the date part (YYYY_MM_DD)
-                    try:
-                        file_date = datetime.strptime("_".join(file_date_str), "%Y_%m_%d").date()
-                    except ValueError:
-                        # If it fails, try with the full date and time (YYYY_MM_DD_HH_MM)
-                        file_date_str = file.split('_')[3:8]  # Now include time part (YYYY_MM_DD_HH_MM)
-                        file_date = datetime.strptime("_".join(file_date_str), "%Y_%m_%d_%H_%M").date()
-
+                    # Remove the suffix first
+                    if file.endswith('_checksums.md5'):
+                        base_name = file.replace('_checksums.md5', '')
+                    else:  # file.endswith('_fixity.txt')
+                        base_name = file.replace('_fixity.txt', '')
+                    
+                    # Use regex to find date patterns at the end of the base name
+                    # Pattern 1: YYYY_MM_DD_HH_MM at the end of string ($ is a special character in regex that matches the end of the string)
+                    date_match = re.search(r'(\d{4}_\d{2}_\d{2}_\d{2}_\d{2})$', base_name)
+                    if date_match:
+                        date_str = date_match.group(1)
+                        file_date = datetime.strptime(date_str, "%Y_%m_%d_%H_%M").date()
+                    else:
+                        # Pattern 2: YYYY_MM_DD at the end of string
+                        date_match = re.search(r'(\d{4}_\d{2}_\d{2})$', base_name)
+                        if date_match:
+                            date_str = date_match.group(1)
+                            file_date = datetime.strptime(date_str, "%Y_%m_%d").date()
+                        else:
+                            raise ValueError(f"No date pattern found in filename: {file}")
+                    
                     checksum_files.append((checksum_file_path, file_date))
                 
-                except (ValueError, IndexError):
-                    logger.warning(f"Skipping checksum file with invalid date format: {file}")
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"Skipping checksum file with invalid date format: {file}. Error: {str(e)}")
 
     # Sort checksum files by date (descending)
     checksum_files.sort(key=lambda x: x[1], reverse=True)
@@ -52,11 +64,11 @@ def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None
     if os.path.exists(video_file_path):
         # If checksum has not yet been calculated, then:
         if not checksum_files and actual_checksum is None:
-            output_fixity(directory, video_file_path, check_cancelled=check_cancelled)
+            output_fixity(directory, video_file_path, check_cancelled=check_cancelled, signals=signals)
             return
         elif checksum_files and actual_checksum is None:
             # Calculate the MD5 checksum of the video file
-            actual_checksum = hashlib_md5(video_file_path, check_cancelled=check_cancelled)
+            actual_checksum = hashlib_md5(video_file_path, check_cancelled=check_cancelled, signals=signals)
     else:
         logger.critical(f'Video file not found: {video_file_path}')
         return
@@ -93,7 +105,7 @@ def check_fixity(directory, video_id, actual_checksum=None, check_cancelled=None
         result_file.close()
 
 
-def output_fixity(source_directory, video_path, check_cancelled=None):
+def output_fixity(source_directory, video_path, check_cancelled=None, signals=None):
     # Parse video_id from video file path
     video_id = os.path.splitext(os.path.basename(os.path.basename(video_path)))[0]
     # Create fixity results files
@@ -104,7 +116,7 @@ def output_fixity(source_directory, video_path, check_cancelled=None):
         return None
     
     # Calculate the MD5 checksum of the video file
-    md5_checksum = hashlib_md5(video_path, check_cancelled=check_cancelled)
+    md5_checksum = hashlib_md5(video_path, check_cancelled=check_cancelled, signals=signals)
     if md5_checksum is None:  # Handle cancelled case
         return None
     
@@ -138,18 +150,19 @@ def read_checksum_from_file(file_path):
     return None
 
 
-def hashlib_md5(filename, check_cancelled=None):
+def hashlib_md5(filename, check_cancelled=None, signals=None):
     '''
     Create an md5 checksum.
     '''
     if check_cancelled():
-            return None
+        return None
     
     read_size = 0
     last_percent_done = 0
     md5_object = hashlib.md5()
     total_size = os.path.getsize(filename)
     logger.debug(f'Generating md5 checksum for {os.path.basename(filename)} via {os.path.basename(__file__)}:')
+    
     with open(str(filename), 'rb') as file_object:
         while True:
             if check_cancelled():
@@ -160,11 +173,26 @@ def hashlib_md5(filename, check_cancelled=None):
                 break
             read_size += len(buf)
             md5_object.update(buf)
-            percent_done = 100 * read_size / total_size
+            
+            # Calculate percentage (0-100)
+            percent_done = int((read_size * 100) / total_size)
+            
+            # Ensure percent_done is capped at 100
+            percent_done = min(100, percent_done)
+            
             if percent_done > last_percent_done:
-                sys.stdout.write('[%d%%]\r' % percent_done)
-                sys.stdout.flush()
+                # Add debug printing for both cases
+                
+                if signals:
+                    # Make doubly sure we're emitting an integer percentage in range 0-100
+                    safe_percent = min(100, max(0, int(percent_done)))
+                    signals.md5_progress.emit(safe_percent)
+                else:
+                    sys.stdout.write('[%d%%]\r' % percent_done)
+                    sys.stdout.flush()
+                    
                 last_percent_done = percent_done
+                
     md5_output = md5_object.hexdigest()
     logger.info(f'Calculated md5 checksum is {md5_output}\n')
     return md5_output

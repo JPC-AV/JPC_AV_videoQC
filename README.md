@@ -2,7 +2,7 @@
 AV processing scripts for the Johnson Publishing Company archive
 
 ## Introduction:
-![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/av_spex_the_logo.png?raw=true)
+![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/av_spex_the_logo.png?raw=true)
 This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications. 
 
 ----
@@ -18,85 +18,107 @@ The following command line tools are necessary and must be installed separately:
 - ffmpeg
 - QCTools
 
-### Installation
+## Installation of AV Spex
 
 There are currently 3 installation options.
-1. Install av-spex using the provided DMG file
+1. Install av-spex using the provided DMG file: https://github.com/JPC-AV/JPC_AV_videoQC/releases/latest
 2. Install av-spex using the macOS package manger [homebrew](https://brew.sh/)
-3. Download this code from github and install the Python version using `pip install .`, as described below.
+3. Download this code from github and install the Python version using `pip install .`
 
-### DMG Version
+### 1. DMG Install
 
-Download the DMG here: 
+Download the DMG here: https://github.com/JPC-AV/JPC_AV_videoQC/releases/latest
 
-sha 256: 6cfe826a3fabc335429adfb242e4da3eb01502cf60f9dc9a0121f8e8982c3a97
-
-### Homebrew Version
+### 2. Homebrew Install
 
 For instructions on installing homebrew, see: https://brew.sh/
 
 To install av-spex with homebrew first tap the formula's git repo:
 ```
-brew tap eddycolloton/av-spex
+brew tap JPC-AV/AV-Spex
 ```
 Then install the app
 ```
 brew install av-spex
 ```
-
-### Python Version
-- Python 3.10 or higher is required.
-
-#### Setting Up Conda
-Below are the instructions for setting up a compatible Python environment using Conda, although Conda is optional - any Python 3.10+ environment should be compatible.
-
-1. **Install Conda:**
-   - Via Homebrew: `brew install --cask anaconda`
-   - Alternatively, follow the installation guide on [Anaconda's official website](https://conda.io/projects/conda/en/latest/user-guide/install/macos.html).
-
-2. **Add Conda to Your Path:**
-   - Installation paths may vary based on your system's architecture (x86 or ARM).
-   - For Homebrew installations:
-     - ARM architecture: `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
-        - for Apple silicon 
-     - x86 architecture: `export PATH="/usr/local/anaconda3/bin:$PATH"`
-        - for Intel Mac 
-     - If you are unsure which of these paths to use, you can check by running `brew --prefix`
-
-3. **Initialize Conda:**
-   - For Bash: `conda init`
-   - For Zsh: `conda init zsh`
-   - To check your shell, run: `echo $SHELL`
-
-#### Create an Isolated Environment
-- To create an environment with the required Python version:
-  ```bash
-  conda create -n JPC_AV python=3.10.13
-  ```
-
-## Installation of AV Spex Scripts
-
-### Initial Setup
-
-1. **Navigate to the Project Root Directory:**
-   ```bash
-   cd path-to/JPC_AV/JPC_AV_videoQC
-   ```
-
-2. **Install the AV Spex Scripts in Editable Mode:**
-   ```bash
-   pip install .
-   ```
-
 Verify the installation by running:
 ```bash
 av-spex --help
 ```
 
-## GUI Usage
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+### 3. Python Install (from source)
+Python 3.10 or higher is required.
 
-Open the AV Spex gui with the command:
+---
+
+- **Recommended - Create a Virtual Environment**   
+   Best practices recommend python virtual environments to cleanly separate project dependencies, avoiding system-wide package conflicts.    
+   Creating a virtual environment is optional - any Python 3.10+ environment should be compatible.    
+
+<details>
+<summary><span style="font-style: italic;">Click to expand instructions for creating a virtual environment</span></summary>
+
+   - **Using Conda**    
+      Conda is a cross-platform package and environment manager that creates isolated workspaces to simplify switching between project environments from the command line.
+
+      1. **Install Conda:**
+         - Via Homebrew: `brew install --cask anaconda`
+         - Alternatively, follow the installation guide on [Anaconda's official website](https://conda.io/projects/conda/en/latest/user-guide/install/macos.html).
+
+      2. **Add Conda to Your Path:**
+         - Installation paths may vary based on your system's architecture (x86 or ARM).
+         - For Homebrew installations:
+         - ARM architecture: `export PATH="/opt/homebrew/anaconda3/bin:$PATH"`
+            - for Apple silicon 
+         - x86 architecture: `export PATH="/usr/local/anaconda3/bin:$PATH"`
+            - for Intel Mac 
+         - If you are unsure which of these paths to use, you can check by running `brew --prefix`
+
+      3. **Initialize Conda:**
+         - For Bash: `conda init`
+         - For Zsh: `conda init zsh`
+         - To check your shell, run: `echo $SHELL`
+      4. **Create an Isolated Environment**
+         - To create an environment with the required Python version:
+         ```bash
+         conda create -n JPC_AV python=3.10.13
+         ```
+   - **Using venv**    
+      Alternatively, use the built in virtual environment manager for your OS:
+
+      1. **Create the environment**    
+         Unix based (Mac or Linux):    
+         `python3 -m venv name_of_env`     
+         Windows:     
+         `py -m venv name_of_env (where 'name_of_env' is replaced with the name of your virtual environment)`     
+      2. **Activate virtual env**     
+         Unix based (Mac or Linux):     
+         `source ./name_of_env/bin/activate`     
+         Windows:    
+         `name_of_env\scripts\activate`     
+</details>
+
+---
+
+### 3.1 Navigate to the Project Root Directory
+   ```bash
+   cd path-to/JPC_AV/JPC_AV_videoQC
+   ```
+
+### 3.2 Install AV Spex from source
+   ```bash
+   pip install .
+   ```
+
+### 3.3 Verify the installation by running
+   ```bash
+   av-spex --help
+   ```
+
+## GUI Usage
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+
+To open the AV Spex gui from the command line application:
 ```bash
 av-spex-gui
 ```
@@ -104,8 +126,8 @@ av-spex-gui
 The GUI is divided into 2 tabs  - "Checks" and "Spex".   
 
 <div style="display: flex; justify-content: space-between;">
-  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot_01.png" alt="AV Spex GUI Screenshot 1" width="400"/>
-  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/avspex_gui_screenshot_02.png" alt="AV Spex GUI Screenshot 2" width="400"/>
+  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/images_for_readme/avspex_gui_screenshot_1.png" alt="AV Spex GUI Screenshot 1" width="400"/>
+  <img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/images_for_readme/avspex_gui_screenshot_2.png" alt="AV Spex GUI Screenshot 2" width="400"/>
 </div>
 
 ### Checks
@@ -135,7 +157,7 @@ Once you have completed your Spex selections, navigate back to the Checks window
 
 
 ## CLI Usage
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main//logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 
 Execute the scripts with:
 ```bash
@@ -314,7 +336,7 @@ Edit the config files using command line options in order to maintain consistent
 
 <br/><br/>
 
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
 ---
 
 ## Contributing
