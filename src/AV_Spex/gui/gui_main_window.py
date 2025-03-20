@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, 
     QLabel, QScrollArea, QFileDialog, QMenuBar, QListWidget, QPushButton, QFrame, 
     QComboBox, QTabWidget, QTextEdit, QMessageBox, QDialog, QProgressBar, 
-    QSizePolicy
+    QSizePolicy, QLineEdit
 )
 from PyQt6.QtCore import Qt, QSettings, QDir, QTimer, QSize
 from PyQt6.QtGui import QPixmap, QPalette
@@ -26,6 +26,257 @@ from ..gui.gui_signals import ProcessingSignals
 
 from AV_Spex import __version__
 version_string = __version__
+
+
+class CustomFilenameDialog(QDialog, ThemeableMixin):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.pattern = None
+        self.setWindowTitle("Custom Filename Pattern")
+        self.setModal(True)
+
+        # Set minimum size for the dialog
+        self.setMinimumSize(500, 600)  # Width: 500px, Height: 600px
+        
+        # Initialize layout
+        layout = QVBoxLayout()
+        layout.setSpacing(10)  # Reduce overall vertical spacing
+        
+        # Add description
+        description = QLabel("Define your filename pattern using 1-8 sections separated by underscores.")
+        description.setWordWrap(True)
+        layout.addWidget(description)
+        
+        # Scrollable area for sections
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll_widget = QWidget()
+        self.sections_layout = QVBoxLayout(scroll_widget)
+        self.sections_layout.setSpacing(5)  # Reduce spacing between sections
+        self.sections_layout.setContentsMargins(5, 5, 5, 5)  # Reduce margins
+        scroll.setWidget(scroll_widget)
+
+        # Set a reasonable fixed height for the scroll area
+        scroll.setMinimumHeight(300)  # Ensure scroll area is tall enough
+        
+        # Initial section
+        self.sections = []
+        self.add_section()
+        
+        # Buttons for managing sections
+        section_buttons_layout = QHBoxLayout()
+        add_button = QPushButton("Add Section")
+        add_button.clicked.connect(self.add_section)
+        remove_button = QPushButton("Remove Last Section")
+        remove_button.clicked.connect(self.remove_section)
+        section_buttons_layout.addWidget(add_button)
+        section_buttons_layout.addWidget(remove_button)
+        
+        # File Extension input
+        extension_layout = QHBoxLayout()
+        extension_layout.addWidget(QLabel("File Extension:"))
+        self.extension_input = QLineEdit()
+        self.extension_input.setText("mkv")
+        extension_layout.addWidget(self.extension_input)
+        
+        # Preview section
+        preview_layout = QHBoxLayout()
+        preview_layout.addWidget(QLabel("Preview:"))
+        self.preview_label = QLabel()
+        preview_layout.addWidget(self.preview_label)
+        
+        # Dialog buttons
+        button_layout = QHBoxLayout()
+        save_button = QPushButton("Save Pattern")
+        save_button.clicked.connect(self.on_save_clicked)
+        cancel_button = QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        
+        # Add all layouts to main layout
+        layout.addWidget(scroll)
+        layout.addLayout(section_buttons_layout)
+        layout.addLayout(extension_layout)
+        layout.addLayout(preview_layout)
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+        self.update_preview()
+        
+        # Apply theme
+        self.setup_theme_handling()
+        
+    def on_theme_changed(self, palette):
+        """Apply theme changes to the dialog"""
+        # Set the palette
+        self.setPalette(palette)
+        
+        # Style buttons
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_buttons(self)
+        
+        # Update UI
+        self.update()
+        
+    def closeEvent(self, event):
+        # Clean up theme connections
+        self.cleanup_theme_handling()
+        super().closeEvent(event)
+        
+    def add_section(self):
+        """Add a new filename section widget"""
+        if len(self.sections) >= 8:
+            QMessageBox.warning(self, "Warning", "Maximum 8 sections allowed")
+            return
+            
+        section_widget = QWidget()
+        section_layout = QHBoxLayout(section_widget)
+        section_layout.setContentsMargins(0, 0, 0, 0)  # Remove margins around section
+        section_layout.setSpacing(5)  # Reduce spacing between elements
+        
+        # Section number label
+        section_num = len(self.sections) + 1
+        section_label = QLabel(f"Section {section_num}:")
+        section_layout.addWidget(section_label)
+        
+        # Section type combo box
+        type_combo = QComboBox()
+        type_combo.addItems(["Literal", "Wildcard", "Regex"])
+        section_layout.addWidget(type_combo)
+        
+        # Value input
+        value_input = QLineEdit()
+        section_layout.addWidget(value_input)
+        
+        # Help button with tooltip
+        help_button = QPushButton("?")
+        help_button.setFixedSize(20, 20)
+        help_text = {
+            0: "Literal: Exact text match (e.g., 'JPC')",
+            1: "Wildcard: Use # for digits, @ for letters, * for either\n" +
+               "Examples:\n" +
+               "#### = exactly 4 digits\n" +
+               "@@ = exactly 2 letters\n" +
+               "*** = 3 characters (letters or numbers)",
+            2: "Regex: Regular expression pattern (e.g., '\\d{3}')"
+        }
+        help_button.clicked.connect(lambda: QMessageBox.information(self, "Help", help_text[type_combo.currentIndex()]))
+        section_layout.addWidget(help_button)
+        
+        # Store section controls
+        section = {
+            'widget': section_widget,
+            'type_combo': type_combo,
+            'value_input': value_input
+        }
+        self.sections.append(section)
+        
+        # Connect signals for preview updates
+        type_combo.currentIndexChanged.connect(self.update_preview)
+        value_input.textChanged.connect(self.update_preview)
+        
+        self.sections_layout.addWidget(section_widget)
+        self.update_preview()
+        
+    def remove_section(self):
+        """Remove the last filename section"""
+        if self.sections:
+            section = self.sections.pop()
+            section['widget'].deleteLater()
+            self.update_preview()
+        if len(self.sections) < 1:
+            self.add_section()  # Ensure at least one section exists
+            
+    def update_preview(self):
+        """Update the filename preview"""
+        parts = []
+        for section in self.sections:
+            value = section['value_input'].text()
+            if value:
+                parts.append(value)
+                
+        if parts:
+            preview = "_".join(parts) + "." + self.extension_input.text()
+            self.preview_label.setText(preview)
+            
+    def get_filename_pattern(self):
+        """Get the filename pattern in the required format"""
+        if not self.sections:
+            QMessageBox.warning(self, "Validation Error", "At least one section is required.")
+            return None
+            
+        if not all(section['value_input'].text() for section in self.sections):
+            QMessageBox.warning(self, "Validation Error", "All sections must have a value.")
+            return None
+            
+        if not self.extension_input.text():
+            QMessageBox.warning(self, "Validation Error", "File extension is required.")
+            return None
+            
+        fn_sections = {}
+        for i, section in enumerate(self.sections, 1):
+            section_type = section['type_combo'].currentText().lower()
+            value = section['value_input'].text()
+            
+            fn_sections[f"section{i}"] = {
+                "value": value,
+                "section_type": section_type
+            }
+            
+        pattern = {
+            "fn_sections": fn_sections,
+            "FileExtension": self.extension_input.text()
+        }
+        
+        return pattern
+
+    def on_save_clicked(self):
+        """Handle save button click"""
+        pattern = self.get_filename_pattern()
+        if pattern:
+            try:
+                config_edit.apply_filename_profile(pattern)
+                self.pattern = pattern
+                self.accept()  # This will trigger QDialog.accepted
+            except Exception as e:
+                QMessageBox.critical(self, "Error", f"Failed to apply filename pattern: {str(e)}")
+
+    def get_pattern(self):
+        """Return the stored pattern"""
+        return self.pattern
+            
+    def load_existing_pattern(self, pattern):
+        """Load an existing filename pattern into the dialog"""
+        if not pattern or 'fn_sections' not in pattern:
+            return
+            
+        # Clear existing sections
+        while self.sections:
+            self.remove_section()
+            
+        # Load sections
+        for section_key, section_data in pattern['fn_sections'].items():
+            self.add_section()
+            section = self.sections[-1]
+            
+            # Set section type
+            type_index = {
+                'literal': 0,
+                'wildcard': 1,
+                'regex': 2
+            }.get(section_data['section_type'].lower(), 0)
+            section['type_combo'].setCurrentIndex(type_index)
+            
+            # Set value
+            section['value_input'].setText(section_data['value'])
+                
+        # Load extension
+        if 'FileExtension' in pattern:
+            self.extension_input.setText(pattern['FileExtension'])
+            
+        self.update_preview()
+
 
 class MainWindow(QMainWindow, ThemeableMixin):
     """Main application window with tabs for configuration and settings."""
@@ -912,21 +1163,49 @@ class MainWindow(QMainWindow, ThemeableMixin):
         main_widget = QWidget(self)
         main_scroll_area.setWidget(main_widget)
         vertical_layout = QVBoxLayout(main_widget)
-        
-        # 1. Filename section
-        self.filename_config = self.config_mgr.get_config("filename", FilenameConfig)
-        filename_section_group = QGroupBox()
-        filename_section_layout = QVBoxLayout()
-        # Create a label to display the section name
-        filename_section_label = QLabel(f"<b>Filename Values</b>")
-        filename_section_layout.addWidget(filename_section_label)
 
+        filename_section_group = self.setup_filename_section()
+        spex_layout.addWidget(filename_section_group)
+
+        mediainfo_section_group = self.setup_mediainfo_section()
+        spex_layout.addWidget(mediainfo_section_group)
+
+        exiftool_section_group = self.setup_exiftool_section()
+        spex_layout.addWidget(exiftool_section_group)
+
+        ffprobe_section_group = self.setup_ffprobe_section()
+        spex_layout.addWidget(ffprobe_section_group)
+
+        mediatrace_section_group = self.setup_mediatrace_section()
+        spex_layout.addWidget(mediatrace_section_group)
+
+        qct_section_group = self.setup_qct_section()
+        spex_layout.addWidget(qct_section_group)
+
+        # Add scroll area to main layout
+        spex_layout.addWidget(main_scroll_area)
+        
+        # File name section
+    def setup_filename_section(self):
+        self.filename_config = self.config_mgr.get_config("filename", FilenameConfig)
+
+        # Filename section
+        filename_section_group = QGroupBox("Filename Values")
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_groupbox(filename_section_group, "top center")
+        self.spex_tab_group_boxes.append(filename_section_group)
+        
+        filename_section_layout = QVBoxLayout()
+        
         # Add a dropdown menu for command profiles
         filenames_profile_label = QLabel("Expected filename profiles:")
+        filenames_profile_label.setStyleSheet("font-weight: bold;")
         filename_section_layout.addWidget(filenames_profile_label)
 
         self.filename_profile_dropdown = QComboBox()
         self.filename_profile_dropdown.addItem("Select a profile...")
+        self.filename_profile_dropdown.addItem("JPC file names")
+        self.filename_profile_dropdown.addItem("Bowser file names")
         
         # Add any custom filename profiles from the config
         if hasattr(self.filename_config, 'filename_profiles') and self.filename_config.filename_profiles:
@@ -960,78 +1239,147 @@ class MainWindow(QMainWindow, ThemeableMixin):
         filename_section_group.setLayout(filename_section_layout)
         filename_section_group.setFixedHeight(150)
         
-
-        
         # Style the button using theme manager
-        theme_manager.style_buttons(self.filename_group)
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_buttons(self.filename_section_layout)
+
+        return filename_section_group
         
-        # 2. MediaInfo section
-        self.mediainfo_group = QGroupBox("MediaInfo Values")
-        theme_manager.style_groupbox(self.mediainfo_group, "top center")
-        self.spex_tab_group_boxes.append(self.mediainfo_group)
+    def add_custom_filename_button(self):
+        """Add button for creating custom filename patterns"""
+        custom_button = QPushButton("Create Custom Pattern...")
+        custom_button.clicked.connect(self.show_custom_filename_dialog)
+        # Add to the filename section layout that's already defined
+        self.filename_section_layout.addWidget(custom_button)
         
-        mediainfo_layout = QVBoxLayout()
+    def show_custom_filename_dialog(self):
+        """Show dialog for creating custom filename patterns"""
+        dialog = CustomFilenameDialog(self)
+        result = dialog.exec()
         
-        mediainfo_button = QPushButton("Open Section")
-        mediainfo_button.clicked.connect(
+        if result == QDialog.DialogCode.Accepted:
+            pattern = dialog.get_pattern()
+            if pattern:
+                try:
+                    # Use the first section's value for the custom name
+                    first_section = pattern['fn_sections']['section1']
+                    custom_name = f"Custom ({first_section['value']})"
+                    
+                    # Check if this custom pattern already exists in the dropdown
+                    found = False
+                    for i in range(self.filename_profile_dropdown.count()):
+                        if self.filename_profile_dropdown.itemText(i) == custom_name:
+                            found = True
+                            break
+                    
+                    # Only add if it's not already in the dropdown
+                    if not found:
+                        self.filename_profile_dropdown.addItem(custom_name)
+                        self.filename_profile_dropdown.setCurrentText(custom_name)
+                        
+                        # Get the ConfigManager instance
+                        config_manager = ConfigManager()
+                        
+                        # Get the current filename configuration
+                        filename_config = config_manager.get_config('filename', FilenameConfig)
+                        
+                        # Update the config directly with the new pattern
+                        # ConfigManager will handle the conversion to dataclasses internally
+                        updates = {
+                            'filename_profiles': {
+                                **filename_config.filename_profiles,  # Keep existing profiles
+                                custom_name: pattern  # Add the new pattern
+                            }
+                        }
+                        
+                        # Update the config
+                        config_manager.update_config('filename', updates)
+                        
+                        # Save the last used configuration
+                        config_manager.save_last_used_config('filename')
+                        
+                except Exception as e:
+                    QMessageBox.warning(self, "Error", f"Error adding custom pattern to dropdown: {str(e)}")
+        
+    def setup_mediainfo_section(self):
+        """Setup the MediaInfo section with theme support"""
+        group = QGroupBox("MediaInfo Values")
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_groupbox(group, "top center")
+        self.spex_tab_group_boxes.append(group)
+        
+        layout = QVBoxLayout()
+        
+        button = QPushButton("Open Section")
+        button.clicked.connect(
             lambda: self.open_new_window('MediaInfo Values', self.spex_config.mediainfo_values)
         )
+        layout.addWidget(button)
         
-        mediainfo_layout.addWidget(mediainfo_button)
-        self.mediainfo_group.setLayout(mediainfo_layout)
-        vertical_layout.addWidget(self.mediainfo_group)
+        group.setLayout(layout)
         
         # Style the button
-        theme_manager.style_buttons(self.mediainfo_group)
+        theme_manager.style_buttons(group)
         
-        # 3. Exiftool section
-        self.exiftool_group = QGroupBox("Exiftool Values")
-        theme_manager.style_groupbox(self.exiftool_group, "top center")
-        self.spex_tab_group_boxes.append(self.exiftool_group)
+        return group
+    
+    def setup_exiftool_section(self):
+        """Setup the Exiftool section with theme support"""
+        group = QGroupBox("Exiftool Values")
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_groupbox(group, "top center")
+        self.spex_tab_group_boxes.append(group)
         
-        exiftool_layout = QVBoxLayout()
+        layout = QVBoxLayout()
         
-        exiftool_button = QPushButton("Open Section")
-        exiftool_button.clicked.connect(
+        button = QPushButton("Open Section")
+        button.clicked.connect(
             lambda: self.open_new_window('Exiftool Values', asdict(self.spex_config.exiftool_values))
         )
+        layout.addWidget(button)
         
-        exiftool_layout.addWidget(exiftool_button)
-        self.exiftool_group.setLayout(exiftool_layout)
-        vertical_layout.addWidget(self.exiftool_group)
+        group.setLayout(layout)
         
         # Style the button
-        theme_manager.style_buttons(self.exiftool_group)
+        theme_manager.style_buttons(group)
         
-        # 4. FFprobe section
-        self.ffprobe_group = QGroupBox("FFprobe Values")
-        theme_manager.style_groupbox(self.ffprobe_group, "top center")
-        self.spex_tab_group_boxes.append(self.ffprobe_group)
+        return group
+    
+    def setup_ffprobe_section(self):
+        """Setup the FFprobe section with theme support"""
+        group = QGroupBox("FFprobe Values")
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_groupbox(group, "top center")
+        self.spex_tab_group_boxes.append(group)
         
-        ffprobe_layout = QVBoxLayout()
+        layout = QVBoxLayout()
         
-        ffprobe_button = QPushButton("Open Section")
-        ffprobe_button.clicked.connect(
+        button = QPushButton("Open Section")
+        button.clicked.connect(
             lambda: self.open_new_window('FFprobe Values', self.spex_config.ffmpeg_values)
         )
+        layout.addWidget(button)
         
-        ffprobe_layout.addWidget(ffprobe_button)
-        self.ffprobe_group.setLayout(ffprobe_layout)
-        vertical_layout.addWidget(self.ffprobe_group)
+        group.setLayout(layout)
         
         # Style the button
-        theme_manager.style_buttons(self.ffprobe_group)
+        theme_manager.style_buttons(group)
         
-        # 5. Mediatrace section
-        self.mediatrace_group = QGroupBox("Mediatrace Values")
-        theme_manager.style_groupbox(self.mediatrace_group, "top center")
-        self.spex_tab_group_boxes.append(self.mediatrace_group)
+        return group
+    
+    def setup_mediatrace_section(self):
+        """Setup the Mediatrace section with theme support"""
+        group = QGroupBox("Mediatrace Values")
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_groupbox(group, "top center")
+        self.spex_tab_group_boxes.append(group)
         
-        mediatrace_layout = QVBoxLayout()
+        layout = QVBoxLayout()
         
         # Signalflow profile dropdown
         signalflow_label = QLabel("Expected Signalflow profiles:")
         signalflow_label.setStyleSheet("font-weight: bold;")
+        
         self.signalflow_profile_dropdown = QComboBox()
         self.signalflow_profile_dropdown.addItem("JPC_AV_SVHS Signal Flow")
         self.signalflow_profile_dropdown.addItem("BVH3100 Signal Flow")
@@ -1050,41 +1398,81 @@ class MainWindow(QMainWindow, ThemeableMixin):
             
         self.signalflow_profile_dropdown.currentIndexChanged.connect(self.on_signalflow_profile_changed)
         
-        mediatrace_button = QPushButton("Open Section")
-        mediatrace_button.clicked.connect(
+        button = QPushButton("Open Section")
+        button.clicked.connect(
             lambda: self.open_new_window('Mediatrace Values', asdict(self.spex_config.mediatrace_values))
         )
         
-        mediatrace_layout.addWidget(signalflow_label)
-        mediatrace_layout.addWidget(self.signalflow_profile_dropdown)
-        mediatrace_layout.addWidget(mediatrace_button)
-        self.mediatrace_group.setLayout(mediatrace_layout)
-        vertical_layout.addWidget(self.mediatrace_group)
+        layout.addWidget(signalflow_label)
+        layout.addWidget(self.signalflow_profile_dropdown)
+        layout.addWidget(button)
+        group.setLayout(layout)
         
         # Style the button
-        theme_manager.style_buttons(self.mediatrace_group)
+        theme_manager.style_buttons(group)
         
-        # 6. QCT section
-        self.qct_group = QGroupBox("qct-parse Values")
-        theme_manager.style_groupbox(self.qct_group, "top center")
-        self.spex_tab_group_boxes.append(self.qct_group)
+        return group
+    
+    def setup_qct_section(self):
+        """Setup the QCT section with theme support"""
+        group = QGroupBox("qct-parse Values")
+        theme_manager = ThemeManager.instance()
+        theme_manager.style_groupbox(group, "top center")
+        self.spex_tab_group_boxes.append(group)
         
-        qct_layout = QVBoxLayout()
+        layout = QVBoxLayout()
         
-        qct_button = QPushButton("Open Section")
-        qct_button.clicked.connect(
+        button = QPushButton("Open Section")
+        button.clicked.connect(
             lambda: self.open_new_window('Expected qct-parse options', asdict(self.spex_config.qct_parse_values))
         )
         
-        qct_layout.addWidget(qct_button)
-        self.qct_group.setLayout(qct_layout)
-        vertical_layout.addWidget(self.qct_group)
+        layout.addWidget(button)
+        group.setLayout(layout)
         
         # Style the button
-        theme_manager.style_buttons(self.qct_group)
+        theme_manager.style_buttons(group)
         
-        # Add scroll area to main layout
-        spex_layout.addWidget(main_scroll_area)
+        return group
+    
+    def on_filename_profile_changed(self, index):
+        """Handle filename profile selection change."""
+        selected_option = self.filename_profile_dropdown.itemText(index)
+        
+        if selected_option == "JPC file names":
+            updates = {
+                "filename_values": {
+                    "Collection": "JPC",
+                    "MediaType": "AV",
+                    "ObjectID": r"\d{5}",
+                    "DigitalGeneration": None,
+                    "FileExtension": "mkv"
+                }
+            }
+            self.config_mgr.update_config('spex', updates)
+            self.config_mgr.save_last_used_config('spex')
+            
+        elif selected_option == "Bowser file names":
+            updates = {
+                "filename_values": {
+                    "Collection": "2012_79",
+                    "MediaType": "2",
+                    "ObjectID": r"\d{3}_\d{1}[a-zA-Z]",
+                    "DigitalGeneration": "PM",
+                    "FileExtension": "mkv"
+                }
+            }
+            self.config_mgr.update_config('spex', updates)
+            self.config_mgr.save_last_used_config('spex')
+            
+        elif selected_option.startswith("Custom ("):
+            # Handle custom profiles
+            if hasattr(self.filename_config, 'filename_profiles'):
+                for profile_name in self.filename_config.filename_profiles.keys():
+                    if selected_option == profile_name:
+                        profile_dict = asdict(self.filename_config.filename_profiles[profile_name])
+                        config_edit.apply_filename_profile(profile_dict)
+                        self.config_mgr.save_last_used_config('spex')
     
     def add_image_to_top(self, logo_path):
         """Add image to the top of the main layout."""
@@ -1201,35 +1589,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
             logger.critical(f"Error: {e}")
 
         self.config_widget.load_config_values()
-
-    def on_filename_profile_changed(self, index):
-        """Handle filename profile selection change."""
-        selected_option = self.filename_profile_dropdown.itemText(index)
-        updates = {}
-        
-        if selected_option == "JPC file names":
-            updates = {
-                "filename_values": {
-                    "Collection": "JPC",
-                    "MediaType": "AV",
-                    "ObjectID": r"\d{5}",
-                    "DigitalGeneration": None,
-                    "FileExtension": "mkv"
-                }
-            }
-        elif selected_option == "Bowser file names":
-            updates = {
-                "filename_values": {
-                    "Collection": "2012_79",
-                    "MediaType": "2",
-                    "ObjectID": r"\d{3}_\d{1}[a-zA-Z]",
-                    "DigitalGeneration": "PM",
-                    "FileExtension": "mkv"
-                }
-            }
-        
-        self.config_mgr.update_config('spex', updates)
-        self.config_mgr.save_last_used_config('spex')
 
     def on_signalflow_profile_changed(self, index):
         """Handle signal flow profile selection change."""
