@@ -821,8 +821,7 @@ def extract_report_mkv(startObj, qctools_output_path):
 
     if os.path.isfile(report_file_output):
         while True:
-            user_input = input(f"The file {os.path.basename(report_file_output)} already exists. \nExtract xml.gz from {os.path.basename(qctools_output_path)} and overwrite existing file? \n(y/n):\n")
-            if user_input.lower() in ["yes", "y"]:
+                # Remove previous report
                 os.remove(report_file_output)
                 # Run ffmpeg command to extract xml.gz report
                 full_command = [
@@ -836,11 +835,6 @@ def extract_report_mkv(startObj, qctools_output_path):
                 logger.debug(f'Running command: {" ".join(full_command)}\n')
                 subprocess.run(full_command)
                 break
-            elif user_input.lower() in ["no", "n"]:
-                logger.debug('Processing existing qctools report, not extracting file\n')
-                break
-            else:
-                print("Invalid input. Please enter yes/no.\n")
     else:
         # Run ffmpeg command to extract xml.gz report
         full_command = [
