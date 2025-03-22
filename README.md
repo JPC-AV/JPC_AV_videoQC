@@ -188,7 +188,7 @@ usage: av-spex [-h] [--version] [-dr] [--profile {step1,step2,off}]
                [--mediaconch-policy MEDIACONCH_POLICY]
                [paths ...]
 
-av-spex 0.7.6
+av-spex 0.7.7
 
 AV Spex is a python application designed to help process digital audio and video media created from analog sources.
 The scripts will confirm that the digital files conform to predetermined specifications.
