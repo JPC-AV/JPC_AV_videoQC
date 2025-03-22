@@ -237,9 +237,6 @@ class ProcessingManager:
         )
 
         if self.signals:
-            self.signals.step_completed.emit("QCTools")
-
-        if self.signals:
             self.signals.output_progress.emit("Creating access file...")
         if self.check_cancelled():
             return None
