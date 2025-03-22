@@ -1230,23 +1230,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
             logger.error("Signal flow identifier not recognized, config not updated")
             return
 
-        # Update FFmpeg settings
-        self.config_mgr.update_config('spex', {
-            'ffmpeg_values': {
-                'format': {
-                    'tags': {
-                        'ENCODER_SETTINGS': sn_config_changes
-                    }
-                }
-            }
-        })
-
-        # Update MediaTrace settings 
-        self.config_mgr.update_config('spex', {
-            'mediatrace_values': {
-                'ENCODER_SETTINGS': sn_config_changes
-            }
-        })
+        if sn_config_changes:
+            config_edit.apply_signalflow_profile(sn_config_changes)
 
     def open_new_window(self, title, nested_dict):
         """Open a new window to display configuration details."""
