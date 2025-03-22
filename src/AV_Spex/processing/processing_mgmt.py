@@ -161,7 +161,6 @@ class ProcessingManager:
         if self.check_cancelled():
             return None
         
-        # List of tools to process
         tools = ['exiftool', 'mediainfo', 'mediatrace', 'ffprobe']
         
         # Store differences for each tool
@@ -174,6 +173,7 @@ class ProcessingManager:
         for tool in tools:
             if self.check_cancelled():
                 return None
+                
             # Run tool and get output path
             output_path = run_tools.run_tool_command(tool, video_path, destination_directory, video_id)
             
@@ -182,6 +182,12 @@ class ProcessingManager:
             if differences:
                 metadata_differences[tool] = differences
             
+            # Emit step completed signal for this tool
+            if self.signals:
+                # Capitalize first letter for the step name to match the format in populate_steps_list
+                tool_name = tool.capitalize() if tool != 'ffprobe' else 'FFprobe'
+                self.signals.step_completed.emit(tool_name)
+                
             if self.check_cancelled():
                 return None
         
