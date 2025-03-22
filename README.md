@@ -1,22 +1,28 @@
 # JPC_AV
-AV processing scripts for the Johnson Publishing Company archive
+AV processing application for the Johnson Publishing Company archive
 
 ## Introduction:
 ![Alt text](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/av_spex_the_logo.png?raw=true)
-This repository stores python scripts designed to help process digital audio and video media created from analog sources. The scripts will confirm that the digital files conform to predetermined specifications. 
+AV Spex is a macOS application written in python. The app is designed to help process digital audio and video media created from analog sources, by confirming that the digital files conform to predetermined specifications, and performing automated preservation actions. AV Spex performs fixity checks, creates access files, metadata sidecars, and html reports 
 
 ----
 
 ## Requirements
 
+macOS 12 (Monterey) and up
+
 ### Required Command Line Tools
 
-The following command line tools are necessary and must be installed separately:
+The following command line tools are necessary and must be installed separately. The macOS package manager ([homebrew](https://brew.sh/)) is recommended to install the following software:    
+
   - **[Exiftool](https://exiftool.org/)**
-  - **[ffprobe](https://www.ffmpeg.org/ffprobe.html)**
+  - **[FFmpeg](https://www.ffmpeg.org/)**
   - **[MediaConch](https://mediaarea.net/MediaConch)**
   - **[MediaInfo](https://mediaarea.net/en/MediaInfo)**
   - **[QCTools](https://bavc.org/programs/preservation/preservation-tools/)**
+
+If using homebrew, install each tool using:
+`brew install [name of tool]`
 
 ## Installation of AV Spex
 
@@ -150,7 +156,7 @@ Th expected values from are drawn popular metadata tools like exiftool, MeidaInf
 - <b>Open Section</b>     
 To view any of these specifications, click the "Open Section" button.       
 The expected specifications cannot be edited from the "Open Section" text box window, those are for review only.     
-- <b>Spex Dropdown Menus</b>
+- <b>Spex Dropdown Menus</b>    
 To change the expected values of the file naming convention or the embedded signal flow documentation (checked by the MediaTrace tool), use the provided dropdown menus.
 
 Once you have completed your Spex selections, navigate back to the Checks window to run the app using the "Check Spex!" button.
@@ -233,13 +239,53 @@ options:
 
 <a name="options"></a> Options explained in detail [below](#options). 
 
+#### Options    
+The command line options can be used to edit the configurable settings described above.   
 
-### Configuration
-Just as with the GUI version, the CLI's configurable options are divided into 2 categories: Checks and Spex.    
+- `--profile`: Selects a predefined processing profile of particular tools outputs and checks    
+   - Options: `step1`, `step2`, `off` 
+- `--on`: Enables the specified tool without affecting others. Use the suffix ".run_tool" to run the specified tool, or ".check_tool" to check the output.
+   - List multiple tools in this format: `--on exiftool.run_tool --on exiftool.check_tool --on mediainfo.run_tool --on mediainfo.check_tool --on ffprobe.run_tool --on ffprobe.check_tool`
+- `--off`: Disables the specified tool without affecting others.
+   - List multiple tools in this format: `--off exiftool.run_tool --off exiftool.check_tool --off mediainfo.run_tool --off mediainfo.check_tool --off ffprobe.run_tool --off ffprobe.check_tool`
+- `--signalflow/-sn`: Changes the expected values in the config.yaml file for the mkv tag `ENCODER_SETTINGS` according to NMAAHC custom metadata convention   
+   - Options: `JPC_AV_SVHS`, `BVH3100`
+- `--filename/-fn`: Changes the expected values in the config.yaml for the input file naming convention
+   - Options: `jpc`, `bowser`
+- `--printprofile/-pp`: Prints the Checks and/or Spex profile. Print all Spex and Check with simply `-pp`, or specify a config, or config's subsection.
+   - Options: `'config[,subsection]'`. Examples: `'all', 'spex', 'checks', 'checks,tools', 'spex,filename_values'`
+- `--use-default-config`: Reset to default config by removing the last used reference file.
+- `--export-config`: Export current config(s) to JSON. Default output filename is: `av_spex_config_export_YYYYMMDD_HHmmSS.json`. Requires one of 3 options:
+   - Options: `{all,spex,checks}`
+- `--export-file`: Must be used in combination with `--export-config`. Allows you to specify the exported config json file name and file path.
+   - Example usage: `av-spex --export-config checks --export-config checks_config_output.json`
+- `--import-config`: Import configs from JSON file. Can be used with json files exported using the `--export-config` and `--export-file` options described above.
+- `--mediaconch-policy`: Import new mediaconch XML policy file and use this as the new policy. Once imported, the policy file will be available in the av-spex GUI.
+
+<br/><br/>
+
+<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
+---
+
+## Outputs
+- Outputs are saved in a subdirectory within the input directory named: 
+   - **[input_directory_name]_qc_metadata**:  Metadata outputs for: fixity check, exiftool, ffprobe, mediaconch, mediainfo, mediatrace, and qctools
+   - **[input_directory_name]_report_csvs**: CSV files used to populate the HTML report summarizing the outputs
+- An HTML file is output which collects the various outputs of AV Spex and presents them as a report named: [input_directory_name]_avspex_report.html
+- Any existing vrecord metadata is moved to a subdirectory named: [input_directory_name]_vrecord_metadata    
+
+## Logging
+Each time AV Spex is run a log file is created. Everything output to the terminal is also recorded in a log file w/ timestamps located at:
+```
+logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log
+```
+
+## Config Files
+The GUI and CLI options both edit an underlying set of json config files. To maintain consistent formatting the Checks and Spex config settings can only be edited using the GUI or the command line [options](#options).   
+To customize the settings, you can export and edit the json files using the `--export-config/--import-config` options, but be careful to match the formatting exactly. 
 The sections of the Checks and Spex configs are listed below.
-To maintain consistent formatting the Checks and Spex config settings can only be edited using the GUI or the command line [options](#options). 
 
-#### Checks Config:
+### Checks Config:
 The Checks Config stores settings pertaining to which output, tools and checks will be run.   
 Each tool has a 'run' or 'check' option. **'run'** outputs a sidecar file. **'check'** compares the values in the sidecar file to the values stored in the Spex Config.     
 
@@ -281,16 +327,21 @@ Each tool has a 'run' or 'check' option. **'run'** outputs a sidecar file. **'ch
       - **run_tool**: yes/no
    - **QCTools**
       - **run_tool**: yes/no
-   - **QCT Parse** (more on [qct-parse](#qct-parse) below)
+   - **QCT Parse** 
       - **run_tool**: yes/no
       - **barsDetection**: true/false
+         - Find color bars, if present, and output start and end timestamp
       - **evaluateBars**: true/false
+         - Identify maximum and minimum values for Y, Cb, Cr and Saturation in color bars. Using these maximums and minimums as thresholds, evaluate the rest of the video for values outside these values.
       - **contentFilter**: [Name of any content filter defined in the Spex Config]
+         - Identify specific content types by their QCTools report values. For example, segments fo all black. 
       - **profile**: [Name of any threshold "profile" defined in the Spex Config]
+         - Evaluate QCTools report values against a set of thresholds (called a 'profile'). Returns the percentage of frames outside of those thresholds per tag.
       - **tagname**: Set ad hoc thresholds per tag, using the following format: ` - [YMIN, lt, 100] `
       - **thumbExport**: true/false
+         - Export thumbnail png image files for frames outside of set thresholds, limit is currently set as 1 thumbnail maximum for every 5 minutes of input video duration 
            
-#### Spex Config:
+### Spex Config:
 The Spex Config stores expected metadata values. The Checks compare the input against the expected values. As with the Checks config, the Spex are organized by tool.    
     
 Each section stores metadata fields that correspond with output for that particular tool. Multiple acceptable values are allowed for all fields, wrapped in brackets like this: 
@@ -334,57 +385,6 @@ As with the Checks config, to maintain consistent formatting the Checks and Spex
   - Used to check custom embedded mkv tags.
 - **qct_parse_values**
   - etc.
-
-#### Options    
-The command line options can be used to edit the configurable settings described above.   
-
-- `--profile`: Selects a predefined processing profile of particular tools outputs and checks    
-   - Options: `step1`, `step2`, `off` 
-- `--on`: Enables the specified tool without affecting others. Use the suffix ".run_tool" to run the specified tool, or ".check_tool" to check the output.
-   - List multiple tools in this format: `--on exiftool.run_tool --on exiftool.check_tool --on mediainfo.run_tool --on mediainfo.check_tool --on ffprobe.run_tool --on ffprobe.check_tool`
-- `--off`: Disables the specified tool without affecting others.
-   - List multiple tools in this format: `--off exiftool.run_tool --off exiftool.check_tool --off mediainfo.run_tool --off mediainfo.check_tool --off ffprobe.run_tool --off ffprobe.check_tool`
-- `--signalflow/-sn`: Changes the expected values in the config.yaml file for the mkv tag `ENCODER_SETTINGS` according to NMAAHC custom metadata convention   
-   - Options: `JPC_AV_SVHS`, `BVH3100`
-- `--filename/-fn`: Changes the expected values in the config.yaml for the input file naming convention
-   - Options: `jpc`, `bowser`
-- `--printprofile/-pp`: Prints the Checks and/or Spex profile. Print all Spex and Check with simply `-pp`, or specify a config, or config's subsection.
-   - Options: `'config[,subsection]'`. Examples: `'all', 'spex', 'checks', 'checks,tools', 'spex,filename_values'`
-- `--use-default-config`: Reset to default config by removing the last used reference file.
-- `--export-config`: Export current config(s) to JSON. Default output filename is: `av_spex_config_export_YYYYMMDD_HHmmSS.json`. Requires one of 3 options:
-   - Options: `{all,spex,checks}`
-- `--export-file`: Must be used in combination with `--export-config`. Allows you to specify the exported config json file name and file path.
-   - Example usage: `av-spex --export-config checks --export-config checks_config_output.json`
-- `--import-config`: Import configs from JSON file. Can be used with json files exported using the `--export-config` and `--export-file` options described above.
-- `--mediaconch-policy`: Import new mediaconch XML policy file and use this as the new policy. Once imported, the policy file will be available in the av-spex GUI.
-
-### <a name="qct-parse"></a>qct-parse 
-   To check the QCTools report, AV Spex incorporates code from the open source tool [qct-parse](https://github.com/amiaopensource/qct-parse). qct-parse can be used to check for individual tags, profiles, or specific content.   
-#### qct-parse Options
-   - **Bars detection**: Find color bars, if present, and output start and end timestamp
-   - **Evaluate bars**: Identify maximum and minimum values for Y, Cb, Cr and Saturation in color bars. Using these maximums and minimums as thresholds, evaluate the rest of the video for values outside these values.
-   - **Content filter**: Identify specific content types by their QCTools report values. For example, segments fo all black. 
-   - **Profile**: Evaluate QCTools report values against a set of thresholds (called a 'profile'). Returns the percentage of frames outside of those thresholds per tag.
-   - **Tag name**: Set ad hoc thresholds per tag, using the following format: ` - [YMIN, lt, 100] `
-   - **Thumb export**: Export thumbnail png image files for frames outside of set thresholds, limit is currently set as 1 thumbnail maximum for every 5 minutes of input video duration 
-
-### Output
-- Outputs are saved in a subdirectory within the input directory named: 
-   - **[input_directory_name]_qc_metadata**:  Metadata outputs for: fixity check, exiftool, ffprobe, mediaconch, mediainfo, mediatrace, and qctools
-   - **[input_directory_name]_report_csvs**: CSV files used to populate the HTML report summarizing the outputs
-- An HTML file is output which collects the various outputs of AV Spex and presents them as a report named: [input_directory_name]_avspex_report.html
-- Any existing vrecord metadata is moved to a subdirectory named: [input_directory_name]_vrecord_metadata    
-
-<br/><br/>
-
-<img src="https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/src/AV_Spex/logo_image_files/germfree_eq.png" alt="graphic eq image" style="width:200px;"/>
----
-
-## Logging
-Each time AV Spex is run a log file is created. Everything output to the terminal is also recorded in a log file w/ timestamps located at:
-```
-logs/YYYY-MM-DD_HH-MM-SS_JPC_AV_log.log
-```
 
 ## Contributing
 Contributions that enhance script functionality are welcome. Please ensure compatibility with Python 3.10 or higher.
