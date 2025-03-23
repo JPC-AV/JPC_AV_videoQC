@@ -239,6 +239,27 @@ class ThemeManager(QObject):
         if hasattr(text_edit, 'clear_formats'):
             text_edit.clear_formats()
 
+    def get_theme_appropriate_logo(self, light_logo_path, dark_logo_path):
+        """
+        Returns the appropriate logo path based on the current theme.
+        
+        Args:
+            light_logo_path: Path to the logo for light theme
+            dark_logo_path: Path to the logo for dark theme
+            
+        Returns:
+            str: Path to the appropriate logo for current theme
+        """
+        if not self.app:
+            return light_logo_path  # Default to light theme if no app
+            
+        # Determine if we're in dark mode
+        palette = self.app.palette()
+        is_dark = palette.color(palette.ColorRole.Window).lightness() < 128
+        
+        # Return appropriate logo path
+        return dark_logo_path if is_dark else light_logo_path
+
 
 class ThemeableMixin:
     """
