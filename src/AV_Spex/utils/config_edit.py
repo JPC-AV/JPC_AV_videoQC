@@ -267,7 +267,7 @@ profile_step1 = {
             "run_tool": "yes"
         },
         "ffprobe": {
-            "check_tool": "no",
+            "check_tool": "yes",
             "run_tool": "yes"
         },
         "mediaconch": {
