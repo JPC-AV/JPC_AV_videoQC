@@ -200,49 +200,10 @@ The scripts will confirm that the digital files conform to predetermined specifi
     )
 
 
-def update_spex_config(config_type: str, profile_name: str):
+def apply_filename_profile(config_type: str, profile_name: str):
     spex_config = config_mgr.get_config('spex', SpexConfig)
-    
-    if config_type == 'signalflow':
-        if not isinstance(profile_name, dict):
-            logger.critical(f"Invalid signalflow settings: {profile_name}")
-            return
             
-        # Create an updates dictionary in the correct structure for update_config method
-        encoder_settings_updates = {}
-        for key, value in profile_name.items():
-            # Update mediatrace_values.ENCODER_SETTINGS
-            if hasattr(spex_config.mediatrace_values.ENCODER_SETTINGS, key):
-                encoder_settings_updates[key] = value
-        
-        # If we have updates, apply them
-        if encoder_settings_updates:
-            # First, update the mediatrace values
-            updates = {
-                "mediatrace_values": {
-                    "ENCODER_SETTINGS": encoder_settings_updates
-                }
-            }
-            config_mgr.update_config('spex', updates)
-            
-            # Next, directly update the ffmpeg_values for format.tags.ENCODER_SETTINGS
-            # since it could be a string or a dict or None
-            if ('format' in spex_config.ffmpeg_values and 
-                'tags' in spex_config.ffmpeg_values['format']):
-                
-                # Initialize ENCODER_SETTINGS as a dict if it's None or a string
-                if (spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'] is None or
-                    isinstance(spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'], str)):
-                    spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'] = {}
-                
-                # Now we can update the dictionary
-                for key, value in profile_name.items():
-                    spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'][key] = value
-                
-                # Save the changes
-                config_mgr.set_config('spex', spex_config)
-            
-    elif config_type == 'filename':
+    if config_type == 'filename':
         if not isinstance(profile_name, dict):
             logger.critical(f"Invalid filename settings: {profile_name}")
             return
@@ -286,7 +247,7 @@ def run_cli_mode(args):
     if args.sn_config_changes:
         config_edit.apply_signalflow_profile(args.sn_config_changes)
     if args.fn_config_changes:
-        update_spex_config('filename', args.fn_config_changes)
+        apply_filename_profile('filename', args.fn_config_changes)
 
     # Handle config I/O operations
     if args.export_config:
