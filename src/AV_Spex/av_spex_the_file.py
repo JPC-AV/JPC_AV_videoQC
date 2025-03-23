@@ -200,20 +200,10 @@ The scripts will confirm that the digital files conform to predetermined specifi
     )
 
 
-def update_spex_config(config_type: str, profile_name: str):
+def apply_filename_profile(config_type: str, profile_name: str):
     spex_config = config_mgr.get_config('spex', SpexConfig)
-    
-    if config_type == 'signalflow':
-        if not isinstance(profile_name, dict):
-            logger.critical(f"Invalid signalflow settings: {profile_name}")
-            return
             
-        for key, value in profile_name.items():
-            setattr(spex_config.mediatrace_values.ENCODER_SETTINGS, key, value)
-            spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'][key] = value
-        config_mgr.set_config('spex', spex_config)
-            
-    elif config_type == 'filename':
+    if config_type == 'filename':
         if not isinstance(profile_name, dict):
             logger.critical(f"Invalid filename settings: {profile_name}")
             return
@@ -255,9 +245,9 @@ def run_cli_mode(args):
 
     # Update spex config
     if args.sn_config_changes:
-        update_spex_config('signalflow', args.sn_config_changes)
+        config_edit.apply_signalflow_profile(args.sn_config_changes)
     if args.fn_config_changes:
-        update_spex_config('filename', args.fn_config_changes)
+        apply_filename_profile('filename', args.fn_config_changes)
 
     # Handle config I/O operations
     if args.export_config:
