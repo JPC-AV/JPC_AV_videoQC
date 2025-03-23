@@ -750,7 +750,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         config_scroll_area.setWidget(self.config_widget)
 
         # Set a minimum width for the config widget to ensure legibility
-        config_scroll_area.setMinimumWidth(400)
+        config_scroll_area.setMinimumWidth(450)
 
         config_layout.addWidget(config_scroll_area)
         self.config_group.setLayout(config_layout)
