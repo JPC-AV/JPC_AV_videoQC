@@ -65,7 +65,8 @@ The CLI implementation follows a modular architecture with clear separation of c
 1. Entry point (`av_spex_the_file.py`) - Parses command-line arguments and initiates processing
 2. Processor (`avspex_processor.py`) - Orchestrates the processing workflow
 3. Process Management (`processing_mgmt.py`) - Manages the execution of processing steps
-4. Tool Running (`run_tools.py`) - Handles execution of individual analysis tools
+4. Tool Running (`run_tools.py`) - Handles execution of individual metadata tools
+5. Parsing Tool-specific Outputs(`AVSpex.checks`) - Various scripts for parsing metadata tool output
 
 ## Entry Point: av_spex_the_file.py
 
