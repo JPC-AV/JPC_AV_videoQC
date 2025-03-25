@@ -1,8 +1,8 @@
-# AV Spex CLI Control Flow Documentation
+# AV Spex CLI Developer Documentation
 
 ## Overview
 
-The AV Spex CLI application follows a structured control flow as visualized in the diagram below:
+The AV Spex CLI application's control flow primarily follows a 'for loop' which processes input directories according to settings stored in the Checks config and Spex config:   
 
 ```mermaid
 flowchart TD
@@ -123,7 +123,8 @@ def parse_arguments():
 
 ### Configuration Application
 
-Before starting the processing, any command-line configuration changes are applied to the ConfigManager:
+Before starting the processing, any command-line configuration changes are applied to the configs via the ConfigManager.    
+For more details on the ConfigManger, see the [config manager documentation](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/developer_docs/cli-documentation.md)   
 
 ```python
 def toggle_on(tool_names):
@@ -152,519 +153,317 @@ def toggle_off(tool_names):
 The `run_avspex()` function acts as the bridge between the command-line interface and the core processing logic:
 
 ```python
-def run_avspex(args):
-    """Run the AV Spex processing workflow."""
-    # Apply profile if specified
-    if args.profile:
-        apply_profile(profiles[args.profile])
-    
-    # Create processor instance
-    processor = AVSpexProcessor()
-    
-    # Process source paths
-    for source_path in args.source:
-        if os.path.isdir(source_path):
-            processor.process_directory(source_path, args.output_dir)
-        elif os.path.isfile(source_path):
-            processor.process_file(source_path, args.output_dir)
-        else:
-            logger.error(f"Invalid source path: {source_path}")
+def run_avspex(source_directories, signals=None):
+    processor = AVSpexProcessor(signals=signals)
+    try:
+        processor.initialize()
+        formatted_time = processor.process_directories(source_directories)
+        return True
 ```
 
-This function:
-1. Applies any selected profile configuration
-2. Creates an instance of the `AVSpexProcessor` class
-3. Processes each source path (file or directory) specified in the command line
+This function creates an instance of the `AVSpexProcessor` class, and then runs the `initialize()` and `process_directories()` functions defined in that class. Since the CLI application does not pass signals to `run_avspex()` the `signals` variable is `None`.
 
 ## The AVSpexProcessor Class
 
-The `AVSpexProcessor` class in `avspex_processor.py` serves as the orchestrator for the processing workflow, managing the execution of analysis tools and data processing operations.
+The `AVSpexProcessor` class in `avspex_processor.py` serves as the orchestrator for the processing workflow.
+
+### Benefits of Using a Class-Based Design
+
+- **State maintenance**: Tracks overall processing state
+- **Configuration access**: Centralized access to configuration data
+- **Modular processing**: Clean separation of initialization and processing logic
+- **Extensibility**: Easily add new processing steps or modify existing ones
 
 ### Initialization
 
-The processor initializes by loading the configuration and setting up its state:
+The `initialize()` method verifies all required dependencies, using functions from the `utils.deps_setup.py` script.
 
+From avspex_processor.py:
 ```python
-def __init__(self):
-    """Initialize the AVSpex processor."""
-    self.config_mgr = ConfigManager()
-    self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
-    self.spex_config = self.config_mgr.get_config('spex', SpexConfig)
-    
-    # Track processing state
-    self.current_file = None
-    self.output_directory = None
-    self.results = {}
-```
+from ..utils.deps_setup import required_commands, check_external_dependency, check_py_version
 
-### File Processing Flow
-
-The main file processing method follows this sequence:
-
-```python
-def process_file(self, file_path, output_dir=None):
-    """Process a single video file."""
-    # Validate file
-    if not os.path.exists(file_path):
-        logger.error(f"File not found: {file_path}")
-        return False
-    
-    # Set up processing state
-    self.current_file = file_path
-    self.file_id = self._generate_file_id(file_path)
-    self.output_directory = self._prepare_output_directory(output_dir, file_path)
-    
-    logger.info(f"Processing file: {file_path}")
-    
-    # Create processing manager
-    process_mgr = ProcessingManager(file_path, self.output_directory, self.file_id)
-    
-    # Execute processing pipeline
-    result = process_mgr.run_processing_pipeline()
-    
-    # Store results
-    self.results[file_path] = result
-    
-    return result.success
-```
-
-Key responsibilities:
-1. Validates the input file path
-2. Sets up the processing context with file ID and output directory
-3. Creates a `ProcessingManager` to handle the execution details
-4. Runs the processing pipeline and stores results
-5. Returns success/failure status
-
-### Directory Processing
-
-For directory processing, the processor identifies video files and processes each one:
-
-```python
-def process_directory(self, directory_path, output_dir=None):
-    """Process all video files in a directory."""
-    if not os.path.isdir(directory_path):
-        logger.error(f"Directory not found: {directory_path}")
-        return False
-    
-    logger.info(f"Processing directory: {directory_path}")
-    
-    # Identify video files
-    video_files = self._find_video_files(directory_path)
-    if not video_files:
-        logger.warning(f"No video files found in {directory_path}")
-        return False
-    
-    # Process each file
-    results = []
-    for file_path in video_files:
-        result = self.process_file(file_path, output_dir)
-        results.append(result)
-    
-    # Return overall success if all files were processed successfully
-    return all(results)
-```
-
-### Helper Methods
-
-The processor includes several helper methods:
-
-```python
-def _generate_file_id(self, file_path):
-    """Generate a unique identifier for the file."""
-    # Use filename without extension as ID
-    return os.path.splitext(os.path.basename(file_path))[0]
-
-def _prepare_output_directory(self, output_dir, file_path):
-    """Prepare the output directory for results."""
-    if not output_dir:
-        # If no output directory specified, create one next to the file
-        output_dir = os.path.join(os.path.dirname(file_path), 
-                                  f"{self._generate_file_id(file_path)}_analysis")
-    
-    # Ensure directory exists
-    os.makedirs(output_dir, exist_ok=True)
-    return output_dir
-
-def _find_video_files(self, directory_path):
-    """Find all video files in a directory."""
-    video_extensions = ['.mp4', '.mkv', '.mov', '.avi', '.mxf']
-    video_files = []
-    
-    for root, _, files in os.walk(directory_path):
-        for file in files:
-            if any(file.lower().endswith(ext) for ext in video_extensions):
-                video_files.append(os.path.join(root, file))
-    
-    return video_files
-```
-
-These methods handle common tasks in the processing workflow:
-- Generating unique IDs for files
-- Setting up output directories
-- Finding video files in directories
-
-## The ProcessingManager Class
-
-The `ProcessingManager` class in `processing_mgmt.py` is responsible for executing the processing pipeline, managing the execution of individual tools and processing steps.
-
-### Initialization
-
-```python
-def __init__(self, file_path, output_directory, file_id):
-    """Initialize the processing manager."""
-    self.file_path = file_path
-    self.output_directory = output_directory
-    self.file_id = file_id
-    
-    self.config_mgr = ConfigManager()
-    self.checks_config = self.config_mgr.get_config('checks', ChecksConfig)
-    
-    # Set up result tracking
-    self.results = ProcessingResult()
-    self.tool_outputs = {}
-```
-
-### Processing Pipeline Execution
-
-The main processing pipeline method orchestrates the execution of all analysis tools and processing steps:
-
-```python
-def run_processing_pipeline(self):
-    """Run the complete processing pipeline on the file."""
-    logger.info(f"Starting processing pipeline for {self.file_path}")
-    
-    try:
-        # Step 1: Run basic file checks
-        self._run_file_checks()
+def initialize(self):
+        """Check all prerequisites before processing"""
+        check_py_version()
         
-        # Step 2: Run requested tools
-        self._run_analysis_tools()
+        for command in required_commands:
+                
+            if not check_external_dependency(command):
+                error_msg = f"Error: {command} not found. Please install it."
+                raise RuntimeError(error_msg)
         
-        # Step 3: Parse and validate tool outputs
-        self._parse_tool_outputs()
-        
-        # Step 4: Generate final report
-        self._generate_report()
-        
-        logger.info(f"Processing complete for {self.file_path}")
-        self.results.success = True
-        
-    except Exception as e:
-        logger.error(f"Processing failed: {str(e)}")
-        self.results.error = str(e)
-        self.results.success = False
-        
-    return self.results
+        return True
 ```
 
 This method:
-1. Performs basic file validation checks
-2. Runs the configured analysis tools
-3. Parses and validates the tool outputs
-4. Generates a final report
-5. Handles any exceptions and returns results
+- Checks Python version compatibility
+- Verifies external command-line tools existence
+- Returns False if any check fails
 
-### Tool Execution
+### Directory Processing
 
-The `_run_analysis_tools()` method manages the execution of individual analysis tools based on the configuration:
+Once initialized, processing begins with:
 
 ```python
-def _run_analysis_tools(self):
-    """Run enabled analysis tools on the file."""
-    logger.info("Running analysis tools")
-    
-    # List of tools to run
-    tools = ['mediainfo', 'ffprobe', 'exiftool', 'mediatrace']
-    
-    # Run each enabled tool
-    for tool_name in tools:
-        tool_config = getattr(self.checks_config.tools, tool_name)
-        if tool_config.run_tool == 'yes':
-            logger.info(f"Running {tool_name}")
-            output_path = run_tool_command(
-                tool_name, 
-                self.file_path, 
-                self.output_directory, 
-                self.file_id
-            )
+def process_directories(self, source_directories):
+        overall_start_time = time.time()
+        total_dirs = len(source_directories)
+
+        for idx, source_directory in enumerate(source_directories, 1):
             
-            if output_path and os.path.exists(output_path):
-                self.tool_outputs[tool_name] = output_path
-                self.results.add_tool_result(tool_name, True)
-            else:
-                logger.warning(f"{tool_name} did not produce an output file")
-                self.results.add_tool_result(tool_name, False)
-        else:
-            logger.debug(f"Skipping {tool_name} (disabled in config)")
+            source_directory = os.path.normpath(source_directory)
+            self.process_single_directory(source_directory)
+
+        overall_end_time = time.time()
+        formatted_time =  log_overall_time(overall_start_time, overall_end_time)
+            
+        return formatted_time
 ```
 
-For each tool in the list:
-1. Checks if the tool is enabled in the configuration
-2. If enabled, calls `run_tool_command()` from `run_tools.py`
-3. Verifies tool execution by checking for output files
-4. Records success/failure in the results
+This method:
 
-### Processing Results
+- Records the overall start time
+- Iterates through each source directory
+- Calls `process_single_directory()` for each path
+- Records the overall end time
+- Returns the formatted processing time
 
-The `ProcessingResult` class tracks the results of the processing pipeline:
+### Processing Steps
 
-```python
-class ProcessingResult:
-    """Track the results of processing a file."""
-    
-    def __init__(self):
-        """Initialize processing results."""
-        self.success = False
-        self.error = None
-        self.tool_results = {}
-        self.validation_results = {}
-        self.metadata = {}
-    
-    def add_tool_result(self, tool_name, success):
-        """Add a tool execution result."""
-        self.tool_results[tool_name] = success
-    
-    def add_validation_result(self, check_name, passed, details=None):
-        """Add a validation check result."""
-        self.validation_results[check_name] = {
-            'passed': passed,
-            'details': details
-        }
-    
-    def add_metadata(self, key, value):
-        """Add extracted metadata."""
-        self.metadata[key] = value
-```
+1. **Directory Initialization**
+   ```python
+   init_dir_result = dir_setup.initialize_directory(source_directory)
+   video_path, video_id, destination_directory, access_file_found = init_dir_result
+   ```
+   - Initializes the directory structure
+   - Extracts relevant paths and importantly, the Video ID (the file name without extension), which is used as an identifier throughout. 
+   - Returns `False` if initialization fails
 
-This class provides a structured way to track:
-- Overall success/failure of processing
-- Results of individual tool executions
-- Results of validation checks
-- Extracted metadata
+2. **Processing Manager Setup**
+   ```python
+   processing_mgmt = ProcessingManager(signals=None, check_cancelled_fn=self.check_cancelled)
+   ```
+   - Creates a processing manager instance to handle tool execution.
+   - Signals that can be passed to the ProcessingManager dataclass pertain to reporting status to the GUI.
 
-## Tool Execution: run_tools.py
+   Unlike the more structural `AVSpexProcessor`, the `ProcessingManager` focuses on the _how_ of processing, implementing the specific workflow steps.
 
-The `run_tools.py` module handles the execution of external command-line tools to analyze the video files.
+   The `ProcessingManager` contains functions that are then called in the `AVSpexProcessor`.
 
-### Tool Command Execution
+3. **Checks - Fixity Processing**
+    The `AVSpexProcessor` passes the identifying information extracted from initialization to functions in the `ProcessingManager` if enabled in the Checks Config.   
 
-As shown in your provided code, the `run_command()` function executes shell commands with environment setup:
+   ```python
+   fixity_enabled = False
+   fixity_config = self.checks_config.fixity
+   
+   if (fixity_config.check_fixity == "yes" or 
+       fixity_config.validate_stream_fixity == "yes" or 
+       fixity_config.embed_stream_fixity == "yes" or 
+       fixity_config.output_fixity == "yes"):
+       fixity_enabled = True
+       
+   if fixity_enabled:
+       processing_mgmt.process_fixity(source_directory, video_path, video_id)
+   ```
 
-```python
-def run_command(command, input_path, output_type, output_path):
-    '''
-    Run a shell command with 4 variables: command name, path to the input file, 
-    output type (often '>'), path to the output file
-    '''
+   The `ProcessingManager` function in turn runs individual fixity checks, based on selected options in the Checks Config. These checks are stored in the AVSpex.checks module. GUI related signals removed for clarity.
 
-    # Get the current PATH environment variable
-    env = os.environ.copy()
-    env['PATH'] = '/usr/local/bin:' + env.get('PATH', '')
+   ```python
+   from ..checks.fixity_check import check_fixity, output_fixity
+   from ..checks.embed_fixity import validate_embedded_md5, process_embedded_fixity
+   def process_fixity(self, source_directory, video_path, video_id):
+        """
+        Orchestrates the entire fixity process, including embedded and file-level operations.
 
-    full_command = f"{command} \"{input_path}\" {output_type} {output_path}"
-
-    logger.debug(f'Running command: {full_command}\n')
-    subprocess.run(full_command, shell=True, env=env)
-```
-
-### Tool-Specific Command Execution
-
-The `run_tool_command()` function handles tool-specific command construction and execution:
-
-```python
-def run_tool_command(tool_name, video_path, destination_directory, video_id):
-    """
-    Run a specific metadata extraction tool and generate its output file.
-    """
-    # Define tool-specific commands
-    tool_commands = {
-        'exiftool': 'exiftool',
-        'mediainfo': 'mediainfo -f',
-        'mediatrace': 'mediainfo --Details=1 --Output=XML',
-        'ffprobe': 'ffprobe -v error -hide_banner -show_format -show_streams -print_format json'
-    }
-
-    # Check if the tool is configured
-    command = tool_commands.get(tool_name)
-    if not command:
-        logger.error(f"tool command is not configured correctly: {tool_name}")
-        return None
-
-    # Construct output path
-    output_path = os.path.join(destination_directory, 
-                              f'{video_id}_{tool_name}_output.{_get_file_extension(tool_name)}')
-    
-    if tool_name != "mediaconch":
-        # Check if tool should be run based on configuration
-        tool = getattr(checks_config.tools, tool_name)
-        if getattr(tool, 'run_tool') == 'yes':
-            if tool_name == 'mediatrace':
-                logger.debug(f"Creating {tool_name.capitalize()} XML file to check custom MKV Tag metadata fields:")
-            run_command(command, video_path, '>', output_path)
+        Args:
+            source_directory (str): Directory containing source files
+            video_path (str): Path to the video file
+            video_id (str): Unique identifier for the video
+        """
         
-    return output_path
-```
+        if self.check_cancelled():
+            return None
+        
+        # Embed stream fixity if required  
+        if checks_config.fixity.embed_stream_fixity == 'yes':
+            process_embedded_fixity(video_path)
 
-Key aspects:
-1. Defines command templates for each supported tool
-2. Constructs the output file path using video ID and tool name
-3. Checks the configuration to determine if the tool should be run
-4. Delegates to `run_command()` for actual execution
-5. Returns the output file path for further processing
+        # Validate stream hashes if required
+        if checks_config.fixity.validate_stream_fixity == 'yes':
+            if checks_config.fixity.embed_stream_fixity == 'yes':
+                logger.critical("Embed stream fixity is turned on, which overrides validate_fixity. Skipping validate_fixity.\n")
+            else:
+                validate_embedded_md5(video_path)
 
-## Complete Control Flow Sequence
+        # Initialize md5_checksum variable
+        md5_checksum = None
 
-Putting everything together, the control flow of the CLI application follows this sequence:
+        # Create checksum for video file and output results
+        if checks_config.fixity.output_fixity == 'yes':
+            md5_checksum = output_fixity(source_directory, video_path, )
 
-1. User invokes `av_spex_the_file.py` with command-line arguments
-2. `main()` function:
-   - Parses command-line arguments
-   - Sets up logging based on verbosity level
-   - Applies configuration changes from `--on` and `--off` flags
-   - Calls `run_avspex()` with parsed arguments
+        # Verify stored checksum and write results  
+        if checks_config.fixity.check_fixity == 'yes':
+            check_fixity(source_directory, video_id, actual_checksum=md5_checksum, )
+    ```
 
-3. `run_avspex()` function:
-   - Applies any specified profile configuration
-   - Creates an `AVSpexProcessor` instance
-   - For each source path:
-     - If directory, calls `process_directory()`
-     - If file, calls `process_file()`
 
-4. `AVSpexProcessor.process_file()`:
-   - Validates the file path
-   - Sets up processing state (file ID, output directory)
-   - Creates a `ProcessingManager` instance
-   - Runs the processing pipeline
-   - Stores and returns results
+4. **Checks - MediaConch Validation**
+   The other Checks in the workflow run by `AVSpexProcessor` are similarly passed to `ProcessingManager`.
+   
+   ```python
+   mediaconch_enabled = self.checks_config.tools.mediaconch.run_mediaconch == "yes"
+   if mediaconch_enabled:
+       mediaconch_results = processing_mgmt.validate_video_with_mediaconch(
+           video_path, destination_directory, video_id
+       )
+   ```
+   Because MediaConch takes a policy XML file and requires a separate function for parsing MediaConch's CSV output, it is handled separately from the other metadata tools.  
 
-5. `ProcessingManager.run_processing_pipeline()`:
-   - Performs basic file checks
-   - Runs enabled analysis tools via `_run_analysis_tools()`
-   - Parses and validates tool outputs
-   - Generates a report
-   - Returns structured results
+5. **Checks - Metadata Tool Processing**
 
-6. Tool execution in `run_tools.py`:
-   - For each enabled tool, constructs command
-   - Executes command via subprocess
-   - Returns output file path
+    ```mermaid
+    flowchart TD
+        A[process_video_metadata] --> D[Initialize tools list]
+        
+        D --> E[For each tool: exiftool, mediainfo, mediatrace, ffprobe]
+        
+        subgraph "Tool Processing Loop"
+        E --> F[run_tool_command]
+        F --> G[Get output path]
+        G --> H{Check tool enabled?}
+        H -->|Yes| I[Parse tool output]
+        H -->|No| J[Skip checking]
+        I --> K[Store differences]
+        J --> L[Continue to next tool]
+        K --> L
+        L --> E
+        end
+        
+        E --> M[Return metadata_differences]
+    ```
 
-7. Results flow back up the call stack to the main function
+    The command line metadata applications that produces text file "Sidecars" are run in a group. Once again, enabled in the `AVSpexProcessor`, and then passed to functions from the `ProcessingManager`.
 
-This modular architecture provides separation of concerns, with each component responsible for a specific aspect of the processing workflow:
-- Entry point for argument handling and flow control
-- Processor for orchestrating the processing
-- Process manager for executing the pipeline
-- Tool runner for interfacing with external tools
+   ```python
+   metadata_tools_enabled = False
+   tools_config = self.checks_config.tools
+   
+   if (hasattr(tools_config.mediainfo, 'check_tool') and tools_config.mediainfo.check_tool == "yes" or
+       hasattr(tools_config.mediatrace, 'check_tool') and tools_config.mediatrace.check_tool == "yes" or
+       hasattr(tools_config.exiftool, 'check_tool') and tools_config.exiftool.check_tool == "yes" or
+       hasattr(tools_config.ffprobe, 'check_tool') and tools_config.ffprobe.check_tool == "yes"):
+       metadata_tools_enabled = True
+   
+   metadata_differences = None
+   if metadata_tools_enabled:
+       metadata_differences = processing_mgmt.process_video_metadata(
+           video_path, destination_directory, video_id
+       )
+   ```
+   The `process_video_metadata()` function handles calls to subprocess to run the different CLI tools, with various helper functions stored in the `run_tools.py` script managing the required command-line arguments. 
+   The text file sidecar outputs from the CLI tools are then parsed using tool specific functions defined in the `AV_Spex.checks` module:
 
-## Configuration Integration
+    ```python
+    from ..checks.exiftool_check import parse_exiftool
+    from ..checks.ffprobe_check import parse_ffprobe
+    from ..checks.mediainfo_check import parse_mediainfo
+    from ..checks.mediatrace_check import parse_mediatrace
 
-The CLI control flow integrates with the `ConfigManager` described in your existing documentation in several key ways:
+        def check_tool_metadata(tool_name, output_path):
+        """
+        Check metadata for a specific tool if configured.
+        
+        Args:
+            tool_name (str): Name of the tool
+            output_path (str): Path to the tool's output file
+            
+        Returns:
+            dict or None: Differences found by parsing the tool's output, or None
+        """
+        # Mapping of tool names to their parsing functions
+        parse_functions = {
+            'exiftool': parse_exiftool,
+            'mediainfo': parse_mediainfo,
+            'mediatrace': parse_mediatrace,
+            'ffprobe': parse_ffprobe
+        }
 
-1. **Initial Configuration Loading**:
-   - The `AVSpexProcessor` loads both the `checks_config` and `spex_config` during initialization
-   - This ensures all processing decisions respect the current configuration
+        # Check if tool metadata checking is enabled
+        tool = getattr(checks_config.tools, tool_name)
+        if output_path and tool.check_tool == 'yes':
+            parse_function = parse_functions.get(tool_name)
+            if parse_function:
+                return parse_function(output_path)
+        
+        return None
+    ```
 
-2. **Command-Line Configuration Overrides**:
-   - The `--on` and `--off` flags allow users to override configuration settings
-   - These are applied via `toggle_on()` and `toggle_off()` functions, which use `config_mgr.update_config()`
+    These parsing functions compare the outputs of the "Checks" to the expected values stored in the "Spex". 
 
-3. **Profile Application**:
-   - The `--profile` flag applies predefined configuration profiles
-   - This uses the same `apply_profile()` function described in your configuration documentation
+6. **Output Generation**
+    Finally any selected outputs stored in the Checks Config are created.
+   ```python
+   outputs_enabled = (
+       self.checks_config.outputs.access_file == "yes" or
+       self.checks_config.outputs.report == "yes" or
+       self.checks_config.tools.qctools.run_tool == "yes" or
+       self.checks_config.tools.qct_parse.run_tool == "yes"
+   )
+   
+   if outputs_enabled:
+       processing_results = processing_mgmt.process_video_outputs(
+           video_path, source_directory, destination_directory,
+           video_id, metadata_differences
+       )
+   ```
+    ```mermaid
+    flowchart TD
+        A[process_video_outputs] --> B{Report enabled?}
+        
+        B -->|Yes| E[Create report directory]
+        B -->|No| F[Skip report]
+        
+        E --> G[Create metadata difference report]
+        F --> H{QCTools enabled?}
+        G --> H
+        
+        H -->|Yes| I[Process QCTools output]
+        H -->|No| J[Skip QCTools]
+        
+        I --> K{Access file enabled?}
+        J --> K
+        
+        K -->|Yes| L[Process access file]
+        K -->|No| M[Skip access file]
+        
+        L --> N{Report enabled?}
+        M --> N
+        
+        N -->|Yes| O[Generate final HTML report]
+        N -->|No| P[Skip final report]
+        
+        O --> Q[Return processing results]
+        P --> Q
+    ```
 
-4. **Tool Configuration Checking**:
-   - The `run_tool_command()` function checks the configuration to determine if a tool should be run
-   - This respects the `run_tool` setting for each tool in the configuration
+    The `process_video_outputs()` function in the processing manager follows this sequence:
 
-This tight integration ensures that the CLI behavior is consistently driven by the configuration, while still providing command-line flexibility for users.
+    1. Check if report generation is enabled in the configuration
+    - If enabled, create a report directory and generate a metadata difference report
+    - If disabled, skip report generation
 
-## Metadata Processing Flow
+    2. Check if QCTools processing is enabled
+    - If enabled, process the QCTools output (generate graphs, extract frames)
+    - If disabled, skip QCTools processing
 
-The metadata processing component of the application is responsible for running metadata extraction tools, parsing their outputs, and identifying differences. This flow is visualized in the diagram below:
+    3. Check if access file creation is enabled
+    - If enabled, create a lower-resolution access copy of the video
+    - If disabled, skip access file creation
 
-```mermaid
-flowchart TD
-    A[process_video_metadata] --> D[Initialize tools list]
-    
-    D --> E[For each tool: exiftool, mediainfo, mediatrace, ffprobe]
-    
-    subgraph "Tool Processing Loop"
-    E --> F[run_tool_command]
-    F --> G[Get output path]
-    G --> H{Check tool enabled?}
-    H -->|Yes| I[Parse tool output]
-    H -->|No| J[Skip checking]
-    I --> K[Store differences]
-    J --> L[Continue to next tool]
-    K --> L
-    L --> E
-    end
-    
-    E --> M[Return metadata_differences]
-```
+    4. If reporting is enabled, generate a final HTML report with all findings
+    5. Return the processing results
 
-The `process_video_metadata()` function in the processing manager is responsible for:
-
-1. Initializing a list of metadata tools to process
-2. For each tool (exiftool, mediainfo, mediatrace, ffprobe):
-   - Calling `run_tool_command()` to execute the tool
-   - Checking if the tool is enabled in the configuration
-   - If enabled, parsing the tool output and comparing against specifications
-   - Storing any found differences in a dictionary
-3. Returning the consolidated metadata differences
-
-This structured approach ensures that each tool is processed consistently, while respecting the configuration settings for each tool.
-
-## Outputs Processing Flow
-
-The outputs processing component handles the generation of reports, QCTools processing, and access file creation based on configuration settings. This flow is visualized below:
-
-```mermaid
-flowchart TD
-    A[process_video_outputs] --> B{Report enabled?}
-    
-    B -->|Yes| E[Create report directory]
-    B -->|No| F[Skip report]
-    
-    E --> G[Create metadata difference report]
-    F --> H{QCTools enabled?}
-    G --> H
-    
-    H -->|Yes| I[Process QCTools output]
-    H -->|No| J[Skip QCTools]
-    
-    I --> K{Access file enabled?}
-    J --> K
-    
-    K -->|Yes| L[Process access file]
-    K -->|No| M[Skip access file]
-    
-    L --> N{Report enabled?}
-    M --> N
-    
-    N -->|Yes| O[Generate final HTML report]
-    N -->|No| P[Skip final report]
-    
-    O --> Q[Return processing results]
-    P --> Q
-```
-
-The `process_video_outputs()` function in the processing manager follows this sequence:
-
-1. Check if report generation is enabled in the configuration
-   - If enabled, create a report directory and generate a metadata difference report
-   - If disabled, skip report generation
-
-2. Check if QCTools processing is enabled
-   - If enabled, process the QCTools output (generate graphs, extract frames)
-   - If disabled, skip QCTools processing
-
-3. Check if access file creation is enabled
-   - If enabled, create a lower-resolution access copy of the video
-   - If disabled, skip access file creation
-
-4. If reporting is enabled, generate a final HTML report with all findings
-5. Return the processing results
-
-Each step in this flow checks the relevant configuration settings before proceeding, ensuring that only the requested outputs are generated. This approach maximizes efficiency by skipping unnecessary processing steps based on the user's configuration.
+7. **Completion**
+    Upon completion of the single directory loop, the CLI app outputs the video ID in ASCII art, and, if additional source directories were provided, begins the loop again.
