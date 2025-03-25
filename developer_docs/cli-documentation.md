@@ -73,23 +73,20 @@ The CLI implementation follows a modular architecture with clear separation of c
 The main entry point to the CLI application is `av_spex_the_file.py`, which initializes the application, parses command-line arguments, and triggers the processing workflow.
 
 ### Initialization Sequence
-
+(Simplified code for brevity)
 ```python
 def main():
     """Main entry point for the AV Spex application."""
     args = parse_arguments()
     
-    # Initialize logging
-    setup_logging(args.verbose)
+    if args:
+        # Apply configuration changes from command line flags
+        run_cli_mode(args)
+        # If input directory provided, 
+        if args.source_directories:
+            # Run the processing workflow
+            run_avspex(args.source_directories)
     
-    # Apply configuration changes from command line flags
-    if args.on:
-        toggle_on(args.on)
-    if args.off:
-        toggle_off(args.off)
-    
-    # Run the processing workflow
-    run_avspex(args)
 ```
 
 ### Command-Line Argument Processing
@@ -101,25 +98,9 @@ def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(description='AV Spex: Process and analyze video files')
     
-    # Input files or directories
-    parser.add_argument('source', nargs='*', help='File or directory path to process')
-    
-    # Processing options
-    parser.add_argument('--output-dir', help='Directory to store output files')
-    parser.add_argument('--profile', choices=['step1', 'step2', 'full'], 
-                        help='Preset configuration profile to use')
-    
-    # Configuration toggles
-    parser.add_argument('--on', action='append', metavar='TOOL.FIELD',
-                        help='Enable a specific tool or check (e.g., mediainfo.run_tool)')
-    parser.add_argument('--off', action='append', metavar='TOOL.FIELD',
-                        help='Disable a specific tool or check (e.g., exiftool.run_tool)')
-    
-    # Logging options
-    parser.add_argument('-v', '--verbose', action='count', default=0,
-                        help='Increase verbosity (can be specified multiple times)')
-    
-    return parser.parse_args()
+    # Input directories or files
+    parser.add_argument("paths", nargs='*', help="Path to the input -f: video file(s) or -d: directory(ies)")
+
 ```
 
 ### Configuration Application
@@ -128,25 +109,18 @@ Before starting the processing, any command-line configuration changes are appli
 For more details on the ConfigManger, see the [config manager documentation](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/developer_docs/cli-documentation.md)   
 
 ```python
-def toggle_on(tool_names):
-    """Enable specified tools or checks."""
-    for tool_spec in tool_names:
-        try:
-            tool_name, field = tool_spec.split('.')
-            updates = {'tools': {tool_name: {field: 'yes'}}}
-            config_mgr.update_config('checks', updates)
-        except ValueError:
-            logger.warning(f"Invalid format '{tool_spec}'. Expected format: tool.field")
-
-def toggle_off(tool_names):
-    """Disable specified tools or checks."""
-    for tool_spec in tool_names:
-        try:
-            tool_name, field = tool_spec.split('.')
-            updates = {'tools': {tool_name: {field: 'no'}}}
-            config_mgr.update_config('checks', updates)
-        except ValueError:
-            logger.warning(f"Invalid format '{tool_spec}'. Expected format: tool.field")
+    parser.add_argument('--profile', choices=['step1', 'step2', 'off'], 
+                            help='Select preset processing profile')
+    
+    # Configuration toggles
+    parser.add_argument("--on", 
+                        action='append', 
+                         metavar="{tool_name.run_tool, tool_name.check_tool}",
+                         help="Turns on specific tool run_ or check_ option (format: tool.check_tool or tool.run_tool, e.g. mediainfo.run_tool)")
+    parser.add_argument("--off", 
+                        action='append', 
+                         metavar="{tool_name.run_tool, tool_name.check_tool}",
+                         help="Turns off specific tool run_ or check_ option (format: tool.check_tool or tool.run_tool, e.g. mediainfo.run_tool)")
 ```
 
 ### Processing Initiation
