@@ -381,8 +381,44 @@ class MainWindow(QMainWindow, ThemeableMixin):
                 }
             """)
         
+        # Refresh the logo
+        self._refresh_logo()
+        
         # Force repaint
         self.update()
+
+    def _refresh_logo(self):
+        """Refresh the logo when theme changes"""
+        # First, find and remove the existing logo layout
+        for i in range(self.main_layout.count()):
+            item = self.main_layout.itemAt(i)
+            # Check if this layout item contains our logo (you might need to adapt this check)
+            if item and item.layout() and item.layout().count() > 0:
+                widget = item.layout().itemAt(0).widget()
+                if isinstance(widget, QLabel) and widget.pixmap() is not None:
+                    # Remove the existing logo layout
+                    self._remove_layout_item(self.main_layout, i)
+                    break
+        
+        # Now load the new theme-appropriate logo
+        self._load_logo()
+
+    def _remove_layout_item(self, layout, index):
+        """Helper method to remove an item from a layout"""
+        if index >= 0 and index < layout.count():
+            item = layout.takeAt(index)
+            if item:
+                # If the item has a layout, we need to clear it first
+                if item.layout():
+                    while item.layout().count():
+                        child = item.layout().takeAt(0)
+                        if child.widget():
+                            child.widget().deleteLater()
+                # If the item has a widget, delete it
+                if item.widget():
+                    item.widget().deleteLater()
+                # Delete the item itself
+                del item
             
 
     def closeEvent(self, event):
@@ -839,8 +875,18 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self._load_logo()
 
     def _load_logo(self):
-        """Load and display the logo"""
-        logo_path = self.config_mgr.get_logo_path('Branding_avspex_noJPC_030725.png')
+        """Load and display the logo based on current theme"""
+        # Get ThemeManager instance
+        theme_manager = ThemeManager.instance()
+        
+        # Define light and dark logo paths
+        light_logo_path = self.config_mgr.get_logo_path('Branding_avspex_noJPC_030725.png')
+        dark_logo_path = self.config_mgr.get_logo_path('Branding_avspex_noJPC_inverted_032325.png')
+        
+        # Get appropriate logo for current theme
+        logo_path = theme_manager.get_theme_appropriate_logo(light_logo_path, dark_logo_path)
+        
+        # Create and add image layout
         image_layout = self.add_image_to_top(logo_path)
         self.main_layout.insertLayout(0, image_layout)  # Insert at index 0 (top)
 
@@ -955,7 +1001,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         config_scroll_area.setWidget(self.config_widget)
 
         # Set a minimum width for the config widget to ensure legibility
-        config_scroll_area.setMinimumWidth(400)
+        config_scroll_area.setMinimumWidth(450)
 
         config_layout.addWidget(config_scroll_area)
         self.config_group.setLayout(config_layout)
@@ -1603,23 +1649,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
             logger.error("Signal flow identifier not recognized, config not updated")
             return
 
-        # Update FFmpeg settings
-        self.config_mgr.update_config('spex', {
-            'ffmpeg_values': {
-                'format': {
-                    'tags': {
-                        'ENCODER_SETTINGS': sn_config_changes
-                    }
-                }
-            }
-        })
-
-        # Update MediaTrace settings 
-        self.config_mgr.update_config('spex', {
-            'mediatrace_values': {
-                'ENCODER_SETTINGS': sn_config_changes
-            }
-        })
+        if sn_config_changes:
+            config_edit.apply_signalflow_profile(sn_config_changes)
 
     def open_new_window(self, title, nested_dict):
         """Open a new window to display configuration details."""

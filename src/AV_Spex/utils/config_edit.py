@@ -2,7 +2,7 @@ from dataclasses import asdict
 from typing import List
 
 from ..utils.log_setup import logger
-from ..utils.config_setup import ChecksConfig, SpexConfig, FilenameProfile
+from ..utils.config_setup import ChecksConfig, SpexConfig, FilenameProfile, FilenameSection
 from ..utils.config_manager import ConfigManager
 
 
@@ -141,6 +141,45 @@ def apply_filename_profile(selected_profile: FilenameProfile):
     # Use set_config to ensure complete replacement
     config_mgr.set_config('spex', spex_config)
 
+def apply_signalflow_profile(selected_profile: dict):
+    """Apply signalflow profile changes to spex_config.
+    
+    Args:
+        selected_profile (dict): The signalflow profile to apply (encoder settings)
+    """
+    spex_config = config_mgr.get_config('spex', SpexConfig)
+    
+    # Validate input
+    if not isinstance(selected_profile, dict):
+        logger.critical(f"Invalid signalflow settings: {selected_profile}")
+        return
+    
+    # Update mediatrace_values.ENCODER_SETTINGS
+    # Each key in selected_profile should be a field in ENCODER_SETTINGS (like Source_VTR)
+    for key, value in selected_profile.items():
+        if hasattr(spex_config.mediatrace_values.ENCODER_SETTINGS, key):
+            setattr(spex_config.mediatrace_values.ENCODER_SETTINGS, key, value)
+    
+    # Now update ffmpeg_values.format.tags.ENCODER_SETTINGS if it exists
+    if (hasattr(spex_config, 'ffmpeg_values') and 
+        'format' in spex_config.ffmpeg_values and 
+        'tags' in spex_config.ffmpeg_values['format']):
+        
+        # Initialize ENCODER_SETTINGS as a dict if needed
+        if 'ENCODER_SETTINGS' not in spex_config.ffmpeg_values['format']['tags'] or \
+           spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'] is None:
+            spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'] = {}
+            
+        # Update the settings
+        for key, value in selected_profile.items():
+            spex_config.ffmpeg_values['format']['tags']['ENCODER_SETTINGS'][key] = value
+    
+    # Save the updated config
+    config_mgr.set_config('spex', spex_config)
+    
+    # Save the last used config
+    config_mgr.save_last_used_config('spex')
+
 
 def apply_profile(selected_profile):
     """Apply profile changes to checks_config.
@@ -255,7 +294,7 @@ profile_step1 = {
             "run_tool": "yes"
         },
         "ffprobe": {
-            "check_tool": "no",
+            "check_tool": "yes",
             "run_tool": "yes"
         },
         "mediaconch": {

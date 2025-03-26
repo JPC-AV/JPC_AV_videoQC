@@ -819,40 +819,21 @@ def extract_report_mkv(startObj, qctools_output_path):
     
     report_file_output = qctools_output_path.replace(".qctools.mkv", ".qctools.xml.gz")
 
+    # If previous report exists, remove it
     if os.path.isfile(report_file_output):
-        while True:
-            user_input = input(f"The file {os.path.basename(report_file_output)} already exists. \nExtract xml.gz from {os.path.basename(qctools_output_path)} and overwrite existing file? \n(y/n):\n")
-            if user_input.lower() in ["yes", "y"]:
-                os.remove(report_file_output)
-                # Run ffmpeg command to extract xml.gz report
-                full_command = [
-                    'ffmpeg', 
-                    '-hide_banner', 
-                    '-loglevel', 'panic', 
-                    '-dump_attachment:t:0', report_file_output, 
-                    '-i', qctools_output_path
-                ]
-                logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
-                logger.debug(f'Running command: {" ".join(full_command)}\n')
-                subprocess.run(full_command)
-                break
-            elif user_input.lower() in ["no", "n"]:
-                logger.debug('Processing existing qctools report, not extracting file\n')
-                break
-            else:
-                print("Invalid input. Please enter yes/no.\n")
-    else:
-        # Run ffmpeg command to extract xml.gz report
-        full_command = [
-            'ffmpeg', 
-            '-hide_banner', 
-            '-loglevel', 'panic', 
-            '-dump_attachment:t:0', report_file_output, 
-            '-i', qctools_output_path
-        ]
-        logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
-        logger.debug(f'Running command: {" ".join(full_command)}\n')
-        subprocess.run(full_command)
+        os.remove(report_file_output)
+
+    # Run ffmpeg command to extract xml.gz report
+    full_command = [
+        'ffmpeg', 
+        '-hide_banner', 
+        '-loglevel', 'panic', 
+        '-dump_attachment:t:0', report_file_output, 
+        '-i', qctools_output_path
+    ]
+    logger.info(f'Extracting qctools.xml.gz report from {os.path.basename(qctools_output_path)}\n')
+    logger.debug(f'Running command: {" ".join(full_command)}\n')
+    subprocess.run(full_command)
 
     if os.path.isfile(report_file_output):
         startObj = report_file_output
