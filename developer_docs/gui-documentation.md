@@ -18,21 +18,19 @@ PyQt6's import structure is organized into several modules, the main ones are:
     ```python
     from PyQt6.QtCore import Qt, QSize, QTimer, QRect, pyqtSignal
     ```
-    This module provides essential classes for signals/slots, geometry, threading, and other fundamental functionality.
 - `PyQt6.QtGui`
     Contains GUI-related classes that aren't widgets:
     ```python
     from PyQt6.QtGui import QIcon, QFont, QColor, QPainter, QPixmap
     ```
-    This module includes classes for painting, fonts, icons, colors, and other graphical elements.
 
 The AV Spex GUI code is divided across several scripts:
-├── gui_checks_window.py
-├── gui_console_textbox.py
-├── gui_main_window.py
-├── gui_processing_gui.py
-├── gui_signals.py
-└── gui_theme_manager.py
+- gui_checks_window.py
+- gui_console_textbox.py
+- gui_main_window.py
+- gui_processing_gui.py
+- gui_signals.py
+- gui_theme_manager.py
 
 ## Entry Point: 
 The gui is launched from the main_gui() function, which triggers the Loader:
@@ -41,10 +39,10 @@ The gui is launched from the main_gui() function, which triggers the Loader:
 def main_gui():
     args = parse_arguments()
     
-    # Get application (will show splash screen)
+    # Get application 
     app = LazyGUILoader.get_application()
     
-    # Get main window (will close splash screen after delay)
+    # Get main window 
     window = LazyGUILoader.get_main_window()
     window.show()
     
@@ -93,10 +91,9 @@ The `gui_main_window.py` contains the `MainWindow` class, which serves as the ce
     - Calls `setup_tabs()` to create the tabbed interface, which then calls:
         - `setup_checks_tab()` to build the Checks configuration UI
         - `setup_spex_tab()` to build the Spex configuration UI
-- `call_process_directories()`: Initializes and starts the worker thread
-    - `call_process_directories()` creates worker thread and connects worker-specific signals
+- `call_process_directories()`: creates worker thread and connects worker-specific signals
     - Calls `initialize_processing_window()` if needed
-        - `initialize_processing_window()` creates and configures the processing window
+        - `initialize_processing_window()` creates and configures the [processing window](#processing-window-and-console-text-box)
     - Signal connection: Connections between the GUI and Processor to report progress throughout the process (Described in detail in [AV Spex GUI Processing Signals Flow section](#AVSpexGUIProcessingSignalsFlow))
 
 ## Checks Window
@@ -112,9 +109,10 @@ The `gui_checks_window.py` contains the `ChecksWindow` class, which provides an 
 - `setup_fixity_section(main_layout)`
 - `setup_tools_section(main_layout)`
 
-Each section utilizes the ThemeManager to maintain consistent styling, using Qt GroupBoxes and the theme_manager.style_groupbox() function (more in the [Theme Manager section](#theme-manager-documentation)). Signal connections trigger updates through handler methods that work with the `ConfigManager` to persist changes to `ChecksConfig`.
+Each section utilizes the ThemeManager to maintain consistent styling, using Qt GroupBoxes and the ThemeManager's `style_groupbox()` function (more in the [Theme Manager section](#theme-manager-documentation)). Signal connections trigger updates through handler methods that work with the `ConfigManager` to persist changes to `ChecksConfig`.
 
 As described in the [ConfigManager documentation](https://github.com/JPC-AV/JPC_AV_videoQC/blob/main/developer_docs/config-manager-documentation.md), the updates to the `ChecksConfig` from the `ChecksWindow` primarily make use of the `ConfigManager`'s `update_config()` function, such as in the `on_checkbox_changed` function:
+
 ```python
  def on_checkbox_changed(self, state, path):
         """Handle changes in yes/no checkboxes"""
@@ -157,7 +155,7 @@ The `gui_processing_gui.py` contains the `ProcessingWindow` class, which provide
 
 The `details_text` component is an instance of `ConsoleTextEdit`, a customized `QTextEdit` widget defined in `gui_console_textbox.py`.
 
-The `update_status()` function is imported into the logger (`AV_Spex.utils.log_setup`) to push logging messages to the text box:
+The ProcessingWindow's `update_status()` function is imported into the logger (`AV_Spex.utils.log_setup`) to push logging messages to the text box:
 
 ```python
 # Initialize logger once on module import
@@ -203,7 +201,7 @@ The progress tracking uses signals defined in the signals system documented in t
 
 ## AV Spex GUI Processing Signals Flow
 
-The AV Spex GUI uses PyQt's signal-slot mechanism to handle processing events and update the user interface asynchronously. This document outlines the signal flow architecture between the main components of the application to help developers understand how processing events are communicated throughout the system.
+The AV Spex GUI uses PyQt's signal-slot mechanism to handle processing events and update the user interface asynchronously. This document outlines the signal flow architecture between the main components of the application to show how processing events are communicated throughout the system.
 
 ### 1. Signal Definition (`ProcessingSignals` Class)
 
@@ -228,6 +226,10 @@ class ProcessingSignals(QObject):
     mediaconch_progress = pyqtSignal(str) # MediaConch status updates
     metadata_progress = pyqtSignal(str) # Metadata status updates
     output_progress = pyqtSignal(str)   # Output creation status updates
+
+    stream_hash_progress = pyqtSignal(int)  # Signal for stream hash progress percentage
+    md5_progress = pyqtSignal(int)          # Signal for MD5 calculation progress percentage
+    access_file_progress = pyqtSignal(int)  # Signal for access file creation progress percentage
 ```
 
 ### 2. Main Window (`MainWindow` Class)
@@ -300,11 +302,14 @@ In the `MainWindow` class, the `setup_signal_connections` method connects signal
 
 ```python
 def setup_signal_connections(self):
-    # Processing window signals
+     # Processing window signals
     self.signals.started.connect(self.on_processing_started)
     self.signals.completed.connect(self.on_processing_completed)
     self.signals.error.connect(self.on_error)
     self.signals.cancelled.connect(self.on_processing_cancelled)
+
+    # Connect file_started signal to update main status label
+    self.signals.file_started.connect(self.update_main_status_label)
     
     # Tool-specific signals
     self.signals.tool_started.connect(self.on_tool_started)
@@ -378,9 +383,6 @@ def run(self):
 def process_single_directory(self, source_directory):
     if self.check_cancelled():
         return False
-
-    if self.signals:
-        self.signals.status_update.emit(f"Initializing directory: {source_directory}")
 
     # Process fixity...
     if fixity_enabled:
