@@ -4,7 +4,7 @@
 import os
 import sys
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from ..utils.log_setup import logger
 from ..utils.config_setup import ChecksConfig, SpexConfig
@@ -15,8 +15,6 @@ checks_config = config_mgr.get_config('checks', ChecksConfig)
 spex_config = config_mgr.get_config('spex', SpexConfig)
 
 
-## creates the function "parse_mediainfo" which takes the argument "file_path" which is intended to be a mediainfo -f text file
-# the majority of this script is defining this function. But the function is not run until the last line fo the script
 def parse_mediainfo(file_path):
     section_data = parse_mediainfo_json(file_path)
     mediainfo_differences = check_mediainfo_spex(section_data)
@@ -65,16 +63,44 @@ def parse_mediainfo_json(file_path: str) -> Dict[str, Dict[str, Any]]:
         
     return section_data
 
+
+def get_expected_fields(section_type: str) -> List[str]:
+    """
+    Get the list of expected fields from config_setup dataclasses based on the section type.
+    
+    Args:
+        section_type: Type of configuration ('General', 'Video', or 'Audio')
+        
+    Returns:
+        List of field names to extract
+    """
+    # Import required for introspection
+    import dataclasses
+    from ..utils.config_setup import MediainfoGeneralValues, MediainfoVideoValues, MediainfoAudioValues
+    
+    # Map section types to their corresponding dataclass types
+    dataclass_mapping = {
+        "General": MediainfoGeneralValues,
+        "Video": MediainfoVideoValues,
+        "Audio": MediainfoAudioValues
+    }
+    
+    if section_type in dataclass_mapping:
+        # Get the dataclass corresponding to this section
+        dataclass_type = dataclass_mapping[section_type]
+        
+        # Get field names from the dataclass
+        return [field.name for field in dataclasses.fields(dataclass_type)]
+    
+    return []
+
+
 def extract_general_data(track: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract relevant General track data"""
+    """Extract relevant General track data based on fields in the config"""
     general_data = {}
     
-    # Map directly to fields in MediainfoGeneralValues
-    fields_to_extract = [
-        "FileExtension",
-        "Format",
-        "OverallBitRate_Mode"
-    ]
+    # Get expected fields from config instead of hardcoding
+    fields_to_extract = get_expected_fields('General')
     
     for field in fields_to_extract:
         if field in track:
@@ -83,39 +109,18 @@ def extract_general_data(track: Dict[str, Any]) -> Dict[str, Any]:
     # Handle extra fields in General track
     if "extra" in track:
         extra = track["extra"]
-        if "ErrorDetectionType" in extra:
+        if "ErrorDetectionType" in extra and "ErrorDetectionType" in fields_to_extract:
             general_data["ErrorDetectionType"] = extra["ErrorDetectionType"]
     
     return general_data
 
+
 def extract_video_data(track: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract relevant Video track data"""
+    """Extract relevant Video track data based on fields in the config"""
     video_data = {}
     
-    # Map directly to fields in MediainfoVideoValues
-    fields_to_extract = [
-        "Format",
-        "Format_Settings_GOP",
-        "CodecID",
-        "Width",
-        "Height",
-        "PixelAspectRatio",
-        "DisplayAspectRatio",
-        "FrameRate_Mode_String",
-        "FrameRate",
-        "Standard",
-        "ColorSpace",
-        "ChromaSubsampling",
-        "BitDepth",
-        "ScanType",
-        "ScanOrder",
-        "Compression_Mode",
-        "colour_primaries",
-        "colour_primaries_Source",
-        "transfer_characteristics",
-        "transfer_characteristics_Source",
-        "matrix_coefficients"
-    ]
+    # Get expected fields from config instead of hardcoding
+    fields_to_extract = get_expected_fields('Video')
     
     for field in fields_to_extract:
         if field in track:
@@ -124,33 +129,28 @@ def extract_video_data(track: Dict[str, Any]) -> Dict[str, Any]:
     # Handle special cases from extra field
     if "extra" in track:
         extra = track["extra"]
-        # Handle MaxSlicesCount - note the case difference between JSON and expected field name
-        if "MaxSlicesCount" in extra:
+        # Check if these fields are expected based on the config
+        if "MaxSlicesCount" in extra and "MaxSlicesCount" in fields_to_extract:
             video_data["MaxSlicesCount"] = extra["MaxSlicesCount"]
-        # Handle ErrorDetectionType
-        if "ErrorDetectionType" in extra:
+        if "ErrorDetectionType" in extra and "ErrorDetectionType" in fields_to_extract:
             video_data["ErrorDetectionType"] = extra["ErrorDetectionType"]
     
     return video_data
 
+
 def extract_audio_data(track: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract relevant Audio track data"""
+    """Extract relevant Audio track data based on fields in the config"""
     audio_data = {}
     
-    # Direct mapping fields
-    direct_fields = [
-        "Format",
-        "Channels",
-        "SamplingRate",
-        "BitDepth",
-        "Compression_Mode"
-    ]
+    # Get expected fields from config instead of hardcoding
+    fields_to_extract = get_expected_fields('Audio')
     
-    for field in direct_fields:
+    for field in fields_to_extract:
         if field in track:
             audio_data[field] = track[field]
-
+    
     return audio_data
+
 
 def check_mediainfo_spex(section_data):
     """
@@ -162,15 +162,20 @@ def check_mediainfo_spex(section_data):
     Returns:
         Dictionary of differences between actual and expected values
     """
-    # Safely get expected values, defaulting to empty dictionaries if not present
-    expected_general = getattr(spex_config.mediainfo_values, 'expected_general', {})
-    expected_video = getattr(spex_config.mediainfo_values, 'expected_video', {})
-    expected_audio = getattr(spex_config.mediainfo_values, 'expected_audio', {})
-
     mediainfo_differences = {}
+    
+    
 
+    expected_general = spex_config.mediainfo_values.get("expected_general", {})
+    expected_video = spex_config.mediainfo_values.get("expected_video", {})
+    expected_audio = spex_config.mediainfo_values.get("expected_audio", {})
+        
+    #logger.debug(f"Expected general type: {type(expected_general)}")
+    #logger.debug(f"Expected video type: {type(expected_video)}")
+    #logger.debug(f"Expected audio type: {type(expected_audio)}")
+    
     # Check General section
-    if "General" in section_data:
+    if "General" in section_data and hasattr(expected_general, "items"):
         for expected_key, expected_value in expected_general.items():
             if expected_key in section_data["General"]:
                 actual_value = section_data["General"][expected_key]
@@ -209,11 +214,10 @@ def check_mediainfo_spex(section_data):
             logger.critical(f"Metadata field {mi_key} has a value of: {actual_value}\nThe expected value is: {expected_value}")
         logger.debug("")  # adding a space after results if there are failures
 
-
     return mediainfo_differences
 
 
-# Only execute if this file is run directly, not imported)
+# Only execute if this file is run directly, not imported
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python script.py <mediainfo_file>")
