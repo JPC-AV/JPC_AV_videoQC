@@ -5,20 +5,36 @@ import os
 import sys
 import json
 from dataclasses import asdict
+from typing import List
 
 from ..utils.log_setup import logger
-from ..utils.config_setup import ChecksConfig, SpexConfig
+from ..utils.config_setup import ChecksConfig, SpexConfig, ExiftoolValues
 from ..utils.config_manager import ConfigManager
 
 config_mgr = ConfigManager()
 checks_config = config_mgr.get_config('checks', ChecksConfig)
 spex_config = config_mgr.get_config('spex', SpexConfig)
 
+
 def parse_exiftool(file_path):
     exif_data_dict = parse_exiftool_json(file_path)
     exiftool_differences = check_exif_spex(exif_data_dict)
 
     return exiftool_differences
+
+
+def get_expected_fields() -> List[str]:
+    """
+    Get the list of expected fields from ExiftoolValues dataclass.
+    
+    Returns:
+        List of field names to extract
+    """
+    # Import required for introspection
+    import dataclasses
+    
+    # Get field names from the ExiftoolValues dataclass
+    return [field.name for field in dataclasses.fields(ExiftoolValues)]
 
 
 def parse_exiftool_json(file_path):
