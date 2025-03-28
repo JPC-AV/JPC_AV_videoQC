@@ -17,8 +17,10 @@ from ..gui.gui_theme_manager import ThemeManager, ThemeableMixin
 
 from ..utils.config_setup import SpexConfig, ChecksConfig
 from ..utils.config_manager import ConfigManager
-from ..utils.log_setup import logger
+from ..utils.config_io import ConfigIO
 from ..utils import config_edit
+
+from ..utils.log_setup import logger
 
 from ..processing.worker_thread import ProcessingWorker
 from ..processing.avspex_processor import AVSpexProcessor
@@ -37,6 +39,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
         self.processing_window = None
 
         # Initialize collections for theme-aware components
+        self.import_tab_group_boxes = [] 
         self.spex_tab_group_boxes = []
         self.checks_tab_group_boxes = []
 
@@ -62,7 +65,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
             self.tabs.setStyleSheet(theme_manager.get_tab_style())
         
         # Update all groupboxes in both tabs
-        for group_box in self.checks_tab_group_boxes + self.spex_tab_group_boxes:
+        for group_box in self.checks_tab_group_boxes + self.spex_tab_group_boxes + self.import_tab_group_boxes:
             theme_manager.style_groupbox(group_box)
             # Style buttons inside the group box
             theme_manager.style_buttons(group_box)
@@ -199,6 +202,7 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
         self.main_layout.addWidget(self.tabs)
 
+        self.setup_import_tab()
         self.setup_checks_tab()
         self.setup_spex_tab()
 
@@ -639,6 +643,303 @@ class MainWindow(QMainWindow, ThemeableMixin):
         image_layout = self.add_image_to_top(logo_path)
         self.main_layout.insertLayout(0, image_layout)  # Insert at index 0 (top)
 
+    def setup_import_tab(self):
+        """Set up the Import tab for directory selection"""
+        # Get the theme manager instance
+        theme_manager = ThemeManager.instance()
+        
+        # Initialize the group boxes collection for this tab
+        self.import_tab_group_boxes = []
+        
+        # Create the tab
+        import_tab = QWidget()
+        import_layout = QVBoxLayout(import_tab)
+        self.tabs.addTab(import_tab, "Import")
+        
+        # Main scroll area
+        main_scroll_area = QScrollArea(self)
+        main_scroll_area.setWidgetResizable(True)
+        main_widget = QWidget(self)
+        main_scroll_area.setWidget(main_widget)
+        
+        # Vertical layout for the content
+        vertical_layout = QVBoxLayout(main_widget)
+        
+        # Import directory section
+        self.import_group = QGroupBox("Import Directories")
+        theme_manager.style_groupbox(self.import_group, "top center")
+        self.import_tab_group_boxes.append(self.import_group)
+        
+        import_layout_section = QVBoxLayout()
+        
+        # Import directory button
+        import_directories_button = QPushButton("Import Directory...")
+        import_directories_button.clicked.connect(self.import_directories)
+        
+        # Directory section
+        directory_label = QLabel("Selected Directories:")
+        directory_label.setStyleSheet("font-weight: bold;")
+        self.directory_list = DirectoryListWidget(self)
+        self.directory_list.setStyleSheet("""
+            QListWidget {
+                border: 1px solid gray;
+                border-radius: 3px;
+            }
+        """)
+        
+        # Delete button
+        delete_button = QPushButton("Delete Selected")
+        delete_button.clicked.connect(self.delete_selected_directory)
+        
+        # Add widgets to layout
+        import_layout_section.addWidget(import_directories_button)
+        import_layout_section.addWidget(directory_label)
+        import_layout_section.addWidget(self.directory_list)
+        import_layout_section.addWidget(delete_button)
+        
+        self.import_group.setLayout(import_layout_section)
+        vertical_layout.addWidget(self.import_group)
+        
+        # Style all buttons in the section
+        theme_manager.style_buttons(self.import_group)
+
+        # Config Import section
+        self.config_import_group = QGroupBox("Config Import")
+        theme_manager.style_groupbox(self.config_import_group, "top center")
+        self.import_tab_group_boxes.append(self.config_import_group)
+        
+        config_import_layout = QVBoxLayout()
+        
+        # Description label
+        config_desc_label = QLabel("Import, export, or reset Checks/Spex configuration:")
+        config_desc_label.setStyleSheet("font-weight: bold;")
+        config_import_layout.addWidget(config_desc_label)
+        
+        # Add some spacing
+        config_import_layout.addSpacing(10)
+        
+        # Create buttons layout
+        buttons_layout = QHBoxLayout()
+        
+        # Import Config button
+        import_config_button = QPushButton("Import Config")
+        import_config_button.clicked.connect(self.import_config)
+        buttons_layout.addWidget(import_config_button)
+        
+        # Export Config button
+        export_config_button = QPushButton("Export Config")
+        export_config_button.clicked.connect(self.export_config)
+        buttons_layout.addWidget(export_config_button)
+        
+        # Reset to Default Config button
+        reset_config_button = QPushButton("Reset to Default")
+        reset_config_button.clicked.connect(self.reset_config)
+        buttons_layout.addWidget(reset_config_button)
+        
+        config_import_layout.addLayout(buttons_layout)
+        
+        self.config_import_group.setLayout(config_import_layout)
+        vertical_layout.addWidget(self.config_import_group)
+        
+        # Style all buttons in the config section
+        theme_manager.style_buttons(self.config_import_group)
+        
+        # Add scroll area to main layout
+        import_layout.addWidget(main_scroll_area)
+        
+        # Bottom section with processing controls
+        # Similar to what you have in checks_tab but just the processing-related buttons
+        bottom_row = QHBoxLayout()
+        bottom_row.setContentsMargins(0, 10, 0, 10)  # Add some vertical padding
+        
+        # Open Processing Window button
+        self.open_processing_button = QPushButton("Show Processing Window")
+        self.open_processing_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px 16px;
+                font-size: 14px;
+                background-color: white;
+                color: #4CAF50;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #d2ffed;
+            }
+            QPushButton:disabled {
+                background-color: #E8F5E9; 
+                color: #A5D6A7;             
+                opacity: 0.8;               
+            }
+        """)
+        self.open_processing_button.clicked.connect(self.on_open_processing_clicked)
+        # Initially disable the button since no processing is running
+        self.open_processing_button.setEnabled(False)
+        bottom_row.addWidget(self.open_processing_button)
+        
+        # Cancel button
+        self.cancel_processing_button = QPushButton("Cancel Processing")
+        self.cancel_processing_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px 16px;
+                font-size: 14px;
+                background-color: #ff9999;
+                color: #4d2b12;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #ff8080;
+            }
+            QPushButton:disabled {
+                background-color: #f5e9e3; 
+                color: #cd9e7f;             
+                opacity: 0.8;               
+            }
+        """)
+        self.cancel_processing_button.clicked.connect(self.cancel_processing)
+        self.cancel_processing_button.setEnabled(False)
+        bottom_row.addWidget(self.cancel_processing_button)
+        
+        # create layout for current processing
+        self.now_processing_layout = QVBoxLayout()
+        
+        # Add a status label that shows current file being processed
+        self.main_status_label = QLabel("Not processing")
+        self.main_status_label.setWordWrap(True)
+        self.main_status_label.setMaximumWidth(300)  # Limit width to prevent stretching
+        self.main_status_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)  # Minimize height
+        self.main_status_label.setVisible(False)  # initially hidden 
+        self.now_processing_layout.addWidget(self.main_status_label)
+        
+        # Add a small indeterminate progress bar
+        self.processing_indicator = QProgressBar(self)
+        self.processing_indicator.setMaximumWidth(100)  # Make it small
+        self.processing_indicator.setMaximumHeight(10)  # Make it shorter
+        self.processing_indicator.setRange(0, 0)
+        self.processing_indicator.setTextVisible(False)  # No percentage text
+        self.processing_indicator.setStyleSheet("""
+            QProgressBar {
+                background-color: palette(Base);
+                text-align: center;
+                padding: 1px;
+            }
+        """)
+        self.processing_indicator.setVisible(False)  # Initially hidden
+        self.now_processing_layout.addWidget(self.processing_indicator)
+        
+        # Add the processing button layout to the bottom row
+        # Use a stretch factor of 0 to keep it from expanding
+        bottom_row.addLayout(self.now_processing_layout, 0)
+        
+        # Add a stretch to push the Check Spex button to the right
+        bottom_row.addStretch(1)
+        
+        # Check Spex button
+        self.check_spex_button = QPushButton("Check Spex!")
+        self.check_spex_button.setStyleSheet("""
+            QPushButton {
+                font-weight: bold;
+                padding: 8px 16px;
+                font-size: 14px;
+                background-color: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QPushButton:disabled {
+                background-color: #A5D6A7; 
+                color: #E8F5E9;             
+                opacity: 0.8;               
+            }
+        """)
+        self.check_spex_button.clicked.connect(self.on_check_spex_clicked)
+        bottom_row.addWidget(self.check_spex_button, 0)
+        
+        import_layout.addLayout(bottom_row)
+
+    def import_config(self):
+        """Import configuration from a file."""
+        file_dialog = QFileDialog(self, "Import Configuration")
+        file_dialog.setNameFilter("Config Files (*.json);;All Files (*)")
+        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+        
+        if file_dialog.exec():
+            file_path = file_dialog.selectedFiles()[0]
+            try:
+                # Use the ConfigIO class to import config
+                config_io = ConfigIO(self.config_mgr)
+                config_io.import_configs(file_path)
+                
+                # Reload UI components to reflect new settings
+                if hasattr(self, 'config_widget') and self.config_widget:
+                    self.config_widget.load_config_values()
+                
+                QMessageBox.information(self, "Success", f"Configuration imported successfully from {file_path}")
+            except Exception as e:
+                logger.error(f"Error importing config: {str(e)}")
+                QMessageBox.critical(self, "Error", f"Error importing configuration: {str(e)}")
+
+    def export_config(self):
+        """Export configuration to a file."""
+        file_dialog = QFileDialog(self, "Export Configuration")
+        file_dialog.setNameFilter("JSON Files (*.json);;All Files (*)")
+        file_dialog.setFileMode(QFileDialog.FileMode.AnyFile)
+        file_dialog.setAcceptMode(QFileDialog.AcceptMode.AcceptSave)
+        file_dialog.setDefaultSuffix("json")
+        
+        if file_dialog.exec():
+            file_path = file_dialog.selectedFiles()[0]
+            try:
+                # Use the ConfigIO class to export config
+                config_io = ConfigIO(self.config_mgr)
+                config_io.save_configs(file_path)
+                
+                QMessageBox.information(self, "Success", f"Configuration exported successfully to {file_path}")
+            except Exception as e:
+                logger.error(f"Error exporting config: {str(e)}")
+                QMessageBox.critical(self, "Error", f"Error exporting configuration: {str(e)}")
+
+    def reset_config(self):
+        """Reset configuration to default values."""
+        # Ask for confirmation
+        result = QMessageBox.question(
+            self,
+            "Confirm Reset",
+            "Are you sure you want to reset all configuration to default values? This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if result == QMessageBox.StandardButton.Yes:
+            try:
+                # Reset config by removing user config files
+                user_config_dir = self.config_mgr._user_config_dir
+                try:
+                    # Remove the user config files
+                    os.remove(os.path.join(user_config_dir, "last_used_checks_config.json"))
+                    os.remove(os.path.join(user_config_dir, "last_used_spex_config.json"))
+                    
+                    # Reinitialize configs from default
+                    self.config_mgr.configs['checks'] = ChecksConfig()
+                    self.config_mgr.configs['spex'] = SpexConfig()
+                    
+                    # Reload UI components to reflect new settings
+                    if hasattr(self, 'config_widget') and self.config_widget:
+                        self.config_widget.load_config_values()
+                    
+                    QMessageBox.information(self, "Success", "Configuration has been reset to default values")
+                except FileNotFoundError:
+                    # It's okay if the files don't exist
+                    QMessageBox.information(self, "Information", "Already using default configuration")
+            except Exception as e:
+                logger.error(f"Error resetting config: {str(e)}")
+                QMessageBox.critical(self, "Error", f"Error resetting configuration: {str(e)}")
+
     def setup_checks_tab(self):
         """Set up or update the Checks tab with theme-aware styling"""
         # Get the theme manager instance
@@ -662,45 +963,8 @@ class MainWindow(QMainWindow, ThemeableMixin):
         # Vertical layout for the main content in "Checks"
         vertical_layout = QVBoxLayout(main_widget)
 
-        # 1. Import directory section
-        self.import_group = QGroupBox("Import")
-        theme_manager.style_groupbox(self.import_group, "top center")
-        self.checks_tab_group_boxes.append(self.import_group)
-        
-        import_layout = QVBoxLayout()
 
-        # Import directory button
-        import_directories_button = QPushButton("Import Directory...")
-        import_directories_button.clicked.connect(self.import_directories)
-        
-        # Directory section
-        directory_label = QLabel("Selected Directories:")
-        directory_label.setStyleSheet("font-weight: bold;")
-        self.directory_list = DirectoryListWidget(self)
-        self.directory_list.setStyleSheet("""
-            QListWidget {
-                border: 1px solid gray;
-                border-radius: 3px;
-            }
-        """)
-        
-        # Delete button
-        delete_button = QPushButton("Delete Selected")
-        delete_button.clicked.connect(self.delete_selected_directory)
-        
-        # Add widgets to layout
-        import_layout.addWidget(import_directories_button)
-        import_layout.addWidget(directory_label)
-        import_layout.addWidget(self.directory_list)
-        import_layout.addWidget(delete_button)
-        
-        self.import_group.setLayout(import_layout)
-        vertical_layout.addWidget(self.import_group)
-        
-        # Style all buttons in the section
-        theme_manager.style_buttons(self.import_group)
-
-        # 2. Command Profile section
+        # 1. Checks Profile section
         self.profile_group = QGroupBox("Checks Profiles")
         theme_manager.style_groupbox(self.profile_group, "top center")
         self.checks_tab_group_boxes.append(self.profile_group)
@@ -758,121 +1022,6 @@ class MainWindow(QMainWindow, ThemeableMixin):
 
         # Add scroll area to main layout
         checks_layout.addWidget(main_scroll_area)
-
-        # Bottom button section
-        bottom_row = QHBoxLayout()
-        bottom_row.setContentsMargins(0, 10, 0, 10)  # Add some vertical padding
-
-        # Open Processing Window button
-        self.open_processing_button = QPushButton("Show Processing Window")
-        self.open_processing_button.setStyleSheet("""
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: white;
-                color: #4CAF50;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #d2ffed;
-            }
-            QPushButton:disabled {
-                background-color: #E8F5E9; 
-                color: #A5D6A7;             
-                opacity: 0.8;               
-            }
-        """)
-        self.open_processing_button.clicked.connect(self.on_open_processing_clicked)
-        # Initially disable the button since no processing is running
-        self.open_processing_button.setEnabled(False)
-        bottom_row.addWidget(self.open_processing_button)
-
-        # Cancel button
-        self.cancel_processing_button = QPushButton("Cancel Processing")
-        self.cancel_processing_button.setStyleSheet("""
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: #ff9999;
-                color: #4d2b12;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #ff8080;
-            }
-            QPushButton:disabled {
-                background-color: #f5e9e3; 
-                color: #cd9e7f;             
-                opacity: 0.8;               
-            }
-        """)
-
-        self.cancel_processing_button.clicked.connect(self.cancel_processing)
-        self.cancel_processing_button.setEnabled(False)
-        bottom_row.addWidget(self.cancel_processing_button)
-
-        # create layout for current processing
-        self.now_processing_layout = QVBoxLayout()
-
-        # Add a status label that shows current file being processed
-        self.main_status_label = QLabel("Not processing")
-        self.main_status_label.setWordWrap(True)
-        self.main_status_label.setMaximumWidth(300)  # Limit width to prevent stretching
-        self.main_status_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)  # Minimize height
-        self.main_status_label.setVisible(False) # initially hidden 
-        self.now_processing_layout.addWidget(self.main_status_label)
-        
-        # Add a small indeterminate progress bar
-        self.processing_indicator = QProgressBar(self)
-        self.processing_indicator.setMaximumWidth(100)  # Make it small
-        self.processing_indicator.setMaximumHeight(10)  # Make it shorter
-        self.processing_indicator.setRange(0, 0)
-        self.processing_indicator.setTextVisible(False)  # No percentage text
-        self.processing_indicator.setStyleSheet("""
-            QProgressBar {
-                background-color: palette(Base);
-                text-align: center;
-                padding: 1px;
-            }
-        """)
-        self.processing_indicator.setVisible(False)  # Initially hidden
-        self.now_processing_layout.addWidget(self.processing_indicator)
-
-        # Add the processing button layout to the bottom row
-        # Use a stretch factor of 0 to keep it from expanding
-        bottom_row.addLayout(self.now_processing_layout, 0)  
-
-        # Add a stretch to push the Check Spex button to the right
-        bottom_row.addStretch(1)
-
-        # Check Spex button
-        self.check_spex_button = QPushButton("Check Spex!")
-        self.check_spex_button.setStyleSheet("""
-            QPushButton {
-                font-weight: bold;
-                padding: 8px 16px;
-                font-size: 14px;
-                background-color: #4CAF50;
-                color: white;
-                border: none;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-            QPushButton:disabled {
-                background-color: #A5D6A7; 
-                color: #E8F5E9;             
-                opacity: 0.8;               
-            }
-        """)
-        self.check_spex_button.clicked.connect(self.on_check_spex_clicked)
-        bottom_row.addWidget(self.check_spex_button, 0)
-        checks_layout.addLayout(bottom_row)
 
     def update_main_status_label(self, filename, current_index=None, total_files=None):
         """Update the status label in the main window."""
