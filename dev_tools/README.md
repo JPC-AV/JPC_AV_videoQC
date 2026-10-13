@@ -106,3 +106,47 @@ methods.
   behind the October 2026 change to 6 × 30. That study's outputs were imported as the run
   `period-study-2026-10` (`corpus.py import`), and replaying it reproduces the original grid
   cell for cell.
+- `replays/bin_table.py <run> [--screen]` writes one row per 10 s bin with every QCTools tag's
+  per-bin statistics, the bin's suitability, score and families, and whether today's selection
+  covers it. `--screen` ranks every tag statistic without labels (availability, spread,
+  redundancy with scored metrics, correlation with luma and with motion, and where today's
+  score puts the tag's peak bin) to decide which tags are worth labeling for.
+- `replays/tag_weights.py <run>` scores tags and scoring configurations against operator labels
+  (see below). It needs labels, so run it after a labeling round.
+
+All three replays share `replays/_selection.py`, which rebuilds stage 0 from the corpus and runs
+stages 1–3. Loading a package walks its QCTools report three times, so the result is cached in
+`$AVSPEX_CORPUS/cache/` (~0.5 MB per package). The cache key covers the report and the source
+of the selection modules, so editing any of them rebuilds it. With a warm cache, a replay of the
+whole study run takes seconds.
+
+## Weighing tags (labels)
+
+The corpus ground truth (active-area BRNG/TOUT/VREP) is what period selection already scores,
+so it can catch a regression but it can't give credit to a tag that isn't scored yet. That
+takes an operator.
+
+1. `python3 dev_tools/replays/bin_table.py <run> --screen`: pick candidate tags and update
+   `NEW_CANDIDATES` in `label_sheet.py`.
+2. `python3 dev_tools/label_sheet.py <run> --probe --name round1` (drives mounted the first time,
+   for start timecodes) writes to `$AVSPEX_CORPUS/labels/`:
+   - `sheet_round1.csv`: ~12 bins per tape. Each tape gets 2 random controls, the peak bin of
+     every candidate tag, today's evidence bins and runner-up bins, sorted by tape and timecode.
+     `tc_in`/`tc_out` are the file's own NDF/DF timecode, as the NLE shows it.
+   - `key_round1.json`: why each bin was picked. Don't open it while labeling.
+3. Fill in `defect` (`none, dropout, head_switching_tracking, sync_loss_roll, illegal_levels,
+   chroma_error, noise, signal_loss_freeze, graphics_slate_only, other`; join several with
+   `+`) and `severity` (0 nothing worth a period, 1 visible, 2 obvious). Leave a row blank to
+   skip it.
+4. `python3 dev_tools/replays/tag_weights.py <run>` reports:
+   - per tag: hit rate of its top bins against the control base rate, and AUC overall and by
+     defect type
+   - per configuration (`CONFIGS`, which are `bin_scoring` metric and weight variants): damage
+     recall, estimated precision of the bins it targets, the ground-truth guard and a hold-out
+     across collections and tapes
+5. Bins a configuration targets that nobody has labeled are valued at the control base rate
+   and listed in `tag_weights_per_tape.csv`. A new `label_sheet.py --name round2` skips bins
+   already labeled, so the second round only asks about new ones.
+
+`labels/seed_labels.csv` holds earlier operator spot checks (same columns plus `bin_start` in
+seconds). Labels are keyed by `(video_id, bin_start)`, so they carry over to future runs.
